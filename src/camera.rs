@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
@@ -59,7 +58,6 @@ fn setup(mut commands: Commands,
     ..default()
   })
   .insert(MainCamera)
-  .insert(RaycastPickCamera::default())
   .insert(Name::new("Main Camera"))
   ;
 

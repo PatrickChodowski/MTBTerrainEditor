@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::pbr::wireframe::Wireframe;
+#[allow(unused_imports)]
 use bevy::utils::{HashMap, HashSet};
+#[allow(unused_imports)]
 use bevy::render::mesh::Indices;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -10,10 +12,7 @@ use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, 
 use crate::tools::mapgrid::{MIN_X, MAX_X, MIN_Z, MAX_Z};
 use crate::utils::read_txt;
 
-const WATER_HEIGHT: f32 = 0.0;
-pub const SUBDIVISIONS: u32 = 10;
-pub const WIDTH: f32 = 1000.0;
-
+// const WATER_HEIGHT: f32 = 0.0;
 
 
 pub struct TerrainPlugin;
@@ -37,12 +36,12 @@ impl Plugin for TerrainPlugin {
 fn setup(mut commands:           Commands,
          mut meshes:             ResMut<Assets<Mesh>>,
          mut materials:          ResMut<Assets<StandardMaterial>>,
-         mut terrain_settings:   ResMut<TerrainSettings>,
+        terrain_settings:        ResMut<TerrainSettings>,
          terraces:               Res<Terraces>,
          colors:                 Res<GridColors>,
         ){
 
-    if let Some((terrain_mesh, positions_vec)) = generate_plane(&terrain_settings, &terraces, &colors) { 
+    if let Some((terrain_mesh, _positions_vec)) = generate_plane(&terrain_settings, &terraces, &colors) { 
 
         commands
         .spawn(PbrBundle {
@@ -56,6 +55,8 @@ fn setup(mut commands:           Commands,
     }
 }
 
+pub const SUBDIVISIONS: u32 = 1;
+pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
 
@@ -64,6 +65,12 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
         subdivisions: SUBDIVISIONS
     });
 
+    let vertex_count: u32 = (SUBDIVISIONS+2)*(SUBDIVISIONS+2);
+    let quad_count: u32 = (SUBDIVISIONS+1)*(SUBDIVISIONS+1);
+
+    println!("  Subdivision count: {} ", SUBDIVISIONS);
+    println!("  Vertex count: {} ", vertex_count);
+    println!("  Quad count: {} ", quad_count);
 
     if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
         let positions_array: Option<&[[f32; 3]]> = pos.as_float3();
@@ -85,22 +92,14 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
                 colors_vec.push(t_hc.1);
                 // colors_vec.push(color);
             }
+            let mesh_data = MeshData::extract(&mesh);
 
-            // if SUBDIVISIONS > 0 {  
-            //     let retain_idx = reduce(&positions_vec, WIDTH);  
-            //     positions_vec = retain_idx.iter().map(|&index| positions_vec[index]).collect();
-            //     colors_vec = retain_idx.iter().map(|&index| colors_vec[index]).collect();
-            //     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, get_normals(&positions_vec));
-            //     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, get_uvs(&positions_vec, WIDTH));
-            //     mesh.set_indices(Some(Indices::U32(get_indices(&positions_vec))));
-            // }
-            println!("position vec: {:?}", positions_vec);
-
+            for quad_id in 0..quad_count {
+                let _q0 = mesh_data.get_quad(quad_id);
+            }
+            
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
             mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
-
-            // println!("mesh: {:?}", mesh);
-
 
             return Some((mesh, positions_vec));
         }
@@ -109,100 +108,64 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
     return None;
 }
 
-
-
-// Optimize mesh: neighbouring vertices of the same height can be dissolved. Returns indexes of vertices that will stay
-fn reduce(vertices: &Vec<[f32; 3]>, size: f32) -> Vec<usize> {
-
-    let mut last_height: f32 = vertices[0][1];// height of first position
-    let mut to_delete_idx: Vec<usize> = Vec::with_capacity(vertices.len());
-    let corners: Vec<f32> = vec![size/2.0, -1.0*size/2.0];
-
-
-    for (idx, pos) in vertices.iter().enumerate(){
-
-        if idx == 0 {
-            continue; // dont remove first one
-        }
-
-        if idx == vertices.len() {
-            continue; // dont remove last one
-        }
-
-        if corners.contains(&pos[0]) && corners.contains(&pos[2]) {
-            continue; // dont remove corners
-        }
-
-        if pos[1] != last_height {
-            last_height = pos[1];
-            continue; // new height
-        }
-
-        // if current height is the same as last height and next vertex also has the same height, and we are in the same row
-        if pos[1] == last_height && vertices[idx+1][1] == last_height {
-            to_delete_idx.push(idx);
-        }
-    }
-
-    println!("vertex count {} for subs: {}", vertices.len(), SUBDIVISIONS);
-    println!("indexes to remove count to remove: {}", to_delete_idx.len());
-
-    let all_idx: Vec<usize> = (0 as usize..vertices.len()).collect();
-    let hash_retain_idx = &HashSet::from_iter(all_idx.iter()) - &HashSet::from_iter(to_delete_idx.iter());
-    let mut v_retain_idx: Vec<usize> = hash_retain_idx.into_iter().cloned().collect();
-    v_retain_idx.sort_by(|a,b| a.partial_cmp(b).unwrap());
-
-    return v_retain_idx;
-
+#[derive(Debug)]
+pub struct QuadData {
+    pub id:         u32,
+    pub pos:        Vec<[f32; 3]>,
+    pub norms:      Vec<[f32; 3]>,
+    pub uvs:        Vec<[f32; 2]>,
+    pub colors:     Vec<[f32; 4]>,
+    pub indices:    Vec<usize>
 }
-
-pub fn get_normals(pos: &Vec<[f32; 3]>) -> Vec<[f32; 3]>  {
-    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(pos.len());
-    let up = Vec3::Y.to_array();
-    for _i in 0..pos.len(){
-        normals.push(up);
+impl QuadData {
+    pub fn new() -> Self {
+        QuadData{id: 0, pos: Vec::new(), norms: Vec::new(), uvs: Vec::new(), colors: Vec::new(), indices: Vec::new()}
     }
-    return normals;
-}
-
-pub fn get_uvs(pos: &Vec<[f32; 3]>, size: f32) -> Vec<[f32; 2]>  {
-    let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(pos.len());
-    let hsize: f32 = size/2.0;
-
-    for p in pos.iter(){
-        let tx = p[0] + hsize/size;
-        let tz = p[2] + hsize/size;
-        uvs.push([tx, 1.0 - tz]);
-    }
-    return uvs;
-
-}
-
-pub fn get_indices(pos: &Vec<[f32; 3]>) -> Vec<u32>{
-    let hvcount: u32 = pos.len() as u32/2;
-    let num_indices = ((pos.len()/2 - 1) * (pos.len()/2 - 1) * 6) as usize;
-    let mut indices: Vec<u32> = Vec::with_capacity(num_indices);
-
-    for y in 0..hvcount - 1 {
-        for x in 0..hvcount - 1 {
-            let quad = y * hvcount + x;
-            indices.push(quad + hvcount + 1);
-            indices.push(quad + 1);
-            indices.push(quad + hvcount);
-            indices.push(quad);
-            indices.push(quad + hvcount);
-            indices.push(quad + 1);
-        }
-    }
-
-    return indices;
 }
 
 
+#[derive(Debug)]
+pub struct MeshData {
+    pub pos:            Vec<[f32; 3]>,
+    pub norms:          Vec<[f32; 3]>,
+    pub indices:        Vec<usize>,
+    pub index6:         Vec<usize>
 
+}
 
+impl MeshData {
+    pub fn new() -> Self {
+        MeshData{pos: Vec::new(), norms: Vec::new(), indices: Vec::new(), index6: (0..6).collect()}
+    }
 
+    pub fn extract(mesh: &Mesh) -> Self {
+        let mut md = MeshData::new();
 
+        if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+            md.pos = pos.as_float3().unwrap().to_vec();
+        }
+        if let Some(norm) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL) {
+            md.norms  = norm.as_float3().unwrap().to_vec();
+        }
+        if let Some(indices) = mesh.indices() {
+            md.indices = indices.iter().collect();
+        }
+        println!("       MESH DATA    ");
+        println!("{:?}", md);
+    
+        return md;
+    }
+
+    pub fn get_quad(&self, id: u32) -> QuadData {
+        let mut qd = QuadData::new();
+        qd.id = id;
+        qd.indices = self.index6.iter().map(|&index| self.indices[index+((id*6) as usize)]).collect();
+        qd.pos = qd.indices.iter().map(|&index| self.pos[index]).collect();
+        qd.norms = qd.indices.iter().map(|&index| self.norms[index]).collect();
+        println!("Quad Data: {:?}", qd);
+        return qd;
+    }
+}
 
 
 #[derive(Serialize, Deserialize)]
@@ -228,7 +191,7 @@ pub struct TerrainPresets {
 }
 
 impl<'a> TerrainPresets {
-    pub fn new() -> TerrainPresets {
+    pub fn _new() -> TerrainPresets {
         return TerrainPresets{data: HashMap::new()}
     }
 }
@@ -562,7 +525,7 @@ impl TerrainSettings {
             preset_name: None
         }
     }
-    pub fn update(&mut self, t: &SetTerrainEvent){
+    pub fn _update(&mut self, t: &SetTerrainEvent){
         if let Some(noise) = t.noise{
             self.noise = noise;
         }

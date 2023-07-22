@@ -55,7 +55,7 @@ fn setup(mut commands:           Commands,
     }
 }
 
-pub const SUBDIVISIONS: u32 = 1;
+pub const SUBDIVISIONS: u32 = 4;
 pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
@@ -65,45 +65,35 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
         subdivisions: SUBDIVISIONS
     });
 
-    let vertex_count: u32 = (SUBDIVISIONS+2)*(SUBDIVISIONS+2);
-    let quad_count: u32 = (SUBDIVISIONS+1)*(SUBDIVISIONS+1);
-
-    println!("  Subdivision count: {} ", SUBDIVISIONS);
-    println!("  Vertex count: {} ", vertex_count);
-    println!("  Quad count: {} ", quad_count);
-
     if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
-        let positions_array: Option<&[[f32; 3]]> = pos.as_float3();
 
-        if let Some(positions_array) = positions_array{
+        let mut positions_vec: Vec<[f32; 3]> = pos.as_float3().unwrap().to_vec();
+        let mut colors_vec: Vec<[f32; 4]> = Vec::new();
+        let noise_fn: NoiseFunc = NoiseFunc::build(ts.noise, ts.seed, ts.octaves, ts.freq);
 
-            let mut positions_vec: Vec<[f32; 3]> = positions_array.to_vec();
-            let mut colors_vec: Vec<[f32; 4]> = Vec::new();
-            let noise_fn: NoiseFunc = NoiseFunc::build(ts.noise, ts.seed, ts.octaves, ts.freq);
+        for pos in positions_vec.iter_mut() {
+            let mut height: f32 = noise_fn.apply(pos[0], pos[2], ts.scale);
+            height = apply_easing(height, ts.easing);
+            height = height*ts.scale_up;
 
-            for pos in positions_vec.iter_mut() {
-                let mut height: f32 = noise_fn.apply(pos[0], pos[2], ts.scale);
-                height = apply_easing(height, ts.easing);
-                height = height*ts.scale_up;
-
-                let t_hc =  apply_smooth_terrace_color(height, &terraces.data, &_colors);
-                pos[1] = t_hc.0;
-                // let color = apply_gradient(height, ts.scale_up);
-                colors_vec.push(t_hc.1);
-                // colors_vec.push(color);
-            }
-            let mesh_data = MeshData::extract(&mesh);
-
-            for quad_id in 0..quad_count {
-                let _q0 = mesh_data.get_quad(quad_id);
-            }
-            
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
-            mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
-
-            return Some((mesh, positions_vec));
+            let t_hc =  apply_smooth_terrace_color(height, &terraces.data, &_colors);
+            pos[1] = t_hc.0;
+            // let color = apply_gradient(height, ts.scale_up);
+            colors_vec.push(t_hc.1);
+            // colors_vec.push(color);
         }
-        return None;
+
+        let mut mesh_data = MeshData::extract(&mesh, SUBDIVISIONS);
+        // mesh_data.color_quad(0, &[1.0, 0.0, 0.0, 1.0], &mut colors_vec);
+
+
+        
+        // mesh_data.reduce();
+            
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
+
+        return Some((mesh, positions_vec));
     }
     return None;
 }
@@ -111,6 +101,8 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
 #[derive(Debug)]
 pub struct QuadData {
     pub id:         u32,
+    pub row:        u32, // position within the plane
+    pub col:        u32, // position within the plane
     pub pos:        Vec<[f32; 3]>,
     pub norms:      Vec<[f32; 3]>,
     pub uvs:        Vec<[f32; 2]>,
@@ -119,7 +111,11 @@ pub struct QuadData {
 }
 impl QuadData {
     pub fn new() -> Self {
-        QuadData{id: 0, pos: Vec::new(), norms: Vec::new(), uvs: Vec::new(), colors: Vec::new(), indices: Vec::new()}
+        QuadData{id: 0, row: 0, col: 0, pos: Vec::new(), norms: Vec::new(), uvs: Vec::new(), colors: Vec::new(), indices: Vec::new()}
+    }
+
+    pub fn can_merge(&self, other: &QuadData) -> bool {
+        return true;
     }
 }
 
@@ -129,17 +125,63 @@ pub struct MeshData {
     pub pos:            Vec<[f32; 3]>,
     pub norms:          Vec<[f32; 3]>,
     pub indices:        Vec<usize>,
-    pub index6:         Vec<usize>
+    pub index6:         Vec<usize>,
 
+    pub subdivisions:   u32,
+    pub vertex_count:   u32,
+    pub quads_count:    u32,
+    pub dimn:           u32, //count of quads in row/col
+
+    pub quads:          Vec<QuadData>
 }
 
 impl MeshData {
-    pub fn new() -> Self {
-        MeshData{pos: Vec::new(), norms: Vec::new(), indices: Vec::new(), index6: (0..6).collect()}
+    pub fn new(subdivisions: u32) -> Self {
+        MeshData{pos: Vec::new(), norms: Vec::new(), indices: Vec::new(), index6: (0..6).collect(), 
+            subdivisions, vertex_count: (subdivisions+2)*(subdivisions+2), quads_count: (subdivisions+1)*(subdivisions+1),
+            dimn: subdivisions +1, quads: Vec::new()
+        }
     }
 
-    pub fn extract(mesh: &Mesh) -> Self {
-        let mut md = MeshData::new();
+    pub fn get_quad(&self, quad_id: u32) -> Option<&QuadData> {
+        for qd in self.quads.iter(){
+            if qd.id == quad_id {
+                return Some(&qd);
+            }
+        }
+        return None;
+
+    }
+
+    // Takes color vector and changes quad by id
+    pub fn color_quad(&self, quad_id: u32, color: &[f32; 4], colors_vec: &mut Vec<[f32; 4]>) {
+        if let Some(qd) = self.get_quad(quad_id){
+            for idx in qd.indices.iter(){
+                colors_vec[*idx] = *color;
+            }
+        }
+    } 
+
+
+    // Try to combine quads
+    pub fn reduce(&mut self) {
+        let adjs: Vec<(u32, u32)> = vec![(0,1), (1,0), (1,1)];
+
+        // for each quad check if adj one exists, has the same normals, same height 
+
+        for qd in self.quads.iter(){
+
+
+
+
+
+        }
+
+
+    }
+
+    pub fn extract(mesh: &Mesh, subdivisions: u32) -> Self {
+        let mut md = MeshData::new(subdivisions);
 
         if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
             md.pos = pos.as_float3().unwrap().to_vec();
@@ -150,20 +192,32 @@ impl MeshData {
         if let Some(indices) = mesh.indices() {
             md.indices = indices.iter().collect();
         }
-        println!("       MESH DATA    ");
-        println!("{:?}", md);
+        // println!("       MESH DATA    ");
+        // println!("{:?}", md);
+
+        md.generate_quads();
     
         return md;
     }
 
-    pub fn get_quad(&self, id: u32) -> QuadData {
+    pub fn generate_quad(&self, id: u32) -> QuadData {
         let mut qd = QuadData::new();
         qd.id = id;
+
+        qd.row = id/self.dimn;
+        qd.col = id - qd.row*self.dimn;
+
         qd.indices = self.index6.iter().map(|&index| self.indices[index+((id*6) as usize)]).collect();
         qd.pos = qd.indices.iter().map(|&index| self.pos[index]).collect();
         qd.norms = qd.indices.iter().map(|&index| self.norms[index]).collect();
         println!("Quad Data: {:?}", qd);
         return qd;
+    }
+
+    pub fn generate_quads(&mut self) {
+        for quad_id in 0..self.quads_count {
+            self.quads.push(self.generate_quad(quad_id));
+        }
     }
 }
 

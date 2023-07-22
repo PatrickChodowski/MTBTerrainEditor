@@ -1,0 +1,14 @@
+use bevy::prelude::*;
+use libm::atan2f; 
+
+pub fn get_yaw(q: Quat) -> f32 {
+    //float Yaw = Mathf.Rad2Deg * Mathf.Atan2(2 * q.y * q.w - 2 * q.x * q.z, 1 - 2 * q.y * q.y - 2 * q.z * q.z);
+    return atan2f(2.0*q.y*q.w - 2.0*q.x *q.z, 1.0 - 2.0*q.y*q.y - 2.0*q.z*q.z);
+  }
+  
+  // Get Pitch from quaternion rotation
+  pub fn get_pitch(q: Quat) -> f32 {
+    // float Pitch = Mathf.Rad2Deg * Mathf.Atan2(2 * q.x * q.w - 2 * q.y * q.z, 1 - 2 * q.x * q.x - 2 * q.z * q.z);
+    return atan2f(2.0*q.x*q.w - 2.0*q.y*q.z, 1.0 - 2.0*q.x*q.x - 2.0*q.z*q.z);
+  }
+  

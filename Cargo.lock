@@ -1765,6 +1765,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eec1c01eb1de97451ee0d60de7d81cf1e72aabefb021616027f3d1c3ec1c723c"
+
+[[package]]
 name = "guillotiere"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2436,6 +2442,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "3.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc2dbde8f8a79f2102cc474ceb0ad68e3b80b85289ea62389b60e66777e4213"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2934,12 +2949,14 @@ dependencies = [
 
 [[package]]
 name = "terrain_generator"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bevy",
  "bevy_mod_picking",
+ "grid",
  "libm",
  "noise",
+ "ordered-float",
  "serde",
  "serde_json",
 ]

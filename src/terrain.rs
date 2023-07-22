@@ -6,6 +6,8 @@ use bevy::utils::{HashMap, HashSet};
 use bevy::render::mesh::Indices;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use ordered_float::OrderedFloat;
+use grid::*;
 use libm::powf;
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
 
@@ -55,7 +57,7 @@ fn setup(mut commands:           Commands,
     }
 }
 
-pub const SUBDIVISIONS: u32 = 4;
+pub const SUBDIVISIONS: u32 = 5;
 pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
@@ -83,12 +85,14 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
             // colors_vec.push(color);
         }
 
+        info!(" [START] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
         let mut mesh_data = MeshData::extract(&mesh, SUBDIVISIONS);
+        info!(" [DONE] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
         // mesh_data.color_quad(0, &[1.0, 0.0, 0.0, 1.0], &mut colors_vec);
 
-
-        
-        // mesh_data.reduce();
+        info!(" [START] Reduce" );
+        mesh_data.reduce();
+        info!(" [DONE] Reduce" );
             
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
@@ -98,24 +102,42 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
     return None;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct QuadData {
-    pub id:         u32,
-    pub row:        u32, // position within the plane
-    pub col:        u32, // position within the plane
-    pub pos:        Vec<[f32; 3]>,
-    pub norms:      Vec<[f32; 3]>,
-    pub uvs:        Vec<[f32; 2]>,
-    pub colors:     Vec<[f32; 4]>,
-    pub indices:    Vec<usize>
+    pub id:             u32,
+    pub row:            u32, // position within the plane
+    pub col:            u32, // position within the plane
+    pub pos:            Vec<[f32; 3]>,
+    pub norms:          Vec<[f32; 3]>,
+    pub uvs:            Vec<[f32; 2]>,
+    pub colors:         Vec<[f32; 4]>,
+    pub indices:        Vec<usize>,
+    pub unique_indices: Vec<usize>,
+    pub heights:        HashSet<OrderedFloat<f32>>      // any reddit post tells me not to compare floats but the vertex position is float and need to compare vertex positions...
 }
 impl QuadData {
     pub fn new() -> Self {
-        QuadData{id: 0, row: 0, col: 0, pos: Vec::new(), norms: Vec::new(), uvs: Vec::new(), colors: Vec::new(), indices: Vec::new()}
+        QuadData{id: 0, 
+                 row: 0, 
+                 col: 0,
+                 pos: Vec::new(), 
+                 norms: Vec::new(), 
+                 uvs: Vec::new(), 
+                 colors: Vec::new(), 
+                 indices: Vec::new(), 
+                 unique_indices: Vec::new(), 
+                 heights: HashSet::new()
+        }
     }
 
     pub fn can_merge(&self, other: &QuadData) -> bool {
-        return true;
+        // only for 0 and 1 now
+        if !(self.id == 0 && other.id == 1) {
+            return false;
+        }
+        let is_same: bool = self.heights == other.heights;
+        println!("  Can merge {} with {}? Answer: {}", self.id, other.id, is_same);
+        return is_same;
     }
 }
 
@@ -132,52 +154,94 @@ pub struct MeshData {
     pub quads_count:    u32,
     pub dimn:           u32, //count of quads in row/col
 
-    pub quads:          Vec<QuadData>
+    pub quads:          Grid<QuadData>
 }
 
 impl MeshData {
     pub fn new(subdivisions: u32) -> Self {
         MeshData{pos: Vec::new(), norms: Vec::new(), indices: Vec::new(), index6: (0..6).collect(), 
             subdivisions, vertex_count: (subdivisions+2)*(subdivisions+2), quads_count: (subdivisions+1)*(subdivisions+1),
-            dimn: subdivisions +1, quads: Vec::new()
+            dimn: subdivisions +1, quads: Grid::new((subdivisions +1) as usize, (subdivisions +1) as usize)
         }
     }
 
-    pub fn get_quad(&self, quad_id: u32) -> Option<&QuadData> {
+    pub fn get_quad_by_id(&self, quad_id: &u32) -> Option<&QuadData> {
         for qd in self.quads.iter(){
-            if qd.id == quad_id {
+            if &qd.id == quad_id {
                 return Some(&qd);
             }
         }
         return None;
-
     }
 
+    pub fn get_quad_by_pos(&self, row: u32, col: u32) -> &QuadData {
+        return &self.quads[row as usize][col as usize];
+    }
+
+    #[allow(dead_code)]
     // Takes color vector and changes quad by id
-    pub fn color_quad(&self, quad_id: u32, color: &[f32; 4], colors_vec: &mut Vec<[f32; 4]>) {
-        if let Some(qd) = self.get_quad(quad_id){
+    pub fn color_quad(&self, quad_id: &u32, color: &[f32; 4], colors_vec: &mut Vec<[f32; 4]>) {
+        if let Some(qd) = self.get_quad_by_id(quad_id){
             for idx in qd.indices.iter(){
                 colors_vec[*idx] = *color;
             }
         }
     } 
 
+    // Method merging 2 quads
+    pub fn merge_quads(&mut self, q1: &u32, q2: &u32){
+
+        let qd1 = self.get_quad_by_id(q1).unwrap();
+        let qd2 = self.get_quad_by_id(q2).unwrap();
+
+        let mut common_vertices: Vec<[f32; 3]> = Vec::with_capacity(2);
+
+        println!("qd1 pos: {:?}", qd1.pos);
+
+        for vertex in qd1.pos.iter(){
+            if qd2.pos.contains(vertex) {
+                common_vertices.push(*vertex);
+            } 
+        }
+
+        println!("common vertices: {:?}", common_vertices);
+
+    }
+
 
     // Try to combine quads
     pub fn reduce(&mut self) {
         let adjs: Vec<(u32, u32)> = vec![(0,1), (1,0), (1,1)];
 
+        // main quads and vector of quads that can be joined to it
+        let mut quads_to_merge: HashMap<u32, Vec<u32>> = HashMap::new();
+
         // for each quad check if adj one exists, has the same normals, same height 
 
         for qd in self.quads.iter(){
+            // info!("quad: {}", qd.id);
 
+            for adj in adjs.iter(){
+                let adj_row = qd.row + adj.0;
+                let adj_col = qd.col + adj.1;
+                if !(adj_row < self.dimn && adj_col < self.dimn) {
+                    continue; // Edge quad
+                }
 
-
-
-
+                let adj_qd = self.get_quad_by_pos(adj_row, adj_col);
+                if qd.can_merge(&adj_qd){
+                    quads_to_merge.entry(qd.id).or_insert(Vec::new()).push(adj_qd.id);
+                }
+            }
         }
 
+        println!("quads to merge: {:?}", quads_to_merge);
 
+        for (k,qids) in quads_to_merge.iter(){
+            for qid in qids.iter(){
+                self.merge_quads(k, qid);
+            }
+        }
     }
 
     pub fn extract(mesh: &Mesh, subdivisions: u32) -> Self {
@@ -192,8 +256,7 @@ impl MeshData {
         if let Some(indices) = mesh.indices() {
             md.indices = indices.iter().collect();
         }
-        // println!("       MESH DATA    ");
-        // println!("{:?}", md);
+        info!(" [EXTRACT MESH DATA] subs: {}, quads: {} vertex: {} dimns: {}", md.subdivisions, md.quads_count, md.vertex_count, md.dimn);
 
         md.generate_quads();
     
@@ -203,20 +266,22 @@ impl MeshData {
     pub fn generate_quad(&self, id: u32) -> QuadData {
         let mut qd = QuadData::new();
         qd.id = id;
-
         qd.row = id/self.dimn;
         qd.col = id - qd.row*self.dimn;
-
         qd.indices = self.index6.iter().map(|&index| self.indices[index+((id*6) as usize)]).collect();
-        qd.pos = qd.indices.iter().map(|&index| self.pos[index]).collect();
-        qd.norms = qd.indices.iter().map(|&index| self.norms[index]).collect();
-        println!("Quad Data: {:?}", qd);
+        // rust sometimes is just absurd syntax
+        qd.unique_indices = HashSet::from_iter(qd.indices.iter().cloned()).iter().cloned().collect();
+        qd.pos = qd.unique_indices.iter().map(|&index| self.pos[index]).collect();
+        qd.norms = qd.unique_indices.iter().map(|&index| self.norms[index]).collect();
+        qd.heights = HashSet::from_iter(qd.pos.iter().map(|pos| OrderedFloat(pos[1])));
+        // println!("Quad Data: {:?}", qd);
         return qd;
     }
 
     pub fn generate_quads(&mut self) {
         for quad_id in 0..self.quads_count {
-            self.quads.push(self.generate_quad(quad_id));
+            let qd = self.generate_quad(quad_id);
+            self.quads[qd.row as usize][qd.col as usize] = qd.clone();
         }
     }
 }

@@ -58,7 +58,7 @@ fn setup(mut commands:           Commands,
     }
 }
 
-pub const SUBDIVISIONS: u32 = 2;
+pub const SUBDIVISIONS: u32 = 500;
 pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
@@ -86,25 +86,38 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
             // colors_vec.push(color);
         }
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
+        // mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
 
 
 
 
         info!(" [START] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
-        let mesh_data = MeshData::extract(&mesh, SUBDIVISIONS);
+        let mut mesh_data = MeshData::extract(&mesh, SUBDIVISIONS, WIDTH);
         info!(" [DONE] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
         // mesh_data.color_quad(0, &[1.0, 0.0, 0.0, 1.0], &mut colors_vec);
 
         info!(" [START] search merges" );
-        let mut hm = mesh_data.search_merges();
+        let vec_vec_quads: Vec<Vec<QuadData>> = mesh_data.search_merges().clone();
+
         info!(" [DONE] search merges" );
 
 
-        for (k, vals) in hm.iter_mut(){
-            println!("keys: {} quads to add: {}/{}", k.id, vals.len()+1, mesh_data.quads_count);
-            mesh_data.merge_quads(k, vals);
+        for vec_quads in vec_vec_quads.iter(){
+            println!("Quads to add: {}/{}", vec_quads.len(), mesh_data.quads_count);
+            let mut corners = mesh_data.merge_quads(vec_quads);
+            mesh_data.reduce(&mut corners);
         }
+
+        println!(" [Mesh Data] pos: {:?}",       mesh_data.pos);
+        println!(" [Mesh Data] norms: {:?}",     mesh_data.norms);
+        println!(" [Mesh Data] uvs: {:?}",       mesh_data.uvs);
+        println!(" [Mesh Data] indices: {:?}",   mesh_data.indices);
+
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_data.pos);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL,   mesh_data.norms);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0,     mesh_data.uvs);
+        mesh.set_indices(Some(Indices::U32(mesh_data.indices)));
 
         return Some((mesh, positions_vec));
     }
@@ -120,8 +133,8 @@ pub struct QuadData {
     pub norms:          Vec<[f32; 3]>,
     pub uvs:            Vec<[f32; 2]>,
     pub colors:         Vec<[f32; 4]>,
-    pub indices:        Vec<usize>,
-    pub unique_indices: Vec<usize>,
+    pub indices:        Vec<u32>,
+    pub unique_indices: Vec<u32>,
     pub heights:        HashSet<OrderedFloat<f32>>      // any reddit post tells me not to compare floats but the vertex position is float and need to compare vertex positions...
 }
 
@@ -165,9 +178,11 @@ impl QuadData {
 pub struct MeshData {
     pub pos:            Vec<[f32; 3]>,
     pub norms:          Vec<[f32; 3]>,
-    pub indices:        Vec<usize>,
-    pub index6:         Vec<usize>,
+    pub uvs:            Vec<[f32; 2]>,
+    pub indices:        Vec<u32>,
+    pub index6:         Vec<u32>,
 
+    pub size:           f32,
     pub subdivisions:   u32,
     pub vertex_count:   u32,
     pub quads_count:    u32,
@@ -177,15 +192,23 @@ pub struct MeshData {
 }
 
 impl MeshData {
-    pub fn new(subdivisions: u32) -> Self {
-        MeshData{pos: Vec::new(), norms: Vec::new(), indices: Vec::new(), index6: (0..6).collect(), 
-            subdivisions, vertex_count: (subdivisions+2)*(subdivisions+2), quads_count: (subdivisions+1)*(subdivisions+1),
-            dimn: subdivisions +1, quads: Grid::new((subdivisions +1) as usize, (subdivisions +1) as usize)
+    pub fn new(subdivisions: u32, size: f32) -> Self {
+        MeshData{pos:           Vec::new(), 
+                 norms:         Vec::new(), 
+                 indices:       Vec::new(), 
+                 uvs:           Vec::new(),
+                 index6:        (0..6).collect(), 
+                 subdivisions, 
+                 size,  
+                 vertex_count:  (subdivisions+2)*(subdivisions+2), 
+                 quads_count:   (subdivisions+1)*(subdivisions+1),
+                 dimn:          subdivisions +1, 
+                 quads:         Grid::new((subdivisions +1) as usize, (subdivisions +1) as usize)
         }
     }
 
-    pub fn get_vertex_index(&self, pos: &[f32; 3]) -> usize {
-        return self.pos.iter().position(|x| x == pos).unwrap();
+    pub fn get_vertex_index(&self, pos: &[f32; 3]) -> u32 {
+        return self.pos.iter().position(|x| x == pos).unwrap() as u32;
     } 
 
     pub fn get_quad_by_id(&self, quad_id: &u32) -> Option<&QuadData> {
@@ -207,27 +230,62 @@ impl MeshData {
     pub fn color_quad(&self, quad_id: &u32, color: &[f32; 4], colors_vec: &mut Vec<[f32; 4]>) {
         if let Some(qd) = self.get_quad_by_id(quad_id){
             for idx in qd.indices.iter(){
-                colors_vec[*idx] = *color;
+                colors_vec[*idx as usize] = *color;
             }
         }
     } 
 
+    pub fn reduce(&mut self, corners: &mut Vec<u32>){
 
+        // println!("reduce vdelete: {:?}", vdelete);
+        corners.sort_by(|a,b| a.partial_cmp(&b).unwrap());
+        let mut corner_map: HashMap<u32, u32> = HashMap::new();
+        for (c, corner) in corners.iter().enumerate(){corner_map.insert(*corner, c as u32);};
+
+        let mut set_index: Vec<u32> = vec![3,1,2,0,2,1];
+        set_index.reverse();
+
+        let min_idx = corners.iter().min().unwrap();
+        let max_idx = corners.iter().max().unwrap();
+        // println!("  reduce corners: {:?}", corners);
+        // println!("  corners mapping: {:?}", corner_map);
+        // println!("min: {:?} max: {:?}", min_idx, max_idx);
+
+        self.pos = corners.iter().map(|&index| self.pos[index as usize]).collect();
+        self.norms = corners.iter().map(|&index| self.norms[index as usize]).collect();
+
+        // println!("old indices: {:?}", self.indices);
+        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices.len());
+
+        for idx in self.indices.iter(){
+            if idx > max_idx {
+                new_indices.push((idx - max_idx) as u32);
+            } else if corners.contains(idx){
+                new_indices.push(set_index.pop().unwrap())
+            } else if idx < min_idx {
+                new_indices.push(*idx);
+            }
+        }
+        // println!("new indices: {:?}", new_indices);
+ 
+        self.indices = new_indices;
+        self.calculate_uvs();
+
+    }
 
     // Method merging 2 quads
-    pub fn merge_quads<'a>(&self, qd1: &'a QuadData, vqds: &mut Vec<&'a QuadData>){
-        vqds.push(qd1);
+    pub fn merge_quads<'a>(&self, quads: &Vec<QuadData>) -> Vec<u32> {
 
         // find corner vertices
         let absurd_value: f32 = 99999.0;
 
-        let mut left_top: (usize, [f32; 3]) = (0, [absurd_value, 0.0, absurd_value]);
-        let mut right_top: (usize, [f32; 3]) = (0, [-absurd_value, 0.0, absurd_value]);
-        let mut left_bottom: (usize, [f32; 3]) = (0, [absurd_value, 0.0, -absurd_value]);
-        let mut right_bottom: (usize, [f32; 3]) = (0, [-absurd_value, 0.0, -absurd_value]);
+        let mut left_top: (u32, [f32; 3]) = (0, [absurd_value, 0.0, absurd_value]);
+        let mut right_top: (u32, [f32; 3]) = (0, [-absurd_value, 0.0, absurd_value]);
+        let mut left_bottom: (u32, [f32; 3]) = (0, [absurd_value, 0.0, -absurd_value]);
+        let mut right_bottom: (u32, [f32; 3]) = (0, [-absurd_value, 0.0, -absurd_value]);
 
-        for qd in vqds.iter(){
-            for pos in qd.pos.iter(){
+        for quad in quads.iter(){
+            for pos in quad.pos.iter(){
                 if pos[0] <= left_top.1[0] && pos[2] <= left_top.1[2] {
                     left_top = (self.get_vertex_index(pos), *pos);
                 }
@@ -243,28 +301,18 @@ impl MeshData {
             }
         }
 
-        println!("left top: {:?}", left_top);
-        println!("right top: {:?}", right_top);
-        println!("left bottom: {:?}", left_bottom);
-        println!("right bottom: {:?}", right_bottom);
+        println!(" [CORNER] left top: {:?}", left_top);
+        println!(" [CORNER] right top: {:?}", right_top);
+        println!(" [CORNER] left bottom: {:?}", left_bottom);
+        println!(" [CORNER] right bottom: {:?}", right_bottom);
         
-        let corners: Vec<usize> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
-        let mut v_to_delete: HashSet<usize> = HashSet::new();
-
-        for qd in vqds.iter(){
-            for idx in qd.indices.iter(){
-                if !corners.contains(idx){
-                    v_to_delete.insert(*idx);
-                }
-            }
-        }
-
-        println!("vertices to delete: {:?}", v_to_delete);
-
+        let corners: Vec<u32> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
+        return corners;
     }
 
 
-    pub fn search_merges(&self) -> HashMap<&QuadData, Vec<&QuadData>>  {
+    pub fn search_merges(&self) -> Vec<Vec<QuadData>>  {
+
         let mut quads_to_merge: HashMap<&QuadData, Vec<&QuadData>> = HashMap::new();
         let start_adjs: Vec<(u32, u32)> = vec![(1,1), (0,1), (1,0)];
 
@@ -318,12 +366,25 @@ impl MeshData {
             y += level;
         }
 
-        return quads_to_merge;
+        // compile result. its because I need a full copy of those quads to merge
+        let mut result: Vec<Vec<QuadData>> = Vec::new(); 
+        for (k,v) in quads_to_merge.iter(){
+            let mut v2: Vec<QuadData> = v.into_iter().cloned().cloned().collect(); // XD XD
+            v2.push(k.clone().clone());
+            result.push(v2);
+        }
+        return result;
+    }
+
+    pub fn calculate_uvs(&mut self){
+        for pos in self.pos.iter(){
+            self.uvs.push([(pos[0] + self.size/2.0)/self.size, (pos[2] + self.size/2.0)/self.size]);
+        }
     }
             
 
-    pub fn extract(mesh: &Mesh, subdivisions: u32) -> Self {
-        let mut md = MeshData::new(subdivisions);
+    pub fn extract(mesh: &Mesh, subdivisions: u32, size: f32) -> Self {
+        let mut md = MeshData::new(subdivisions, size);
 
         if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
             md.pos = pos.as_float3().unwrap().to_vec();
@@ -332,7 +393,7 @@ impl MeshData {
             md.norms  = norm.as_float3().unwrap().to_vec();
         }
         if let Some(indices) = mesh.indices() {
-            md.indices = indices.iter().collect();
+            md.indices = indices.iter().map(|x| x as u32).collect();
         }
         info!(" [EXTRACT MESH DATA] subs: {}, quads: {} vertex: {} dimns: {}", md.subdivisions, md.quads_count, md.vertex_count, md.dimn);
 
@@ -348,11 +409,11 @@ impl MeshData {
         qd.id = id;
         qd.row = id/self.dimn;
         qd.col = id - qd.row*self.dimn;
-        qd.indices = self.index6.iter().map(|&index| self.indices[index+((id*6) as usize)]).collect();
+        qd.indices = self.index6.iter().map(|&index| self.indices[index as usize +((id*6) as usize)] as u32).collect();
         // rust sometimes is just absurd syntax
         qd.unique_indices = HashSet::from_iter(qd.indices.iter().cloned()).iter().cloned().collect();
-        qd.pos = qd.unique_indices.iter().map(|&index| self.pos[index]).collect();
-        qd.norms = qd.unique_indices.iter().map(|&index| self.norms[index]).collect();
+        qd.pos = qd.unique_indices.iter().map(|&index| self.pos[index as usize]).collect();
+        qd.norms = qd.unique_indices.iter().map(|&index| self.norms[index as usize]).collect();
         qd.heights = HashSet::from_iter(qd.pos.iter().map(|pos| OrderedFloat(pos[1])));
         // println!("Quad Data: {:?}", qd);
         return qd;

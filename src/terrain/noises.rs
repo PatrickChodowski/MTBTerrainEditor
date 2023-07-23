@@ -5,16 +5,26 @@ use serde::{Serialize, Deserialize};
 use std::str::FromStr;
 use bevy::prelude::*;
 
-const HEIGHT_SCALE: f32 = 100.0;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+pub struct NoiseData {
+    pub noise:          Noises,
+    pub seed:           u32,
+    pub height_scale:   f32,
+    pub scale:          f64
+}
+
+
+
 
 // Apply basic noise function to the mesh
-pub fn apply_noise(mesh: &mut Mesh, noise: Noises) -> &Mesh {
+pub fn apply_noise(mesh: &mut Mesh, nd: NoiseData) -> &Mesh {
 
-    let noise_fn: NoiseFunc = NoiseFunc::build(noise, 0, None, None);
+    let noise_fn: NoiseFunc = NoiseFunc::build(nd.noise, nd.seed, None, None);
     let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
     for pos in v_pos.iter_mut() {
-        let height: f32 = noise_fn.apply(pos[0], pos[2], 0.01);
-        pos[1] = height*HEIGHT_SCALE;
+        let height: f32 = noise_fn.apply(pos[0], pos[2], nd.scale);
+        pos[1] = height*nd.height_scale;
     }
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
 

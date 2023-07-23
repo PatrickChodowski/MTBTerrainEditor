@@ -58,7 +58,8 @@ fn setup(mut commands:           Commands,
     }
 }
 
-pub const SUBDIVISIONS: u32 = 500;
+pub const OPTIMIZE: bool = true;
+pub const SUBDIVISIONS: u32 = 3;
 pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
@@ -88,36 +89,36 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions_vec.clone());
         // mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_vec);
 
+        if OPTIMIZE {
+
+            info!(" [START] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
+            let mut mesh_data = MeshData::extract(&mesh, SUBDIVISIONS, WIDTH);
+            info!(" [DONE] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
+            // mesh_data.color_quad(0, &[1.0, 0.0, 0.0, 1.0], &mut colors_vec);
 
 
+            info!(" [START] search merges" );
+            let vec_vec_quads: Vec<Vec<QuadData>> = mesh_data.search_merges().clone();
 
-        info!(" [START] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
-        let mut mesh_data = MeshData::extract(&mesh, SUBDIVISIONS, WIDTH);
-        info!(" [DONE] Extracting mesh - subdivisions: {}", SUBDIVISIONS);
-        // mesh_data.color_quad(0, &[1.0, 0.0, 0.0, 1.0], &mut colors_vec);
-
-        info!(" [START] search merges" );
-        let vec_vec_quads: Vec<Vec<QuadData>> = mesh_data.search_merges().clone();
-
-        info!(" [DONE] search merges" );
+            info!(" [DONE] search merges" );
 
 
-        for vec_quads in vec_vec_quads.iter(){
-            println!("Quads to add: {}/{}", vec_quads.len(), mesh_data.quads_count);
-            let mut corners = mesh_data.merge_quads(vec_quads);
-            mesh_data.reduce(&mut corners);
+            for vec_quads in vec_vec_quads.iter(){
+                println!("Quads to add: {}/{}", vec_quads.len(), mesh_data.quads_count);
+                let (mut corners, mut quad_ids) = mesh_data.merge_quads(vec_quads);
+                mesh_data.reduce(&mut corners, &mut quad_ids);
+            }
+            mesh_data.calculate_uvs();
+            println!(" [Mesh Data] pos: {:?}",       mesh_data.pos);
+            println!(" [Mesh Data] norms: {:?}",     mesh_data.norms);
+            println!(" [Mesh Data] uvs: {:?}",       mesh_data.uvs);
+            println!(" [Mesh Data] indices: {:?}",   mesh_data.indices);
+
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_data.pos);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL,   mesh_data.norms);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0,     mesh_data.uvs);
+            mesh.set_indices(Some(Indices::U32(mesh_data.indices)));
         }
-
-        println!(" [Mesh Data] pos: {:?}",       mesh_data.pos);
-        println!(" [Mesh Data] norms: {:?}",     mesh_data.norms);
-        println!(" [Mesh Data] uvs: {:?}",       mesh_data.uvs);
-        println!(" [Mesh Data] indices: {:?}",   mesh_data.indices);
-
-
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_data.pos);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL,   mesh_data.norms);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0,     mesh_data.uvs);
-        mesh.set_indices(Some(Indices::U32(mesh_data.indices)));
 
         return Some((mesh, positions_vec));
     }
@@ -168,7 +169,7 @@ impl QuadData {
 
     pub fn can_merge(&self, other: &QuadData) -> bool {
         let is_same: bool = self.heights == other.heights;
-        // println!("  Can merge {} with {}? Answer: {} ({:?},{:?})", self.id, other.id, is_same, self.heights, other.heights);
+        println!("  Can merge {} with {}? Answer: {} ({:?},{:?})", self.id, other.id, is_same, self.heights, other.heights);
         return is_same;
     }
 }
@@ -235,56 +236,78 @@ impl MeshData {
         }
     } 
 
-    pub fn reduce(&mut self, corners: &mut Vec<u32>){
+    pub fn reduce(&mut self, corners: &mut Vec<u32>, quad_ids: &mut Vec<u32>){
 
         // println!("reduce vdelete: {:?}", vdelete);
         corners.sort_by(|a,b| a.partial_cmp(&b).unwrap());
+        quad_ids.reverse();
         let mut corner_map: HashMap<u32, u32> = HashMap::new();
         for (c, corner) in corners.iter().enumerate(){corner_map.insert(*corner, c as u32);};
 
-        let mut set_index: Vec<u32> = vec![3,1,2,0,2,1];
-        set_index.reverse();
-
         let min_idx = corners.iter().min().unwrap();
         let max_idx = corners.iter().max().unwrap();
+        let min_quad_id = quad_ids.iter().min().unwrap();
+
         // println!("  reduce corners: {:?}", corners);
-        // println!("  corners mapping: {:?}", corner_map);
-        // println!("min: {:?} max: {:?}", min_idx, max_idx);
+        println!(" corners mapping: {:?}", corner_map);
+        println!(" index min: {} max: {}", min_idx, max_idx);
+        println!(" min_quad_id: {}", min_quad_id);
 
         self.pos = corners.iter().map(|&index| self.pos[index as usize]).collect();
         self.norms = corners.iter().map(|&index| self.norms[index as usize]).collect();
 
-        // println!("old indices: {:?}", self.indices);
-        let mut new_indices: Vec<u32> = Vec::with_capacity(self.indices.len());
+        println!("new pos: {:?}", self.pos);
+        println!("old indices: {:?}", self.indices);
 
-        for idx in self.indices.iter(){
-            if idx > max_idx {
-                new_indices.push((idx - max_idx) as u32);
-            } else if corners.contains(idx){
-                new_indices.push(set_index.pop().unwrap())
-            } else if idx < min_idx {
-                new_indices.push(*idx);
-            }
+        // indices copy:
+        let mut indc: Vec<u32> = self.indices.clone();
+
+        for qid in quad_ids.iter(){
+            // println!("removing quad id: {}", qid);
+            for _i in 0..6 {indc.remove((qid*6) as usize);}
         }
-        // println!("new indices: {:?}", new_indices);
- 
-        self.indices = new_indices;
-        self.calculate_uvs();
 
+        let mut set_index: Vec<u32> = vec![3,1,2,0,2,1];
+        set_index.reverse();
+
+
+        for idx in set_index.iter(){
+            indc.insert(*min_quad_id as usize, *idx)
+        }
+
+
+        println!("changed indices: {:?}", indc);
+
+
+
+        // for idx in self.indices.iter(){
+        //     if idx > max_idx {
+        //         new_indices.push((idx - max_idx) as u32);
+        //     } else if corners.contains(idx){
+        //         println!("used set index {}", idx);
+
+        //         new_indices.push(set_index.pop().unwrap())
+        //     } else if idx < min_idx {
+        //         new_indices.push(*idx);
+        //     }
+        // }
+        // println!("new indices: {:?}", new_indices);
+        self.indices = indc;
     }
 
-    // Method merging 2 quads
-    pub fn merge_quads<'a>(&self, quads: &Vec<QuadData>) -> Vec<u32> {
+    // Method merging 2 quads. Returns corners and smallest quad id
+    pub fn merge_quads<'a>(&self, quads: &Vec<QuadData>) -> (Vec<u32>, Vec<u32>) {
 
         // find corner vertices
         let absurd_value: f32 = 99999.0;
-
         let mut left_top: (u32, [f32; 3]) = (0, [absurd_value, 0.0, absurd_value]);
         let mut right_top: (u32, [f32; 3]) = (0, [-absurd_value, 0.0, absurd_value]);
         let mut left_bottom: (u32, [f32; 3]) = (0, [absurd_value, 0.0, -absurd_value]);
         let mut right_bottom: (u32, [f32; 3]) = (0, [-absurd_value, 0.0, -absurd_value]);
+        let mut quad_ids: Vec<u32> = Vec::with_capacity(quads.len());
 
         for quad in quads.iter(){
+            quad_ids.push(quad.id);
             for pos in quad.pos.iter(){
                 if pos[0] <= left_top.1[0] && pos[2] <= left_top.1[2] {
                     left_top = (self.get_vertex_index(pos), *pos);
@@ -305,9 +328,10 @@ impl MeshData {
         println!(" [CORNER] right top: {:?}", right_top);
         println!(" [CORNER] left bottom: {:?}", left_bottom);
         println!(" [CORNER] right bottom: {:?}", right_bottom);
+        println!(" [QUADS TO MERGE]: {:?}", quad_ids);
         
         let corners: Vec<u32> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
-        return corners;
+        return (corners, quad_ids);
     }
 
 
@@ -343,9 +367,13 @@ impl MeshData {
                 if qd.can_merge(adj_qd){
                     adjs_checks.push(true);
                     adj_qds.push(adj_qd);
+                } else {
+                    adjs_checks.push(false);
                 }
 
                 if expand_adjs.len() == 0 {
+
+                    println!("DEBUG done level {}. adj checks: {:?}", level, adjs_checks);
 
                     // if all match
                     if adjs_checks.iter().all(|a| *a){
@@ -370,7 +398,7 @@ impl MeshData {
         let mut result: Vec<Vec<QuadData>> = Vec::new(); 
         for (k,v) in quads_to_merge.iter(){
             let mut v2: Vec<QuadData> = v.into_iter().cloned().cloned().collect(); // XD XD
-            v2.push(k.clone().clone());
+            v2.insert(0, k.clone().clone());
             result.push(v2);
         }
         return result;

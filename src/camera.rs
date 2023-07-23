@@ -18,7 +18,7 @@ const CAMERA_MAX_Z: f32 = MAX_Z + 200.0;
 const CAMERA_START_Y: f32 = CAMERA_MAX_Y; // 1000.0
 const CAMERA_START_Z: f32 = MAX_Z; //MAX_Z = 1000.0 //MAX_Z*1.5
 
-const CAMERA_SPEED: f32 = 300.0;
+const CAMERA_SPEED: f32 = 400.0;
 const CAMERA_SENSITIVITY: f32 = 0.0001; // 0.00012 default
 
 pub struct CameraPlugin;

@@ -59,7 +59,7 @@ fn setup(mut commands:           Commands,
 }
 
 pub const OPTIMIZE: bool = true;
-pub const SUBDIVISIONS: u32 = 3;
+pub const SUBDIVISIONS: u32 = 20;
 pub const WIDTH: f32 = 1000.0;
 
 fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _colors: &Res<GridColors>)  -> Option<(Mesh, Vec<[f32; 3]>)> {
@@ -245,8 +245,8 @@ impl MeshData {
         v_keep.sort_by(|a,b| a.partial_cmp(b).unwrap());
         let mut v_dissolve: Vec<u32> = dissolve.iter().cloned().collect();
         v_dissolve.sort_by(|a,b| b.partial_cmp(a).unwrap());
-        println!(" [KEEP]: {:?}", v_keep);
-        println!(" [DISSOLVE]: {:?}", v_dissolve);
+        // println!(" [KEEP]: {:?}", v_keep);
+        // println!(" [DISSOLVE]: {:?}", v_dissolve);
         quad_ids.reverse();
         let min_quad_id = quad_ids.iter().min().unwrap();
         println!(" [MIN QUAD ID]: {}", min_quad_id);
@@ -266,7 +266,7 @@ impl MeshData {
         }
 
         corners.sort_by(|a,b| a.partial_cmp(&b).unwrap());
-        println!(" [CORNERS]: {:?}", corners);
+        // println!(" [CORNERS]: {:?}", corners);
 
         for diss in v_dissolve.iter(){
             for idx in indc.iter_mut(){
@@ -284,7 +284,7 @@ impl MeshData {
         let mut set_index: Vec<u32> = vec![corners[3],corners[1],corners[2],corners[0],corners[2],corners[1]];
         set_index.reverse();
 
-        println!(" [SET INDEX]: {:?}", set_index);
+        // println!(" [SET INDEX]: {:?}", set_index);
 
 
         for idx in set_index.iter(){
@@ -292,7 +292,7 @@ impl MeshData {
         }
 
 
-        println!(" NEW indices: {:?}", indc);
+        // println!(" NEW indices: {:?}", indc);
 
 
 
@@ -344,7 +344,7 @@ impl MeshData {
         println!(" [CORNER] right top: {:?}", right_top);
         println!(" [CORNER] left bottom: {:?}", left_bottom);
         println!(" [CORNER] right bottom: {:?}", right_bottom);
-        println!(" [QUADS TO MERGE]: {:?}", quad_ids);
+        // println!(" [QUADS TO MERGE]: {:?}", quad_ids);
 
         let corners: Vec<u32> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
         let mut v_dissolve: HashSet<u32> = HashSet::new();
@@ -413,7 +413,7 @@ impl MeshData {
 
                 if expand_adjs.len() == 0 {
 
-                    println!("DEBUG done level {}. adj checks: {:?}", level, adjs_checks);
+                    // println!("DEBUG done level {}. adj checks: {:?}", level, adjs_checks);
 
                     // if all match
                     if adjs_checks.iter().all(|a| *a){

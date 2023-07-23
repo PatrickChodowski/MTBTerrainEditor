@@ -774,7 +774,7 @@ pub struct TerrainSettings {
 impl TerrainSettings {
     pub fn new() -> TerrainSettings {
         TerrainSettings{
-            noise: Noises::None, 
+            noise: Noises::Perlin, 
             scale: 0.001, 
             seed:  1, 
             water_height_plane: 1.0,

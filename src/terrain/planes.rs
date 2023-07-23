@@ -6,6 +6,7 @@ use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use serde::{Serialize, Deserialize};
 
+use crate::terrain::noises::{apply_noise, Noises};
 #[allow(unused_imports)]
 use crate::tools::mapgrid::{MIN_X, MAX_X, MIN_Z, MAX_Z};
 use crate::utils::read_txt;
@@ -83,15 +84,18 @@ fn spawn_plane(commands:           &mut Commands,
                materials:          &mut ResMut<Assets<StandardMaterial>>,   
                pd: &PlaneData){
 
+    let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
+    mesh = apply_noise(&mut mesh, Noises::Perlin).clone();
+
     commands.spawn((PbrBundle {
         material: materials.add(StandardMaterial::from(Color::from(pd.color))),
-        mesh: meshes.add(plane_mesh(pd.subdivisions, &pd.dims)),
+        mesh: meshes.add(mesh),
         transform: Transform::from_translation(pd.loc.into()),
         ..default()
-    },
-    TerrainPlane,
-    Wireframe
-));
+        },
+        TerrainPlane,
+        Wireframe
+    ));
 }
 
 

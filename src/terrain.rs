@@ -347,12 +347,24 @@ impl MeshData {
         println!(" [QUADS TO MERGE]: {:?}", quad_ids);
 
         let corners: Vec<u32> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
-
         let mut v_dissolve: HashSet<u32> = HashSet::new();
+
+        let xs: Vec<f32> = vec![left_top.1[0], right_top.1[0]];
+        let ys: Vec<f32> = vec![left_top.1[2], right_bottom.1[2]];
+
+        // let min_x: f32 = left_top.1[0];
+        // let max_x: f32 = right_top.1[0];
+        // let min_y: f32 = left_top.1[2];
+        // let max_y: f32 = right_bottom.1[2];
 
         for quad in quads.iter(){
             for idx in quad.indices.iter(){
                 if !corners.contains(idx){
+                    // need to keep edge vertices (the ones on AABB)
+
+                    if xs.contains(&self.pos[*idx as usize][0]) || ys.contains(&self.pos[*idx as usize][2]){
+                        continue;
+                    }
                     v_dissolve.insert(*idx);
                 }
             }

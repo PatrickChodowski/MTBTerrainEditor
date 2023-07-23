@@ -105,14 +105,14 @@ fn generate_plane(ts: &ResMut<TerrainSettings>, terraces: &Res<Terraces>, _color
 
             for vec_quads in vec_vec_quads.iter(){
                 println!("Quads to add: {}/{}", vec_quads.len(), mesh_data.quads_count);
-                let (mut corners, mut quad_ids) = mesh_data.merge_quads(vec_quads);
-                mesh_data.reduce(&mut corners, &mut quad_ids);
+                let (mut corners, mut quad_ids, v_dissolve) = mesh_data.merge_quads(vec_quads);
+                mesh_data.reduce(&mut corners, &mut quad_ids, v_dissolve);
             }
             mesh_data.calculate_uvs();
-            println!(" [Mesh Data] pos: {:?}",       mesh_data.pos);
-            println!(" [Mesh Data] norms: {:?}",     mesh_data.norms);
-            println!(" [Mesh Data] uvs: {:?}",       mesh_data.uvs);
-            println!(" [Mesh Data] indices: {:?}",   mesh_data.indices);
+            // println!(" [Mesh Data] pos: {:?}",       mesh_data.pos);
+            // println!(" [Mesh Data] norms: {:?}",     mesh_data.norms);
+            // println!(" [Mesh Data] uvs: {:?}",       mesh_data.uvs);
+            // println!(" [Mesh Data] indices: {:?}",   mesh_data.indices);
 
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_data.pos);
             mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL,   mesh_data.norms);
@@ -169,7 +169,7 @@ impl QuadData {
 
     pub fn can_merge(&self, other: &QuadData) -> bool {
         let is_same: bool = self.heights == other.heights;
-        println!("  Can merge {} with {}? Answer: {} ({:?},{:?})", self.id, other.id, is_same, self.heights, other.heights);
+        // println!("  Can merge {} with {}? Answer: {} ({:?},{:?})", self.id, other.id, is_same, self.heights, other.heights);
         return is_same;
     }
 }
@@ -181,6 +181,7 @@ pub struct MeshData {
     pub norms:          Vec<[f32; 3]>,
     pub uvs:            Vec<[f32; 2]>,
     pub indices:        Vec<u32>,
+    pub unique_indices: HashSet<u32>,
     pub index6:         Vec<u32>,
 
     pub size:           f32,
@@ -194,17 +195,18 @@ pub struct MeshData {
 
 impl MeshData {
     pub fn new(subdivisions: u32, size: f32) -> Self {
-        MeshData{pos:           Vec::new(), 
-                 norms:         Vec::new(), 
-                 indices:       Vec::new(), 
-                 uvs:           Vec::new(),
-                 index6:        (0..6).collect(), 
-                 subdivisions, 
-                 size,  
-                 vertex_count:  (subdivisions+2)*(subdivisions+2), 
-                 quads_count:   (subdivisions+1)*(subdivisions+1),
-                 dimn:          subdivisions +1, 
-                 quads:         Grid::new((subdivisions +1) as usize, (subdivisions +1) as usize)
+        MeshData{pos:               Vec::new(), 
+                 norms:             Vec::new(), 
+                 indices:           Vec::new(), 
+                 unique_indices:    HashSet::new(),
+                 uvs:               Vec::new(),
+                 index6:            (0..6).collect(), 
+                 subdivisions,  
+                 size,      
+                 vertex_count:      (subdivisions+2)*(subdivisions+2), 
+                 quads_count:       (subdivisions+1)*(subdivisions+1),
+                 dimn:              subdivisions +1, 
+                 quads:             Grid::new((subdivisions +1) as usize, (subdivisions +1) as usize)
         }
     }
 
@@ -236,28 +238,24 @@ impl MeshData {
         }
     } 
 
-    pub fn reduce(&mut self, corners: &mut Vec<u32>, quad_ids: &mut Vec<u32>){
+    pub fn reduce(&mut self, corners: &mut Vec<u32>, quad_ids: &mut Vec<u32>, dissolve: HashSet<u32>){
 
-        // println!("reduce vdelete: {:?}", vdelete);
-        corners.sort_by(|a,b| a.partial_cmp(&b).unwrap());
+        // indices to keep
+        let mut v_keep: Vec<u32> = self.unique_indices.difference(&dissolve).cloned().collect();
+        v_keep.sort_by(|a,b| a.partial_cmp(b).unwrap());
+        let mut v_dissolve: Vec<u32> = dissolve.iter().cloned().collect();
+        v_dissolve.sort_by(|a,b| b.partial_cmp(a).unwrap());
+        println!(" [KEEP]: {:?}", v_keep);
+        println!(" [DISSOLVE]: {:?}", v_dissolve);
         quad_ids.reverse();
-        let mut corner_map: HashMap<u32, u32> = HashMap::new();
-        for (c, corner) in corners.iter().enumerate(){corner_map.insert(*corner, c as u32);};
-
-        let min_idx = corners.iter().min().unwrap();
-        let max_idx = corners.iter().max().unwrap();
         let min_quad_id = quad_ids.iter().min().unwrap();
+        println!(" [MIN QUAD ID]: {}", min_quad_id);
 
-        // println!("  reduce corners: {:?}", corners);
-        println!(" corners mapping: {:?}", corner_map);
-        println!(" index min: {} max: {}", min_idx, max_idx);
-        println!(" min_quad_id: {}", min_quad_id);
+        self.pos = v_keep.iter().map(|&index| self.pos[index as usize]).collect();
+        self.norms = v_keep.iter().map(|&index| self.norms[index as usize]).collect();
 
-        self.pos = corners.iter().map(|&index| self.pos[index as usize]).collect();
-        self.norms = corners.iter().map(|&index| self.norms[index as usize]).collect();
-
-        println!("new pos: {:?}", self.pos);
-        println!("old indices: {:?}", self.indices);
+        // println!("new pos: {:?}", self.pos);
+        // println!("old indices: {:?}", self.indices);
 
         // indices copy:
         let mut indc: Vec<u32> = self.indices.clone();
@@ -267,8 +265,26 @@ impl MeshData {
             for _i in 0..6 {indc.remove((qid*6) as usize);}
         }
 
-        let mut set_index: Vec<u32> = vec![3,1,2,0,2,1];
+        corners.sort_by(|a,b| a.partial_cmp(&b).unwrap());
+        println!(" [CORNERS]: {:?}", corners);
+
+        for diss in v_dissolve.iter(){
+            for idx in indc.iter_mut(){
+                if diss <= idx {
+                    *idx -= 1;
+                }
+            }
+
+            for corner in corners.iter_mut(){
+                if diss < corner {
+                    *corner -=1;
+                }
+            }
+        }
+        let mut set_index: Vec<u32> = vec![corners[3],corners[1],corners[2],corners[0],corners[2],corners[1]];
         set_index.reverse();
+
+        println!(" [SET INDEX]: {:?}", set_index);
 
 
         for idx in set_index.iter(){
@@ -276,7 +292,7 @@ impl MeshData {
         }
 
 
-        println!("changed indices: {:?}", indc);
+        println!(" NEW indices: {:?}", indc);
 
 
 
@@ -296,7 +312,7 @@ impl MeshData {
     }
 
     // Method merging 2 quads. Returns corners and smallest quad id
-    pub fn merge_quads<'a>(&self, quads: &Vec<QuadData>) -> (Vec<u32>, Vec<u32>) {
+    pub fn merge_quads<'a>(&self, quads: &Vec<QuadData>) -> (Vec<u32>, Vec<u32>, HashSet<u32> ) {
 
         // find corner vertices
         let absurd_value: f32 = 99999.0;
@@ -329,9 +345,21 @@ impl MeshData {
         println!(" [CORNER] left bottom: {:?}", left_bottom);
         println!(" [CORNER] right bottom: {:?}", right_bottom);
         println!(" [QUADS TO MERGE]: {:?}", quad_ids);
-        
+
         let corners: Vec<u32> = vec![left_top.0, right_top.0, left_bottom.0, right_bottom.0];
-        return (corners, quad_ids);
+
+        let mut v_dissolve: HashSet<u32> = HashSet::new();
+
+        for quad in quads.iter(){
+            for idx in quad.indices.iter(){
+                if !corners.contains(idx){
+                    v_dissolve.insert(*idx);
+                }
+            }
+        }
+        quad_ids.sort_by(|a,b| a.partial_cmp(b).unwrap());
+
+        return (corners, quad_ids, v_dissolve);
     }
 
 
@@ -422,6 +450,7 @@ impl MeshData {
         }
         if let Some(indices) = mesh.indices() {
             md.indices = indices.iter().map(|x| x as u32).collect();
+            md.unique_indices = HashSet::from_iter(md.indices.iter().cloned());
         }
         info!(" [EXTRACT MESH DATA] subs: {}, quads: {} vertex: {} dimns: {}", md.subdivisions, md.quads_count, md.vertex_count, md.dimn);
 

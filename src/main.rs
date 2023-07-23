@@ -10,6 +10,9 @@ use bevy::pbr::wireframe::WireframePlugin;
 mod camera;
 use camera::CameraPlugin;
 
+mod terrain;
+use terrain::planes::PlanesPlugin;
+
 mod tools;
 
 mod utils;
@@ -37,5 +40,6 @@ fn main() {
         )
         .add_plugin(WireframePlugin)
         .add_plugin(CameraPlugin)
+        .add_plugin(PlanesPlugin)
         .run();
 }

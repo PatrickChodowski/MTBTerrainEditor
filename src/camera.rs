@@ -2,12 +2,9 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
-// use bevy_atmosphere::prelude::*;
 
 use crate::tools::mapgrid::{MAX_Z, CENTER_X, CENTER_Z, MAX_X, MIN_Z, MIN_X};
 use crate::utils::{get_yaw, get_pitch};
-
-
 
 const CAMERA_MIN_Y: f32 = 50.0;
 const CAMERA_MAX_Y: f32 = 1500.0;

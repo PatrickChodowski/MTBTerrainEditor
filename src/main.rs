@@ -12,9 +12,6 @@ use camera::CameraPlugin;
 
 mod tools;
 
-mod terrain;
-use terrain::TerrainPlugin;
-
 mod utils;
 
 pub const HEIGHT: f32 = 900.0;
@@ -40,6 +37,5 @@ fn main() {
         )
         .add_plugin(WireframePlugin)
         .add_plugin(CameraPlugin)
-        .add_plugin(TerrainPlugin)
         .run();
 }

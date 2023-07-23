@@ -7,7 +7,7 @@ use crate::tools::mapgrid::{MAX_Z, CENTER_X, CENTER_Z, MAX_X, MIN_Z, MIN_X};
 use crate::utils::{get_yaw, get_pitch};
 
 const CAMERA_MIN_Y: f32 = 50.0;
-const CAMERA_MAX_Y: f32 = 1500.0;
+const CAMERA_MAX_Y: f32 = 1200.0;
 const CAMERA_MIN_X: f32 = MIN_X - 200.0;
 const CAMERA_MAX_X: f32 = MAX_X + 200.0;
 const CAMERA_MIN_Z: f32 = MIN_Z - 200.0;

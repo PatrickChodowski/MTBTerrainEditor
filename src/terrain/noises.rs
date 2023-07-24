@@ -5,6 +5,8 @@ use serde::{Serialize, Deserialize};
 use std::str::FromStr;
 use bevy::prelude::*;
 
+use crate::utils::{AABBfs, AABBf};
+
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct NoiseData {
@@ -22,17 +24,56 @@ pub struct Flatten {
     pub dist:   f32
 }
 
+impl Flatten {
+    fn get_aabbfs<'a>(&self, dims: &'a (f32, f32)) -> AABBfs {
+        let min_x = -1.0*dims.0/2.0;
+        let max_x = dims.0/2.0;
+        let min_z = -1.0*dims.1/2.0;
+        let max_z = dims.1/2.0;
+
+        let mut v: Vec<AABBf> = Vec::with_capacity(4);
+        v.push(AABBf{min_x, max_x: min_x + self.dist, min_z, max_z});
+        v.push(AABBf{min_x: max_x - self.dist, max_x, min_z, max_z});
+        v.push(AABBf{min_x, max_x, min_z, max_z: min_z + self.dist});
+        v.push(AABBf{min_x, max_x, min_z: max_z-self.dist, max_z});
 
 
+        return AABBfs(v);
+
+    }
+}
 
 // Apply basic noise function to the mesh
-pub fn apply_noise(mesh: &mut Mesh, nd: NoiseData) -> &Mesh {
+pub fn apply_noise<'a>(mesh: &'a mut Mesh, nd: NoiseData, dims: &'a (f32, f32)) -> &'a Mesh {
 
     let noise_fn: NoiseFunc = NoiseFunc::build(nd.noise, nd.seed, None, None);
     let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
+
+    let mut flat_aabfs: Option<AABBfs> = None;
+    let mut flat_height: f32 = 0.0;
+    if let Some(flatten)  = nd.flatten {
+        flat_aabfs = Some(flatten.get_aabbfs(dims));
+        flat_height = flatten.height;
+        println!("flatten: {:?}", flat_aabfs);
+    }
+
+
     for pos in v_pos.iter_mut() {
-        let height: f32 = noise_fn.apply(pos[0], pos[2], nd.scale);
-        pos[1] = height*nd.height_scale;
+        let height: f32;
+
+        if let Some(ref flat_aabbfs) = flat_aabfs {
+            // println!("checking point {:?}", pos);
+            if flat_aabbfs.has_point_3array(&pos){
+                // println!("setting flat height: {}",flat_height);
+                height = flat_height;
+            } else {
+                height = noise_fn.apply(pos[0], pos[2], nd.scale)*nd.height_scale; 
+            }
+        } else {
+            height = noise_fn.apply(pos[0], pos[2], nd.scale)*nd.height_scale;
+        }
+        pos[1] = height;
+
     }
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
 

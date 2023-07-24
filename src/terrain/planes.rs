@@ -58,7 +58,7 @@ fn spawn_plane(commands:           &mut Commands,
     let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
 
     if let Some(noise_data) = pd.noise_data {
-        mesh = apply_noise(&mut mesh, noise_data).clone();
+        mesh = apply_noise(&mut mesh, noise_data, &pd.dims).clone();
     }
 
     commands.spawn((PbrBundle {

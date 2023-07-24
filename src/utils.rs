@@ -19,3 +19,43 @@ pub fn _read_txt(file_path: &str) -> String {
                         .expect(&format!("\n [ERROR utils.read_txt] Unable to read file {file_path}  \n"));
   return data;
 }
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Reflect)]
+pub struct AABBf {
+  pub min_x: f32,
+  pub max_x: f32,
+  pub min_z: f32,
+  pub max_z: f32,
+}
+impl AABBf {
+  pub fn intersect(self, other: &AABBf) -> bool {
+    self.max_x >= other.min_x && self.min_x <= other.max_x &&
+    self.max_z >= other.min_z && self.min_z <= other.max_z
+  }
+  pub fn has_point3(&self, p: &(f32, f32, f32)) -> bool {
+    p.0 >= self.min_x && p.0 <= self.max_x && p.2 >= self.min_z && p.2 <= self.max_z
+  }
+  pub fn has_point(&self, p: &(f32, f32)) -> bool {
+    p.0 >= self.min_x && p.0 <= self.max_x && p.1 >= self.min_z && p.1 <= self.max_z
+  }
+}
+
+#[derive(Debug)]
+pub struct AABBfs(pub Vec<AABBf>);
+
+impl AABBfs {
+  pub fn has_point3(&self, p: &(f32, f32, f32)) -> bool {
+    for aabb in self.0.iter(){
+      return p.0 >= aabb.min_x && p.0 <= aabb.max_x && p.2 >= aabb.min_z && p.2 <= aabb.max_z
+    }
+    return false;
+  }
+  pub fn has_point_3array(&self, p: &[f32; 3]) -> bool {
+    for aabb in self.0.iter(){
+      if p[0]>= aabb.min_x && p[0] <= aabb.max_x && p[2] >= aabb.min_z && p[2] <= aabb.max_z {
+        return true;
+      }
+    }
+    return false;
+  }
+}

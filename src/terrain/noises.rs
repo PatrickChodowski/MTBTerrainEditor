@@ -11,7 +11,15 @@ pub struct NoiseData {
     pub noise:          Noises,
     pub seed:           u32,
     pub height_scale:   f32,
-    pub scale:          f64
+    pub scale:          f64,
+
+    pub flatten:        Option<Flatten>
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+pub struct Flatten {
+    pub height: f32,
+    pub dist:   f32
 }
 
 

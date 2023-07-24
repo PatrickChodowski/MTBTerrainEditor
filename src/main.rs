@@ -6,12 +6,14 @@ use bevy::window::WindowPlugin;
 use bevy::log::LogPlugin;
 use bevy::window::WindowResolution;
 use bevy::pbr::wireframe::WireframePlugin;
+use bevy_common_assets::json::JsonAssetPlugin;
 
 mod camera;
 use camera::CameraPlugin;
 
 mod terrain;
 use terrain::planes::PlanesPlugin;
+use terrain::utils::Planes;
 
 mod tools;
 
@@ -36,9 +38,15 @@ fn main() {
             filter: "info,wgpu_core=warn,wgpu_hal=warn,mygame=debug".into(),
             level: bevy::log::Level::DEBUG,
         })
-        // .set(RenderPlugin{wgpu_settings: WgpuSettings{features: WgpuFeatures::POLYGON_MODE_LINE, ..default()}})
+        .set(AssetPlugin {
+            // Tell the asset server to watch for asset changes on disk:
+            watch_for_changes: true,
+            ..default()
+        })
         )
+        
         .add_plugin(WireframePlugin)
+        .add_plugin(JsonAssetPlugin::<Planes>::new(&["json"]))
         .add_plugin(CameraPlugin)
         .add_plugin(PlanesPlugin)
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})

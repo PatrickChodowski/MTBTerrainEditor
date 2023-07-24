@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-
 use std::fs::{self};
 use libm::atan2f; 
 
@@ -14,7 +13,7 @@ pub fn get_pitch(q: Quat) -> f32 {
   return atan2f(2.0*q.x*q.w - 2.0*q.y*q.z, 1.0 - 2.0*q.x*q.x - 2.0*q.z*q.z);
 }
 
-pub fn read_txt(file_path: &str) -> String {
+pub fn _read_txt(file_path: &str) -> String {
   info!(" [UTILS] Reading text file {file_path}");
   let data: String = fs::read_to_string(file_path)
                         .expect(&format!("\n [ERROR utils.read_txt] Unable to read file {file_path}  \n"));

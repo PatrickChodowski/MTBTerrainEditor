@@ -1,18 +1,30 @@
 [
     {
         "loc": [500.0, 0.0, 500.0],
-        "subdivisions": 9,
+        "subdivisions": 0,
         "dims": [500.0, 500.0],
         "color": [0.5, 1.0, 0.5, 1.0]
     },
     {
         "loc": [1000.0, 0.0, 500.0],
-        "subdivisions": 9,
+        "subdivisions": 20,
         "dims": [500.0, 500.0],
         "color": [1.0, 1.0, 0.5, 1.0],
-        "noise_data": {"noise": "Perlin", 
+        "noise_data": {"noise": "FBMPerlin", 
                         "seed": 0, 
-                        "scale": 0.01,
+                        "scale": 0.001,
                         "height_scale": 50.0}
+    },
+    {
+        "loc": [1500.0, 0.0, 500.0],
+        "subdivisions": 20,
+        "dims": [500.0, 500.0],
+        "color": [1.0, 0.7, 0.224, 1.0],
+        "noise_data": {"noise": "Value", 
+                       "seed": 0, 
+                       "scale": 0.01,
+                       "height_scale": 50.0,
+                       "flatten": {"height": 0.0, "dist": 1.0}
+                    }
     }
 ]

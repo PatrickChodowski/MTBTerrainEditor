@@ -1,23 +1,24 @@
-use bevy::input::common_conditions::input_just_pressed;
+
 use bevy::prelude::*;
 use bevy::pbr::wireframe::Wireframe;
 #[allow(unused_imports)]
 use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use serde::{Serialize, Deserialize};
 
-use crate::terrain::noises::{apply_noise, NoiseData};
+use crate::terrain::noises::apply_noise;
+use crate::terrain::utils::{PlaneData, Planes, PlanesAsset};
+
 #[allow(unused_imports)]
 use crate::tools::mapgrid::{MIN_X, MAX_X, MIN_Z, MAX_Z};
-use crate::utils::read_txt;
+
 
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
   fn build(&self, app: &mut App) {
       app
-      .insert_resource(Planes::load())
-      .add_system(update.run_if(input_just_pressed(KeyCode::Space)))
+      .add_startup_system(setup)
+      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()))
       ;
   }
 }
@@ -25,43 +26,10 @@ impl Plugin for PlanesPlugin {
 #[derive(Component)]
 pub struct TerrainPlane;
 
-#[derive(Resource)]
-pub struct Planes {
-    pub data: Vec<PlaneData>
+fn setup(mut commands: Commands, ass: Res<AssetServer>){
+    let handle = PlanesAsset(ass.load("data/planes.json"));
+    commands.insert_resource(handle);
 }
-
-impl Planes {
-    pub fn load() -> Self {
-        let path: &str = &format!("./assets/data/planes.json");
-        let data: String = read_txt(path);
-        let planes: Vec<PlaneData> = serde_json::from_str(&data).expect(&format!(
-            "\n [ERROR models.setup] Unable to get data from {path} \n"
-        ));
-        return Planes{data: planes};
-    }
-    pub fn reload(&mut self){
-        let path: &str = &format!("./assets/data/planes.json");
-        let data: String = read_txt(path);
-        let planes: Vec<PlaneData> = serde_json::from_str(&data).expect(&format!(
-            "\n [ERROR models.setup] Unable to get data from {path} \n"
-        ));
-        self.data = planes;
-    }
-}
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub struct PlaneData {
-    pub loc: (f32, f32, f32),
-    pub subdivisions: u32,
-    pub dims: (f32, f32),
-    pub color: [f32; 4],
-    pub noise_data: Option<NoiseData>
-
-}
-
-
-
 
 
 // generates planes
@@ -69,16 +37,14 @@ fn update(mut commands:           Commands,
           mut meshes:             ResMut<Assets<Mesh>>,
           mut materials:          ResMut<Assets<StandardMaterial>>,
           terrain_planes:         Query<Entity, With<TerrainPlane>>,
-          mut planes:             ResMut<Planes>
-        ){
+          planes_assets:          Res<Assets<Planes>>,
+          handle:                 Res<PlanesAsset>){
 
     for entity in terrain_planes.iter(){
         commands.entity(entity).despawn_recursive();
     }
 
-    planes.reload();
-
-    for pd in planes.data.iter(){
+    for pd in planes_assets.get(&handle.0).unwrap().0.iter(){
         spawn_plane(&mut commands, &mut meshes, &mut materials, &pd); 
     }
 }

@@ -4,8 +4,6 @@ use bevy::pbr::wireframe::Wireframe;
 #[allow(unused_imports)]
 use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-
-use crate::terrain::noises::apply_noise;
 use crate::terrain::utils::{PlaneData, Planes, PlanesAsset};
 
 #[allow(unused_imports)]
@@ -53,13 +51,10 @@ fn update(mut commands:           Commands,
 fn spawn_plane(commands:           &mut Commands, 
                meshes:             &mut ResMut<Assets<Mesh>>,
                materials:          &mut ResMut<Assets<StandardMaterial>>,   
-               pd: &PlaneData){
+               pd:                 &PlaneData){
 
     let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
-
-    if let Some(noise_data) = pd.noise_data {
-        mesh = apply_noise(&mut mesh, noise_data, &pd.dims).clone();
-    }
+    mesh = pd.apply(&mut mesh);
 
     commands.spawn((PbrBundle {
         material: materials.add(StandardMaterial::from(Color::from(pd.color))),

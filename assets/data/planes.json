@@ -22,6 +22,6 @@
                         "scale": 0.01,
                         "height_scale": 50.0
                       },
-        "modifiers": [{"height": 0.0, "dist": 50.0, "buffer": 30.0}]
+        "modifiers": [{"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}}]
     }
 ]

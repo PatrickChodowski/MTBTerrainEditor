@@ -9,7 +9,7 @@ use crate::terrain::noises::apply_noise;
 use crate::terrain::utils::{PlaneData, Planes, PlanesAsset};
 
 #[allow(unused_imports)]
-use crate::tools::mapgrid::{MIN_X, MAX_X, MIN_Z, MAX_Z};
+use crate::settings::{MIN_X, MAX_X, MIN_Z, MAX_Z};
 
 
 pub struct PlanesPlugin;

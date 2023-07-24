@@ -16,11 +16,12 @@
         "subdivisions": 20,
         "dims": [500.0, 500.0],
         "color": [1.0, 0.7, 0.224, 1.0],
-        "noise_data": {"noise": "Value", 
-                       "seed": 0, 
-                       "scale": 0.01,
-                       "height_scale": 50.0,
-                       "flatten": {"height": 0.0, "dist": 50.0}
-                    }
+        "noise_data": {
+                        "noise": "Perlin", 
+                        "seed": 0, 
+                        "scale": 0.01,
+                        "height_scale": 50.0
+                      },
+        "modifiers": [{"height": 0.0, "dist": 50.0, "buffer": 30.0}]
     }
 ]

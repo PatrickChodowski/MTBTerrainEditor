@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
+use libm::atan2f; 
 
-use crate::tools::mapgrid::{MAX_Z, CENTER_X, CENTER_Z, MAX_X, MIN_Z, MIN_X};
-use crate::utils::{get_yaw, get_pitch};
+use crate::settings::{MAX_Z, CENTER_X, CENTER_Z, MAX_X, MIN_Z, MIN_X};
 
 const CAMERA_MIN_Y: f32 = -500.0;
 const CAMERA_MAX_Y: f32 = 3200.0;
@@ -32,6 +32,19 @@ impl Plugin for CameraPlugin {
       ;
   }
 }
+
+pub fn get_yaw(q: Quat) -> f32 {
+  //float Yaw = Mathf.Rad2Deg * Mathf.Atan2(2 * q.y * q.w - 2 * q.x * q.z, 1 - 2 * q.y * q.y - 2 * q.z * q.z);
+  return atan2f(2.0*q.y*q.w - 2.0*q.x *q.z, 1.0 - 2.0*q.y*q.y - 2.0*q.z*q.z);
+}
+
+// Get Pitch from quaternion rotation
+pub fn get_pitch(q: Quat) -> f32 {
+  // float Pitch = Mathf.Rad2Deg * Mathf.Atan2(2 * q.x * q.w - 2 * q.y * q.z, 1 - 2 * q.x * q.x - 2 * q.z * q.z);
+  return atan2f(2.0*q.x*q.w - 2.0*q.y*q.z, 1.0 - 2.0*q.x*q.x - 2.0*q.z*q.z);
+}
+
+
 
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Resource, Default)]

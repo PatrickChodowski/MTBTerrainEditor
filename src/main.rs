@@ -15,9 +15,7 @@ mod terrain;
 use terrain::planes::PlanesPlugin;
 use terrain::utils::Planes;
 
-mod tools;
-
-mod utils;
+mod settings;
 
 pub const HEIGHT: f32 = 900.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;

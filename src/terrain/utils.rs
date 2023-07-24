@@ -2,18 +2,19 @@ use bevy::{
     prelude::*,
     reflect::TypeUuid
   };
-  use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize};
+use super::modifiers::Modifier;
+use super::noises::NoiseData;
 
-  use super::noises::NoiseData;
 
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlaneData {
     pub loc: (f32, f32, f32),
     pub subdivisions: u32,
     pub dims: (f32, f32),
     pub color: [f32; 4],
-    pub noise_data: Option<NoiseData>
+    pub noise_data: Option<NoiseData>,
+    pub modifiers:  Option<Vec<Modifier>>
 
 }
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]

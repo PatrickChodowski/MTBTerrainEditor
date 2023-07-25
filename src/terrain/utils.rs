@@ -3,7 +3,7 @@ use bevy::{
     reflect::TypeUuid
   };
 use serde::{Serialize, Deserialize};
-use super::modifiers::{Modifier, ModifierFN, Edge};
+use super::modifiers::{Modifier, ModifierFN};
 use super::noises::{NoiseData, NoiseFunction};
 
 
@@ -39,7 +39,6 @@ impl PlaneData {
 
       for m in modifier_functions.iter(){
         pos[1] = m.modifier.apply(&pos, &m.aabbs);
-        // m.modifier.init();
       }
         
     }
@@ -78,48 +77,15 @@ impl AABB {
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
-
-  pub fn from_edge(edge: &Edge, dims: &(f32, f32), dist: f32) -> Self {
-    let min_x = -1.0*dims.0/2.0;
-    let max_x = dims.0/2.0;
-    let min_z = -1.0*dims.1/2.0;
-    let max_z = dims.1/2.0;
-
-    match edge {
-      Edge::X   => {AABB{min_x: max_x - dist, max_x, min_z, max_z}}
-      Edge::NX  => {AABB{min_x, max_x: min_x+dist, min_z, max_z}}
-      Edge::Z   => {AABB{min_x, max_x, min_z: max_z-dist, max_z}}
-      Edge::NZ  => {AABB{min_x, max_x, min_z, max_z: min_z+dist}}
-    }
-
-  }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AABBs(pub Vec<AABB>);
 
 impl AABBs {
-  pub fn _new() -> Self {
+  pub fn new() -> Self {
     AABBs(Vec::new())
   }
-
-  pub fn from_dims_dist(dims: &(f32, f32), dist: f32) -> Self {
-
-    let min_x = -1.0*dims.0/2.0;
-    let max_x = dims.0/2.0;
-    let min_z = -1.0*dims.1/2.0;
-    let max_z = dims.1/2.0;
-    
-    let mut v: Vec<AABB> = Vec::with_capacity(8);
-    v.push(AABB{min_x, max_x: min_x + dist, min_z, max_z});
-    v.push(AABB{min_x: max_x - dist, max_x, min_z, max_z});
-    v.push(AABB{min_x, max_x, min_z, max_z: min_z + dist});
-    v.push(AABB{min_x, max_x, min_z: max_z-dist, max_z});
-
-    return AABBs(v);
-    
-  }
-
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     for aabb in self.0.iter() {
       if aabb.has_point(p){

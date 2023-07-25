@@ -3,7 +3,7 @@ use bevy::{
     reflect::TypeUuid
   };
 use serde::{Serialize, Deserialize};
-use super::modifiers::{Modifier, ModifierTrait};
+use super::modifiers::{Modifier, ModifierTrait, ModifierFN};
 use super::noises::{NoiseData, NoiseFunction};
 
 
@@ -26,20 +26,9 @@ impl PlaneData {
       noise_fn = Some(noise_data.bake());
     }
 
-    // Grab modifiers and convert into functions
-    let mut mods: Vec<Box<dyn ModifierTrait>> = Vec::new();
-    for m in self.modifiers.iter(){
-      // dont know better way :/
-      match m {
-        Modifier::FlatEdges(a) => {mods.push(a.into_fn())}
-        Modifier::Easing(a)    => {mods.push(a.into_fn())}
-        Modifier::FlatEdge(a)    => {mods.push(a.into_fn())}
-      }
-    }
-
-    // Bake modifiers
-    for m in mods.iter_mut(){
-      m.bake(&self.dims)
+    let mut modifier_functions: Vec<ModifierFN> = Vec::new();
+    for modifier in self.modifiers.iter(){
+      modifier_functions.push(modifier.bake(&self));
     }
 
     for pos in v_pos.iter_mut(){
@@ -48,8 +37,9 @@ impl PlaneData {
         pos[1] = noise_fn.apply(&pos, &self.noise_data.as_ref().unwrap());
       }
 
-      for m in mods.iter(){
-        pos[1] = m.apply(&pos);
+      for m in modifier_functions.iter(){
+        pos[1] = m.modifier.apply(&pos, &m.aabbs);
+        // m.modifier.init();
       }
         
     }
@@ -89,3 +79,74 @@ impl AABB {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AABBs(Vec<AABB>);
+
+impl AABBs {
+  pub fn new() -> Self {
+    AABBs(Vec::new())
+  }
+
+  pub fn from_dims_dist(dims: &(f32, f32), dist: f32) -> Self {
+
+    let min_x = -1.0*dims.0/2.0;
+    let max_x = dims.0/2.0;
+    let min_z = -1.0*dims.1/2.0;
+    let max_z = dims.1/2.0;
+    
+    let mut v: Vec<AABB> = Vec::with_capacity(8);
+    v.push(AABB{min_x, max_x: min_x + dist, min_z, max_z});
+    v.push(AABB{min_x: max_x - dist, max_x, min_z, max_z});
+    v.push(AABB{min_x, max_x, min_z, max_z: min_z + dist});
+    v.push(AABB{min_x, max_x, min_z: max_z-dist, max_z});
+
+    return AABBs(v);
+    
+  }
+
+  pub fn has_point(&self, p: &[f32; 3]) -> bool {
+    for aabb in self.0.iter() {
+      if aabb.has_point(p){
+        return true;
+      }
+    }
+    return false;
+  }
+
+}
+
+
+
+
+//         v.push(Modifier{
+//             min_x: min_x + self.dist, 
+//             max_x: min_x + self.dist + self.buffer,
+//             min_z: min_z + self.buffer, 
+//             max_z: max_z - self.buffer, 
+//             modifier_type: ModifierType::Scale(0.5)});
+
+//         v.push(Modifier{
+//             min_x: max_x - self.dist - self.buffer, 
+//             max_x: max_x - self.dist,
+//             min_z: min_z + self.buffer, 
+//             max_z: max_z - self.buffer, 
+//             modifier_type: ModifierType::Scale(0.5)});
+
+//         v.push(Modifier{
+//             min_x: min_x + self.buffer, 
+//             max_x: max_x - self.buffer,
+//             min_z: min_z + self.dist,
+//             max_z: min_z + self.dist + self.buffer, 
+//             modifier_type: ModifierType::Scale(0.5)});
+
+//         v.push(Modifier{
+//             min_x: min_x + self.buffer, 
+//             max_x: max_x - self.buffer,
+//             min_z: max_z - self.dist - self.buffer,
+//             max_z: max_z - self.dist, 
+//             modifier_type: ModifierType::Scale(0.5)});
+                    
+//         return Modifiers(v);
+//     }
+// }

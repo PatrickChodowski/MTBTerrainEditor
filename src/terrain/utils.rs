@@ -2,6 +2,7 @@ use bevy::{
     prelude::*,
     reflect::TypeUuid
   };
+
 use serde::{Serialize, Deserialize};
 use super::modifiers::{Modifier, ModifierFN};
 use super::noises::{NoiseData, NoiseFunction};

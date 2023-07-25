@@ -15,7 +15,6 @@ pub struct PlaneData {
     pub color: [f32; 4],
     pub noise_data: Option<NoiseData>,
     pub modifiers:  Vec<Modifier>
-
 }
 
 impl PlaneData {
@@ -30,10 +29,11 @@ impl PlaneData {
     // Grab modifiers and convert into functions
     let mut mods: Vec<Box<dyn ModifierTrait>> = Vec::new();
     for m in self.modifiers.iter(){
+      // dont know better way :/
       match m {
-        Modifier::FlatEdges(fed) => {
-          mods.push(fed.into_fn())
-        }
+        Modifier::FlatEdges(a) => {mods.push(a.into_fn())}
+        Modifier::Easing(a)    => {mods.push(a.into_fn())}
+        Modifier::FlatEdge(a)    => {mods.push(a.into_fn())}
       }
     }
 

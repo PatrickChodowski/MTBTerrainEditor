@@ -10,13 +10,13 @@ pub enum Edge {
 }  
 
 pub trait ModifierTrait {
-  fn init(&self);
   fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Modifier {
-    FlatEdges(FlatEdges)
+    FlatEdges(FlatEdges),
+    FlatEdge(FlatEdge)
 }
 
 impl Modifier {
@@ -26,6 +26,12 @@ impl Modifier {
         ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs: AABBs::from_dims_dist(&pd.dims, data.dist)
+        }
+      }
+      Modifier::FlatEdge(data) => {
+        ModifierFN { 
+          modifier: Box::new(data.clone()),
+          aabbs: AABBs(vec![AABB::from_edge(&data.edge, &pd.dims, data.dist)])
         }
       }
     }
@@ -45,10 +51,6 @@ pub struct FlatEdges {
 }
 
 impl ModifierTrait for FlatEdges {
-  fn init(&self){
-    println!("hi, its {:?}", self)
-  }
-
   fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32 {
     if aabbs.has_point(pos) {
       return self.height;
@@ -58,10 +60,18 @@ impl ModifierTrait for FlatEdges {
 }
 
 
-// #[derive(Serialize, Deserialize, Clone, Debug)]
-// pub struct FlatEdge {
-//     pub edge:   Edge,
-//     pub height: f32,
-//     pub dist:   f32,
-// }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FlatEdge {
+    pub edge:   Edge,
+    pub height: f32,
+    pub dist:   f32,
+}
 
+impl ModifierTrait for FlatEdge {
+  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32 {
+    if aabbs.has_point(pos) {
+      return self.height;
+    }
+    return pos[1];
+  }
+}

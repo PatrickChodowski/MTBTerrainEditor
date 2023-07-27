@@ -10,12 +10,12 @@ use super::noises::{NoiseData, NoiseFunction};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlaneData {
-    pub loc: (f32, f32, f32),
+    pub loc:          (f32, f32, f32),
     pub subdivisions: u32,
-    pub dims: (f32, f32),
-    pub color: [f32; 4],
-    pub noise_data: Option<NoiseData>,
-    pub modifiers:  Vec<Modifier>
+    pub dims:         (f32, f32),
+    pub color:        [f32; 4],
+    pub noise_data:   Option<NoiseData>,
+    pub modifiers:    Vec<Modifier>
 }
 
 impl PlaneData {
@@ -48,6 +48,15 @@ impl PlaneData {
     return mesh.clone()
   }
 
+  pub fn aabb(&self) -> AABB {
+
+    let min_x = -1.0*self.dims.0/2.0;
+    let max_x = self.dims.0/2.0;
+    let min_z = -1.0*self.dims.1/2.0;
+    let max_z = self.dims.1/2.0;
+    return AABB{min_x, max_x, min_z, max_z};
+
+  }
 
 
 }
@@ -70,14 +79,22 @@ pub struct AABB {
   pub min_z:          f32,
   pub max_z:          f32,
 }
+
 impl AABB {
+
   pub fn _intersect(self, other: &AABB) -> bool {
     self.max_x >= other.min_x && self.min_x <= other.max_x &&
     self.max_z >= other.min_z && self.min_z <= other.max_z
   }
+
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
+
+  pub fn from_point(xz: &(f32, f32), dims: &(f32, f32)) -> Self {
+    AABB{min_x: xz.0 - dims.0/2.0, max_x: xz.0 + dims.0/2.0, min_z: xz.1 - dims.1/2.0, max_z: xz.1 + dims.1/2.0}
+  }
+
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -97,38 +114,3 @@ impl AABBs {
   }
 
 }
-
-
-
-
-//         v.push(Modifier{
-//             min_x: min_x + self.dist, 
-//             max_x: min_x + self.dist + self.buffer,
-//             min_z: min_z + self.buffer, 
-//             max_z: max_z - self.buffer, 
-//             modifier_type: ModifierType::Scale(0.5)});
-
-//         v.push(Modifier{
-//             min_x: max_x - self.dist - self.buffer, 
-//             max_x: max_x - self.dist,
-//             min_z: min_z + self.buffer, 
-//             max_z: max_z - self.buffer, 
-//             modifier_type: ModifierType::Scale(0.5)});
-
-//         v.push(Modifier{
-//             min_x: min_x + self.buffer, 
-//             max_x: max_x - self.buffer,
-//             min_z: min_z + self.dist,
-//             max_z: min_z + self.dist + self.buffer, 
-//             modifier_type: ModifierType::Scale(0.5)});
-
-//         v.push(Modifier{
-//             min_x: min_x + self.buffer, 
-//             max_x: max_x - self.buffer,
-//             min_z: max_z - self.dist - self.buffer,
-//             max_z: max_z - self.dist, 
-//             modifier_type: ModifierType::Scale(0.5)});
-                    
-//         return Modifiers(v);
-//     }
-// }

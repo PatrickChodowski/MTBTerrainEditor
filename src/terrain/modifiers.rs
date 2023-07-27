@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::terrain::utils::{AABB, AABBs};
 
 use super::utils::PlaneData;
-use super::wanders::WanderNoise;
+use super::wanders::TargetWanderNoise;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Edge {
@@ -18,7 +18,7 @@ pub trait ModifierTrait {
 pub enum Modifier {
     FlatEdges(FlatEdges),
     FlatEdge(FlatEdge),
-    WanderNoise(WanderNoise)
+    TargetWanderNoise(TargetWanderNoise)
 }
 
 impl Modifier {
@@ -36,7 +36,7 @@ impl Modifier {
           aabbs: data.aabbs(pd)
         }
       }
-      Modifier::WanderNoise(data) => {
+      Modifier::TargetWanderNoise(data) => {
         ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs:  data.aabbs(pd)

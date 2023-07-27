@@ -11,7 +11,7 @@
         "subdivisions": 50,
         "dims": [500.0, 500.0],
         "color": [0.8, 1.0, 0.5, 1.0],
-        "modifiers": [{"WanderNoise": {"wander": "Emu30", "width": 40.0, "height": -20.0, "step": 5.0, "source_point": [0.0, 0.0]}}]
+        "modifiers": [{"TargetWanderNoise": {"wander": "Wanderer", "width": 220.0, "height": -20.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}}}]
     },
     {
         "loc": [500.0, 0.0, -100.0],

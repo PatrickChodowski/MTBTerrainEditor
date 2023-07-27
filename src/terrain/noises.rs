@@ -2,6 +2,40 @@
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
 use serde::{Serialize, Deserialize};
 
+use crate::terrain::modifiers::ModifierTrait;
+use crate::terrain::utils::{AABBs, PlaneData};
+
+#[derive(Clone)]
+pub struct Noise {
+    pub noise_function: NoiseFunction,
+    pub noise_data:     NoiseData,
+}
+impl Noise {
+    pub fn from_noise_data(nd: &NoiseData) -> Self {
+        Noise {noise_function: nd.bake(), 
+               noise_data: nd.clone()
+            }
+    }
+
+    pub fn aabbs(pd: &PlaneData) -> AABBs {
+        let mut aabbs = AABBs::new();
+        aabbs.0.push(pd.get_aabb());
+        return aabbs;
+    }
+}
+
+impl ModifierTrait for Noise {
+    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32 {
+        if aabbs.has_point(pos) {
+            return self.noise_function.apply(pos, &self.noise_data);
+        }
+        return pos[1];
+    }
+}
+
+
+
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NoiseData {
     pub noise:          Noises,
@@ -9,7 +43,8 @@ pub struct NoiseData {
     pub height_scale:   f32,
     pub scale:          f64,
     pub octaves:        Option<usize>,
-    pub freq:           Option<f64>
+    pub freq:           Option<f64>,
+    pub global:         bool
 }
 
 impl NoiseData {
@@ -299,6 +334,7 @@ pub enum NoiseFunction {
 
 impl NoiseFunction {
     pub fn apply(&self, pos: &[f32; 3], nd: &NoiseData) -> f32 {
+
         let r: f64;
         match self {
             // XD but I really dont know how to make it better
@@ -332,8 +368,6 @@ impl NoiseFunction {
         }
         return r as f32 * nd.height_scale;    
     }
-    
-
 
 }
 

@@ -12,32 +12,26 @@
         "dims": [500.0, 500.0],
         "color": [0.8, 1.0, 0.5, 1.0],
         "modifiers": [
-            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}]
+            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
+        ]
     },
     {
         "loc": [500.0, 0.0, -100.0],
         "subdivisions": 20,
         "dims": [500.0, 500.0],
         "color": [1.0, 1.0, 0.5, 1.0],
-        "noise_data": {
-            "noise": "Perlin", 
-            "seed": 0, 
-            "scale": 0.01,
-            "height_scale": 50.0
-          },
-        "modifiers": [{"FlatEdge": {"edge": "X", "height": 0.0, "dist": 50.0}}]
+        "modifiers": [
+            {"Noise": {"noise": "Perlin", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": false}},
+            {"FlatEdge": {"edge": "X", "height": 0.0, "dist": 50.0}}]
     },
     {
         "loc": [1000.0, 0.0, -100.0],
         "subdivisions": 20,
         "dims": [500.0, 500.0],
         "color": [1.0, 0.7, 0.224, 1.0],
-        "noise_data": {
-                        "noise": "PerlinSurflet", 
-                        "seed": 0, 
-                        "scale": 0.01,
-                        "height_scale": 50.0
-                      },
-        "modifiers": [{"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}}]
+        "modifiers": [
+            {"Noise": {"noise": "PerlinSurflet", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": false}},
+            {"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}}
+        ]
     }
 ]

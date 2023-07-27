@@ -5,7 +5,6 @@ use bevy::{
 
 use serde::{Serialize, Deserialize};
 use super::modifiers::{Modifier, ModifierFN};
-use super::noises::{NoiseData, NoiseFunction};
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -14,7 +13,6 @@ pub struct PlaneData {
     pub subdivisions: u32,
     pub dims:         (f32, f32),
     pub color:        [f32; 4],
-    pub noise_data:   Option<NoiseData>,
     pub modifiers:    Vec<Modifier>
 }
 
@@ -22,47 +20,30 @@ impl PlaneData {
   pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
     let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
 
-    let mut noise_fn: Option<NoiseFunction> = None;
-    if let Some(noise_data) = &self.noise_data {
-      noise_fn = Some(noise_data.bake());
-    }
-
     let mut modifier_functions: Vec<ModifierFN> = Vec::new();
     for modifier in self.modifiers.iter(){
       modifier_functions.push(modifier.bake(&self));
     }
 
     for pos in v_pos.iter_mut(){
-
-      if let Some(noise_fn) = &noise_fn {
-        pos[1] = noise_fn.apply(&pos, &self.noise_data.as_ref().unwrap());
-      }
-
       for m in modifier_functions.iter(){
         pos[1] = m.modifier.apply(&pos, &m.aabbs);
-      }
-        
+      }        
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
     return mesh.clone()
   }
 
-  pub fn aabb(&self) -> AABB {
-
+  pub fn get_aabb(&self) -> AABB {
     let min_x = -1.0*self.dims.0/2.0;
     let max_x = self.dims.0/2.0;
     let min_z = -1.0*self.dims.1/2.0;
     let max_z = self.dims.1/2.0;
     return AABB{min_x, max_x, min_z, max_z};
-
   }
 
-
 }
-
-
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]

@@ -45,7 +45,7 @@ impl WanderLoc {
 
 impl TargetWanderNoise {
     pub fn aabbs(&self, pd: &PlaneData) -> AABBs {
-        let pab = pd.aabb();
+        let pab = pd.get_aabb();
         let mut xz: (f32, f32) = self.source.get_point(&pab, self.seed);
         let end: (f32, f32) = self.target.get_point(&pab, self.seed);
 

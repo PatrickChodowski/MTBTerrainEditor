@@ -1,7 +1,7 @@
 
 use serde::{Serialize, Deserialize};
 use libm::{atan2f, fabsf};
-use rand::Rng;
+use rand::prelude::*;
 
 use crate::terrain::utils::AABB;
 
@@ -16,7 +16,8 @@ pub struct TargetWanderNoise {
     pub step:                 f32,
     pub max_steps:            u32,
     pub source:               WanderLoc,
-    pub target:               WanderLoc
+    pub target:               WanderLoc,
+    pub seed:                 u64
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -26,15 +27,15 @@ pub enum WanderLoc {
 }
 
 impl WanderLoc {
-    fn get_point(&self, pab: &AABB) -> (f32, f32) {
+    fn get_point(&self, pab: &AABB, seed: u64) -> (f32, f32) {
         match self {
             WanderLoc::Point(p)   => {return *p;}
             WanderLoc::Edge(edge) =>  {
                 match edge {
-                    Edge::X  => {(pab.max_x, get_random_range(pab.min_z, pab.max_z))}
-                    Edge::NX => {(pab.min_x, get_random_range(pab.min_z, pab.max_z))}
-                    Edge::Z  => {(pab.max_z, get_random_range(pab.min_x, pab.max_x))}
-                    Edge::NZ => {(pab.min_z, get_random_range(pab.min_x, pab.max_x))}
+                    Edge::X  => {(pab.max_x, get_random_range(pab.min_z, pab.max_z, seed))}
+                    Edge::NX => {(pab.min_x, get_random_range(pab.min_z, pab.max_z, seed))}
+                    Edge::Z  => {(pab.max_z, get_random_range(pab.min_x, pab.max_x, seed))}
+                    Edge::NZ => {(pab.min_z, get_random_range(pab.min_x, pab.max_x, seed))}
                 }
             }
         }
@@ -45,8 +46,8 @@ impl WanderLoc {
 impl TargetWanderNoise {
     pub fn aabbs(&self, pd: &PlaneData) -> AABBs {
         let pab = pd.aabb();
-        let mut xz: (f32, f32) = self.source.get_point(&pab);
-        let end: (f32, f32) = self.target.get_point(&pab);
+        let mut xz: (f32, f32) = self.source.get_point(&pab, self.seed);
+        let end: (f32, f32) = self.target.get_point(&pab, self.seed);
 
         // Generate step points using wandering function. Step points will be central points of aabb boxes
         let mut points: Vec<(f32, f32)> = vec![xz];
@@ -55,23 +56,23 @@ impl TargetWanderNoise {
         let mut last_angle: f32 = direction;
         let mut distance = get_distance_manhattan(&xz, &end);
         let inloop: bool = true;
-        println!(" WANDERS DEBUG from source: ({:?}) to target ({:?}), direction: {}", xz, end, direction);
+        // println!(" WANDERS DEBUG from source: ({:?}) to target ({:?}), direction: {}", xz, end, direction);
 
         while inloop {
             i += 1;
 
             // end conditions
             if i >= self.max_steps {
-                println!(" WANDERS DEBUG breaking becasue of max steps. points count: {}", points.len());
+                // println!(" WANDERS DEBUG breaking becasue of max steps. points count: {}", points.len());
                 break;
             }
 
             if distance <= self.step {
-                println!(" WANDERS DEBUG breaking becasue of distance. points count: {}", points.len());
+                // println!(" WANDERS DEBUG breaking becasue of distance. points count: {}", points.len());
                 break;
             }
 
-            let (w_x, w_z, w_angle) = self.wander.apply(&xz, last_angle, self.step, direction);
+            let (w_x, w_z, w_angle) = self.wander.apply(&xz, last_angle, self.step, direction, self.seed, i as u64);
             points.push((w_x,w_z));
             xz.0 = w_x;
             xz.1 = w_z;
@@ -85,7 +86,7 @@ impl TargetWanderNoise {
         // construct aabbs from points
         let mut aabbs = AABBs::new();
         for p in points.iter(){
-            aabbs.0.push(AABB::from_point(p, &(self.width, self.step*2.0)));
+            aabbs.0.push(AABB::from_point(p, &(self.step*2.0, self.width)));
         }
 
         return aabbs;
@@ -116,7 +117,7 @@ pub enum TargetWanders {
 
 impl TargetWanders {
     // returns new x, z, last_angle
-    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32) -> (f32, f32, f32) {
+    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32, seed: u64, i: u64) -> (f32, f32, f32) {
         let mut new_x: f32 = xz.0;
         let mut new_z: f32 = xz.1;
         let mut new_angle: f32 = last_angle;
@@ -142,17 +143,17 @@ impl TargetWanders {
             // }
 
             TargetWanders::Emu30 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.26, direction+0.26);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.26, direction+0.26, seed+i);
             }
             TargetWanders::Emu60 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.52, direction+0.52);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.52, direction+0.52, seed+i);
             }
             TargetWanders::Emu90 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.78, direction+0.78);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.78, direction+0.78, seed+i);
             }
             TargetWanders::Wanderer => {
                 let angles: Vec<f32> = vec![direction+1.578, direction-1.578, direction - 3.142, direction, direction, direction]; // :)
-                let final_angle = get_random_element(&angles);
+                let final_angle = get_random_element(&angles, seed+i);
                 new_angle = final_angle;
                 (new_x, new_z) = get_point_angle(xz, step, new_angle);
             }
@@ -166,8 +167,8 @@ impl TargetWanders {
 
 
 
-pub fn get_random_element(elements: &Vec<f32>) -> f32{
-    let mut rng = rand::thread_rng();
+pub fn get_random_element(elements: &Vec<f32>, seed: u64) -> f32{
+    let mut rng = StdRng::seed_from_u64(seed);
     let random_index = rng.gen_range(0..elements.len());
     // let random_index = 0; test
     return elements[random_index];
@@ -179,16 +180,16 @@ fn get_point_angle(xz: &(f32,f32), r: f32, angle: f32) -> (f32, f32){
     (point_x, point_z)
 }
 
-fn get_random_arc(xz: &(f32,f32), r: f32, start_angle: f32, end_angle: f32) -> (f32, f32, f32) {
-    let mut rng = rand::thread_rng();
+fn get_random_arc(xz: &(f32,f32), r: f32, start_angle: f32, end_angle: f32, seed: u64) -> (f32, f32, f32) {
+    let mut rng = StdRng::seed_from_u64(seed);
     let random_angle = rng.gen_range(start_angle..=end_angle);
     let point_x = xz.0 + r * random_angle.cos();
     let point_z = xz.1 + r * random_angle.sin();
     (point_x, point_z, random_angle)
 }
 
-fn get_random_range(min: f32, max: f32) -> f32 {
-    let mut rng = rand::thread_rng();
+fn get_random_range(min: f32, max: f32, seed: u64) -> f32 {
+    let mut rng = StdRng::seed_from_u64(seed);
     return rng.gen_range(min..=max);
 }
 

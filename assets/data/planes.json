@@ -11,7 +11,8 @@
         "subdivisions": 50,
         "dims": [500.0, 500.0],
         "color": [0.8, 1.0, 0.5, 1.0],
-        "modifiers": [{"TargetWanderNoise": {"wander": "Wanderer", "width": 220.0, "height": -20.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}}}]
+        "modifiers": [
+            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}]
     },
     {
         "loc": [500.0, 0.0, -100.0],
@@ -32,7 +33,7 @@
         "dims": [500.0, 500.0],
         "color": [1.0, 0.7, 0.224, 1.0],
         "noise_data": {
-                        "noise": "Perlin", 
+                        "noise": "PerlinSurflet", 
                         "seed": 0, 
                         "scale": 0.01,
                         "height_scale": 50.0

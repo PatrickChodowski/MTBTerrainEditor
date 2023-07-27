@@ -6,6 +6,7 @@ use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 
+use bevy::utils::HashMap;
 use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
@@ -37,18 +38,29 @@ impl PlaneData {
   pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
     let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
 
+    // Unpack modifiers
     let mut modifier_functions: Vec<ModifierFN> = Vec::new();
     for modifier in self.modifiers.iter(){
       modifier_functions.push(modifier.bake(&self));
     }
 
+    // Iterate through vector and apply modifiers
     for pos in v_pos.iter_mut(){
       for m in modifier_functions.iter(){
         pos[1] = m.modifier.apply(&pos, &m.aabbs, &self.loc);
-      }        
+      }   
+    }
+
+    // Colors based on height
+    let mut v_clr: Vec<[f32; 4]> = Vec::new();
+    let min_height: f32 = 0.0;
+    let max_height: f32 = 0.0;
+    for pos in v_pos.iter(){
+        v_clr.push(self.color.apply(pos[1], min_height, max_height));
     }
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr);
     return mesh.clone()
   }
 
@@ -65,8 +77,18 @@ impl PlaneData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PlaneColor {
     Color([f32; 4]),
-    Steps,
-    Gradient
+    Steps(Vec<(f32, [f32; 4])>), // Vector of tuples of (high limit, color)
+    Gradient([f32; 4],[f32; 4])
+}
+
+impl PlaneColor {
+    pub fn apply(&self, height: f32, min_height: f32, max_height: f32) -> [f32; 4] {
+        match self {
+            PlaneColor::Steps(v) => {[0.8, 0.5, 0.5, 1.0]}
+            PlaneColor::Gradient(low, high) => {[0.8, 0.8, 0.5, 1.0]} // need min height and max height
+            _ => {[0.5, 0.5, 0.5, 1.0]}
+        }
+    }
 }
 
 

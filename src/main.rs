@@ -21,27 +21,28 @@ pub const RESOLUTION: f32 = 16.0 / 9.0;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
-                title: "Terrain Generator".to_string(),
-                // present_mode: PresentMode::AutoNoVsync,
-                present_mode: PresentMode::AutoVsync,
-                resizable: true,
-                mode: WindowMode::Windowed,
+        .add_plugins(DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
+                    title: "Terrain Generator".to_string(),
+                    // present_mode: PresentMode::AutoNoVsync,
+                    present_mode: PresentMode::AutoVsync,
+                    resizable: true,
+                    mode: WindowMode::Windowed,
 
-            ..default()
-        }), ..default()}).set(LogPlugin {
-            filter: "info,wgpu_core=warn,wgpu_hal=warn,mygame=debug".into(),
-            level: bevy::log::Level::DEBUG,
-        })
-        .set(AssetPlugin {
-            // Tell the asset server to watch for asset changes on disk:
-            watch_for_changes: true,
-            ..default()
-        })
+                ..default()
+            }), ..default()})
+            .set(LogPlugin {
+                filter: "info,wgpu_core=warn,wgpu_hal=warn,mygame=debug".into(),
+                level: bevy::log::Level::DEBUG,
+            })
+            .set(AssetPlugin {
+                // Tell the asset server to watch for asset changes on disk:
+                watch_for_changes: true,
+                ..default()
+            })
         )
-        
         .add_plugin(WireframePlugin)
         .add_plugin(JsonAssetPlugin::<Planes>::new(&["json"]))
         .add_plugin(CameraPlugin)

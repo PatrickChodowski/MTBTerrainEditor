@@ -12,8 +12,7 @@ mod camera;
 use camera::CameraPlugin;
 
 mod terrain;
-use terrain::planes::PlanesPlugin;
-use terrain::utils::Planes;
+use terrain::planes::{PlanesPlugin, Planes};
 
 mod settings;
 

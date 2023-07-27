@@ -4,11 +4,14 @@ use bevy::pbr::wireframe::Wireframe;
 #[allow(unused_imports)]
 use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use crate::terrain::utils::{PlaneData, Planes, PlanesAsset};
+use bevy::reflect::TypeUuid;
+
+use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
 use crate::settings::{MIN_X, MAX_X, MIN_Z, MAX_Z};
-
+use crate::terrain::modifiers::{Modifier, ModifierFN};
+use crate::terrain::utils::AABB;
 
 pub struct PlanesPlugin;
 
@@ -20,6 +23,52 @@ impl Plugin for PlanesPlugin {
       ;
   }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PlaneData {
+    pub loc:          (f32, f32, f32),
+    pub subdivisions: u32,
+    pub dims:         (f32, f32),
+    pub color:        [f32; 4],
+    pub modifiers:    Vec<Modifier>
+}
+
+impl PlaneData {
+  pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
+    let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
+
+    let mut modifier_functions: Vec<ModifierFN> = Vec::new();
+    for modifier in self.modifiers.iter(){
+      modifier_functions.push(modifier.bake(&self));
+    }
+
+    for pos in v_pos.iter_mut(){
+      for m in modifier_functions.iter(){
+        pos[1] = m.modifier.apply(&pos, &m.aabbs);
+      }        
+    }
+
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
+    return mesh.clone()
+  }
+
+  pub fn get_aabb(&self) -> AABB {
+    let min_x = -1.0*self.dims.0/2.0;
+    let max_x = self.dims.0/2.0;
+    let min_z = -1.0*self.dims.1/2.0;
+    let max_z = self.dims.1/2.0;
+    return AABB{min_x, max_x, min_z, max_z};
+  }
+
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
+#[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
+pub struct Planes(pub Vec<PlaneData>);
+
+#[derive(Resource)]
+pub struct PlanesAsset(pub Handle<Planes>);
+
 
 #[derive(Component)]
 pub struct TerrainPlane;
@@ -67,23 +116,14 @@ fn spawn_plane(commands:           &mut Commands,
     ));
 }
 
-
-
-
-
 fn plane_mesh(subdivisions: u32, dims: &(f32, f32)) -> Mesh {
-
     let mesh = Mesh::from(RectPlane {
         width: dims.0,
         length: dims.1,  
         subdivisions
     });
-
     return mesh;
-
 }
-
-
 
 #[derive(Debug, Copy, Clone)]
 pub struct RectPlane {

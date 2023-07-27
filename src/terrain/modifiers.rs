@@ -1,10 +1,10 @@
 
 use serde::{Serialize, Deserialize};
-use crate::terrain::utils::{AABB, AABBs};
 
-use super::noises::{NoiseData, Noise};
-use super::utils::PlaneData;
-use super::wanders::TargetWanderNoise;
+use crate::terrain::noises::{NoiseData, Noise};
+use crate::terrain::planes::PlaneData;
+use crate::terrain::wanders::TargetWanderNoise;
+use crate::terrain::utils::{AABB, AABBs};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Edge {

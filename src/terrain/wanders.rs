@@ -3,10 +3,9 @@ use serde::{Serialize, Deserialize};
 use libm::{atan2f, fabsf};
 use rand::prelude::*;
 
-use crate::terrain::utils::AABB;
-
-use super::modifiers::{ModifierTrait, Edge};
-use super::utils::{AABBs, PlaneData};
+use crate::terrain::modifiers::{ModifierTrait, Edge};
+use crate::terrain::planes::PlaneData;
+use crate::terrain::utils::{AABBs,AABB};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TargetWanderNoise {

@@ -3,7 +3,8 @@ use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, 
 use serde::{Serialize, Deserialize};
 
 use crate::terrain::modifiers::ModifierTrait;
-use crate::terrain::utils::{AABBs, PlaneData};
+use crate::terrain::planes::PlaneData;
+use crate::terrain::utils::AABBs;
 
 #[derive(Clone)]
 pub struct Noise {

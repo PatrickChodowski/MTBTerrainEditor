@@ -1,13 +1,10 @@
 [package]
 name = "terrain_generator"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bevy = { version = "0.10.1", features = ["dynamic_linking"] }
-# bevy_asset_loader = "0.16.1"
 bevy_common_assets = {  version ="0.6.0", features = ["json"]}
 libm = "0.2.7"
 serde = "1.0"
@@ -19,12 +16,10 @@ grid = { version = "*", default-features = false }
 
 
 [workspace]
-resolver = "2" # Important! wgpu/Bevy needs this!
+resolver = "2"
 
-# Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3

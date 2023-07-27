@@ -10,7 +10,7 @@ use super::utils::{AABBs, PlaneData};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TargetWanderNoise {
-    pub wander:               Wanders,
+    pub wander:               TargetWanders,
     pub width:                f32,
     pub height:               f32,
     pub step:                 f32,
@@ -58,6 +58,8 @@ impl TargetWanderNoise {
         println!(" WANDERS DEBUG from source: ({:?}) to target ({:?}), direction: {}", xz, end, direction);
 
         while inloop {
+            i += 1;
+
             // end conditions
             if i >= self.max_steps {
                 println!(" WANDERS DEBUG breaking becasue of max steps. points count: {}", points.len());
@@ -69,7 +71,7 @@ impl TargetWanderNoise {
                 break;
             }
 
-            let (w_x, w_z, w_angle) = self.wander.apply(&xz, last_angle, self.step, direction, i);
+            let (w_x, w_z, w_angle) = self.wander.apply(&xz, last_angle, self.step, direction);
             points.push((w_x,w_z));
             xz.0 = w_x;
             xz.1 = w_z;
@@ -78,8 +80,6 @@ impl TargetWanderNoise {
             direction = get_direction(&xz, &end);
             distance = get_distance_manhattan(&xz, &end);
             
-            i += 1;
-
         }
 
         // construct aabbs from points
@@ -106,10 +106,7 @@ impl ModifierTrait for TargetWanderNoise {
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Wanders {
-    Robot,     // Random Direction n steps, choose random direction n steps
-    Zax,       // goes nsew or e, or e or e (in general follows in direction)
-    Emu,       // doesnt allow backwards
+pub enum TargetWanders {
     Emu90,     // not, grid, steers randomly between 0-90 angle
     Emu60,     // 0-60
     Emu30,     // 0-30
@@ -117,36 +114,43 @@ pub enum Wanders {
     Wanderer   // nswe, goal goal goal, when you have a start and end point
 }
 
-impl Wanders {
+impl TargetWanders {
     // returns new x, z, last_angle
-    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32, step_count: u32) -> (f32, f32, f32) {
+    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32) -> (f32, f32, f32) {
         let mut new_x: f32 = xz.0;
         let mut new_z: f32 = xz.1;
         let mut new_angle: f32 = last_angle;
 
         match self {
-            Wanders::Robot => {
-                // Change direction every 5 steps
-                if step_count % 5 == 0 {
+            // Wanders::Robot => {
+            //     // Change direction every 5 steps
+            //     if step_count % 5 == 0 {
+            //         let angles: Vec<f32> = vec![0.0, 1.578, 3.142, -1.578]; 
+            //         let final_angle = get_random_element(&angles);
+            //         new_angle = final_angle;
+            //     }
+            //     (new_x, new_z) = get_point_angle(xz, step, new_angle);
+            // }
+            // Wanders::Zax => {
+            //     // Change direction every 5 steps
+            //     if step_count % 5 == 0 {
+            //         let angles: Vec<f32> = vec![0.0, 1.578, 3.142, -1.578]; 
+            //         let final_angle = get_random_element(&angles);
+            //         new_angle = final_angle;
+            //     }
+            //     (new_x, new_z) = get_point_angle(xz, step, new_angle);
+            // }
 
-
-                }
-                let angles: Vec<f32> = vec![0.0, 1.578, 3.142, -1.578]; 
-                let final_angle = get_random_element(&angles);
-                new_angle = final_angle;
-                (new_x, new_z) = get_point_angle(xz, step, new_angle);
-            }
-
-            Wanders::Emu30 => {
+            TargetWanders::Emu30 => {
                 (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.26, direction+0.26);
             }
-            Wanders::Emu60 => {
+            TargetWanders::Emu60 => {
                 (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.52, direction+0.52);
             }
-            Wanders::Emu90 => {
+            TargetWanders::Emu90 => {
                 (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.78, direction+0.78);
             }
-            Wanders::Wanderer => {
+            TargetWanders::Wanderer => {
                 let angles: Vec<f32> = vec![direction+1.578, direction-1.578, direction - 3.142, direction, direction, direction]; // :)
                 let final_angle = get_random_element(&angles);
                 new_angle = final_angle;

@@ -29,7 +29,7 @@ pub struct PlaneData {
     pub loc:          [f32; 3],
     pub subdivisions: u32,
     pub dims:         (f32, f32),
-    pub color:        [f32; 4],
+    pub color:        PlaneColor,
     pub modifiers:    Vec<Modifier>
 }
 
@@ -61,6 +61,16 @@ impl PlaneData {
   }
 
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum PlaneColor {
+    Color([f32; 4]),
+    Steps,
+    Gradient
+}
+
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
@@ -105,8 +115,14 @@ fn spawn_plane(commands:           &mut Commands,
     let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);
 
+    let material: Handle<StandardMaterial>;
+    match pd.color {
+        PlaneColor::Color(clr) => {material = materials.add(StandardMaterial::from(Color::from(clr)));}
+        _ => {material = materials.add(StandardMaterial{..default()});}
+    }
+
     commands.spawn((PbrBundle {
-        material: materials.add(StandardMaterial::from(Color::from(pd.color))),
+        material,
         mesh: meshes.add(mesh),
         transform: Transform::from_translation(pd.loc.into()),
         ..default()

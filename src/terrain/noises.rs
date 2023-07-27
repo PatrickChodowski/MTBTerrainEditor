@@ -26,9 +26,15 @@ impl Noise {
 }
 
 impl ModifierTrait for Noise {
-    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32 {
+    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, loc: &[f32; 3]) -> f32 {
         if aabbs.has_point(pos) {
-            return self.noise_function.apply(pos, &self.noise_data);
+
+            let mut g_pos = *pos;
+            if self.noise_data.global {
+                g_pos = [pos[0] + loc[0], pos[1] + loc[1], pos[2]+loc[2]];
+            }
+
+            return self.noise_function.apply(&g_pos, &self.noise_data);
         }
         return pos[1];
     }

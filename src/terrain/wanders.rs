@@ -93,7 +93,7 @@ impl TargetWanderNoise {
 }
 
 impl ModifierTrait for TargetWanderNoise {
-    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs) -> f32 {
+    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
         if aabbs.has_point(pos) {
             return self.height;
         }

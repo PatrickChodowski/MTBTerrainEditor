@@ -26,7 +26,7 @@ impl Plugin for PlanesPlugin {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlaneData {
-    pub loc:          (f32, f32, f32),
+    pub loc:          [f32; 3],
     pub subdivisions: u32,
     pub dims:         (f32, f32),
     pub color:        [f32; 4],
@@ -44,7 +44,7 @@ impl PlaneData {
 
     for pos in v_pos.iter_mut(){
       for m in modifier_functions.iter(){
-        pos[1] = m.modifier.apply(&pos, &m.aabbs);
+        pos[1] = m.modifier.apply(&pos, &m.aabbs, &self.loc);
       }        
     }
 

@@ -1,3 +1,5 @@
+use bevy::input::common_conditions::input_just_pressed;
+use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::*;
 
 use bevy::window::WindowMode;
@@ -12,6 +14,7 @@ mod camera;
 use camera::CameraPlugin;
 
 mod terrain;
+use terrain::planes::TerrainPlane;
 use terrain::planes::{PlanesPlugin, Planes};
 
 pub const HEIGHT: f32 = 900.0;
@@ -45,7 +48,42 @@ fn main() {
         .add_plugin(JsonAssetPlugin::<Planes>::new(&["json"]))
         .add_plugin(CameraPlugin)
         .add_plugin(PlanesPlugin)
+
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
+        .add_state::<DisplayMode>()
+        .add_system(toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)))
         .run();
+}
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum DisplayMode {
+    #[default]
+    WireFrameOn,
+    WireFrameOff
+}
+
+fn toggle_wireframe(
+    mut commands:            Commands,
+    planes:                  Query<Entity, With<TerrainPlane>>,
+    display_mode:            Res<State<DisplayMode>>,
+    mut next_display_mode:   ResMut<NextState<DisplayMode>>,
+){
+    
+    match display_mode.0 {
+        DisplayMode::WireFrameOn => {
+            next_display_mode.set(DisplayMode::WireFrameOff);
+            for entity in planes.iter() {
+                commands.entity(entity).remove::<Wireframe>();
+            }
+        
+        }
+        DisplayMode::WireFrameOff => {
+            next_display_mode.set(DisplayMode::WireFrameOn);
+            for entity in planes.iter() {
+                commands.entity(entity).insert(Wireframe);
+            }
+        }
+    }
 }

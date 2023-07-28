@@ -157,15 +157,8 @@ fn spawn_plane(commands:           &mut Commands,
 
     let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);
-
-    let material: Handle<StandardMaterial>;
-    match pd.color {
-        PlaneColor::Color(clr) => {material = materials.add(StandardMaterial::from(Color::from(clr)));}
-        _ => {material = materials.add(StandardMaterial{..default()});}
-    }
-
     commands.spawn((PbrBundle {
-        material,
+        material: materials.add(StandardMaterial{..default()}),
         mesh: meshes.add(mesh),
         transform: Transform::from_translation(pd.loc.into()),
         ..default()

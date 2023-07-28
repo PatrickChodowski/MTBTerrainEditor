@@ -4,11 +4,10 @@ use bevy::pbr::wireframe::Wireframe;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
+
 use crate::DisplayMode;
 use crate::terrain::modifiers::{Modifier, ModifierFN};
-use crate::terrain::utils::AABB;
-
-use super::utils::{ConfigAsset, ConfigData};
+use crate::terrain::utils::{AABB, EdgeLine, ConfigAsset, ConfigData};
 
 pub struct PlanesPlugin;
 
@@ -34,13 +33,44 @@ pub struct PlaneData {
 
 impl PlaneData {
   pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
-    let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
 
+    let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
     // Unpack modifiers
     let mut modifier_functions: Vec<ModifierFN> = Vec::new();
+    let mut inner_edges: Vec<EdgeLine> = Vec::new();
+    let mut secondary_modifiers: Vec<Modifier> = Vec::new();
+
+    // Primary modifiers
     for modifier in self.modifiers.iter(){
-      modifier_functions.push(modifier.bake(&self));
+        // Pass secondary modifiers further. Their impact is based on baking of primary modifiers.
+        match modifier {
+            Modifier::SmoothEdge(_data) => {
+                secondary_modifiers.push(modifier.clone())
+            }
+            _ => {
+                // Bake primary modifiers
+                if let Some(md) = modifier.bake(&self){
+                    let mut edges: Vec<EdgeLine> = md.aabbs.to_edges(&self.get_aabb());
+                    modifier_functions.push(md);
+                    inner_edges.append(&mut edges); 
+                }
+            }
+        }
     }
+
+    for modifier in secondary_modifiers.iter_mut(){
+        match modifier {
+            Modifier::SmoothEdge(data) => {
+                data.edges = inner_edges.clone();
+                let md = ModifierFN{modifier: Box::new(data.clone()), aabbs:  data.aabbs()};
+                modifier_functions.push(md);
+            }
+            _ => {} 
+        }
+    }
+
+    // println!("edgelines: {:?}", inner_edges);
+
     let mut min_height = f32::MAX;
     let mut max_height = f32::MIN;
 

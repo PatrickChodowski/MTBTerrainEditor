@@ -7,6 +7,8 @@ use crate::terrain::planes::PlaneData;
 use crate::terrain::wanders::TargetWanderNoise;
 use crate::terrain::utils::{AABB, AABBs};
 
+use super::utils::EdgeLine;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Edge {
     X, NX, Z, NZ
@@ -22,43 +24,44 @@ pub enum Modifier {
     FlatEdges(FlatEdges),
     FlatEdge(FlatEdge),
     Noise(NoiseData),
+    SmoothEdge(SmoothEdge),           // Secondary modifier
     TargetWanderNoise(TargetWanderNoise)
 }
 
 impl Modifier {
-  pub fn bake(&self, pd: &PlaneData) -> ModifierFN {
+  pub fn bake(&self, pd: &PlaneData) -> Option<ModifierFN> {
     match self {
       Modifier::Easing(data) => {
-        ModifierFN { 
+        Some(ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs: data.aabbs(pd)
-        }
+        })
       }
       Modifier::FlatEdges(data) => {
-        ModifierFN { 
+        Some(ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs: data.aabbs(pd)
-        }
+        })
       }
       Modifier::FlatEdge(data) => {
-        ModifierFN { 
+        Some(ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs: data.aabbs(pd)
-        }
+        })
       }
       Modifier::Noise(data) => {
-        ModifierFN { 
+        Some(ModifierFN { 
           modifier: Box::new(Noise::from_noise_data(data)),
           aabbs: Noise::aabbs(pd)
-        }
+        })
       }
       Modifier::TargetWanderNoise(data) => {
-        ModifierFN { 
+        Some(ModifierFN { 
           modifier: Box::new(data.clone()),
           aabbs:  data.aabbs(pd)
-        }
+        })
       }
-
+      _ => {None}
     }
   }
 }
@@ -130,6 +133,32 @@ impl ModifierTrait for FlatEdge {
   fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
     if aabbs.has_point(pos) {
       return self.height;
+    }
+    return pos[1];
+  }
+}
+
+
+// Smooth edge line data
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SmoothEdge {
+  pub edges: Vec<EdgeLine>,
+  pub buffer: f32
+}
+
+impl SmoothEdge{
+  pub fn aabbs(&self) -> AABBs {
+    println!("self edges: {:?}", self.edges);
+    println!("self buffer: {:?}", self.buffer);
+    AABBs::new()
+  }
+}
+
+impl ModifierTrait for SmoothEdge {
+  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
+    if aabbs.has_point(pos) {
+      // return self.height
+      return pos[1];
     }
     return pos[1];
   }

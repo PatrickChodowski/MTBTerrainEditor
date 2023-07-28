@@ -46,7 +46,8 @@
         "dims": [500.0, 500.0],
         "color": {"Color": [0.8, 1.0, 0.5, 1.0]},
         "modifiers": [
-            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
+            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}},
+            {"SmoothEdge": {"buffer": 50.0, "edges": []}}
         ]
     },
     {

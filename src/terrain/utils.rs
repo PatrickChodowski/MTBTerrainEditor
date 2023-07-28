@@ -1,7 +1,19 @@
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
-
 use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EdgeLine {
+  pub axis:   Axis,
+  pub start:  (f32, f32),
+  pub end:    (f32, f32)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Axis {
+  X,
+  Z
+}
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
@@ -27,15 +39,37 @@ impl AABB {
     AABB{min_x: xz.0 - dims.0/2.0, max_x: xz.0 + dims.0/2.0, min_z: xz.1 - dims.1/2.0, max_z: xz.1 + dims.1/2.0}
   }
 
+  // Convert aabb into edges (thin AABB box)
+  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
+  
+    let mut v: Vec<EdgeLine> = Vec::new();
+    if self.min_x > plane.min_x && self.min_x < plane.max_x{
+      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z)});
+    }
+    if self.max_x > plane.min_x && self.max_x < plane.max_x{
+      v.push(EdgeLine{axis: Axis::X, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z)});
+    }
+    if self.min_z > plane.min_z && self.min_z < plane.max_z{
+      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z)});
+    }
+    if self.max_z > plane.min_z && self.max_z < plane.max_z{
+      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z)});
+    }
+
+    return v;
+  }
+
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AABBs(pub Vec<AABB>);
 
 impl AABBs {
+
   pub fn new() -> Self {
     AABBs(Vec::new())
   }
+
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     for aabb in self.0.iter() {
       if aabb.has_point(p){
@@ -43,6 +77,15 @@ impl AABBs {
       }
     }
     return false;
+  }
+
+  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
+    let mut abs: Vec<EdgeLine> = Vec::new();
+    for aabb in self.0.iter(){
+      let mut edges = aabb.to_edges(plane);
+      abs.append(&mut edges);
+    }
+    return abs;
   }
 
 }

@@ -1,3 +1,4 @@
+pub mod easings;
 pub mod modifiers;
 pub mod noises;
 pub mod planes;

@@ -1,5 +1,5 @@
 [
-    {   
+    {
         "name": "Green flat plane",
         "loc": [0.0, 0.0, -100.0],
         "subdivisions": 0,
@@ -59,6 +59,4 @@
             {"Noise": {"noise": "Value", "seed": 0, "scale": 0.01, "height_scale": 100.0, "global": true}}
         ]
     }
-
-
 ]

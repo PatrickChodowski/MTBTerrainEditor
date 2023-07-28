@@ -8,12 +8,15 @@ use crate::DisplayMode;
 use crate::terrain::modifiers::{Modifier, ModifierFN};
 use crate::terrain::utils::AABB;
 
+use super::utils::{ConfigAsset, ConfigData};
+
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
   fn build(&self, app: &mut App) {
       app
-      .add_startup_system(setup)
+      .add_startup_system(setup_config)
+      .add_system(setup_planes_handle.run_if(on_event::<AssetEvent<ConfigData>>()))
       .add_system(update.run_if(on_event::<AssetEvent<Planes>>()))
       ;
   }
@@ -41,14 +44,11 @@ impl PlaneData {
     let mut min_height = f32::MAX;
     let mut max_height = f32::MIN;
 
-
     // Iterate through vector and apply modifiers
     for pos in v_pos.iter_mut(){
-
       for m in modifier_functions.iter(){
         pos[1] = m.modifier.apply(&pos, &m.aabbs, &self.loc);
       }   
-
       if pos[1] > max_height {
         max_height = pos[1];
       }
@@ -88,7 +88,7 @@ pub enum PlaneColor {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColorStep {
     pub h:    f32,
-    pub clr: [f32; 4]     
+    pub clr:  [f32; 4]     
 }
 
 impl PlaneColor {
@@ -109,12 +109,10 @@ impl PlaneColor {
                         low[2] + scale*(high[2] - low[2]),
                         low[3] + scale*(high[3] - low[3])];
             } 
-            PlaneColor::Color(clr) => { return *clr;}
+            PlaneColor::Color(clr) => {return *clr;}
         }
     }
 }
-
-
 
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
@@ -124,13 +122,26 @@ pub struct Planes(pub Vec<PlaneData>);
 #[derive(Resource)]
 pub struct PlanesAsset(pub Handle<Planes>);
 
-
 #[derive(Component)]
 pub struct TerrainPlane;
 
-fn setup(mut commands: Commands, ass: Res<AssetServer>){
-    let handle = PlanesAsset(ass.load("data/planes.json"));
-    commands.insert_resource(handle);
+fn setup_config(mut commands:    Commands, 
+                ass:             Res<AssetServer>,) {
+    let config_handle = ConfigAsset(ass.load("config.json"));
+    commands.insert_resource(config_handle);
+}
+
+
+
+fn setup_planes_handle(mut commands:    Commands, 
+                       ass:             Res<AssetServer>,
+                       conifg_assets:   Res<Assets<ConfigData>>,
+                       conifg_handle:   Res<ConfigAsset>){
+
+    let scene_file = &conifg_assets.get(&conifg_handle.0).unwrap().scene_file;
+    let path: &str = &format!("scenes/{}.scene.json", scene_file);
+    let planes_handle = PlanesAsset(ass.load(path));
+    commands.insert_resource(planes_handle);
 }
 
 
@@ -140,14 +151,14 @@ fn update(mut commands:           Commands,
           mut materials:          ResMut<Assets<StandardMaterial>>,
           terrain_planes:         Query<Entity, With<TerrainPlane>>,
           planes_assets:          Res<Assets<Planes>>,
-          handle:                 Res<PlanesAsset>,
+          planes_handle:          Res<PlanesAsset>,
           display_mode:           Res<State<DisplayMode>>){
 
     for entity in terrain_planes.iter(){
         commands.entity(entity).despawn_recursive();
     }
 
-    for pd in planes_assets.get(&handle.0).unwrap().0.iter(){
+    for pd in planes_assets.get(&planes_handle.0).unwrap().0.iter(){
         spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
     }
 }

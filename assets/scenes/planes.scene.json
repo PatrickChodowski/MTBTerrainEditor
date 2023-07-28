@@ -1,0 +1,10 @@
+[
+    {
+        "name": "Green flat plane",
+        "loc": [0.0, 0.0, -100.0],
+        "subdivisions": 0,
+        "dims": [500.0, 500.0],
+        "color": {"Color": [0.1, 1.0, 0.5, 1.0]},
+        "modifiers": []
+    }
+]

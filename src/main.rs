@@ -1,7 +1,6 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::*;
-
 use bevy::window::WindowMode;
 use bevy::window::PresentMode;
 use bevy::window::WindowPlugin;
@@ -16,6 +15,7 @@ use camera::CameraPlugin;
 mod terrain;
 use terrain::planes::TerrainPlane;
 use terrain::planes::{PlanesPlugin, Planes};
+use terrain::utils::ConfigData;
 
 pub const HEIGHT: f32 = 900.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -39,13 +39,13 @@ fn main() {
                 level: bevy::log::Level::DEBUG,
             })
             .set(AssetPlugin {
-                // Tell the asset server to watch for asset changes on disk:
                 watch_for_changes: true,
                 ..default()
             })
         )
         .add_plugin(WireframePlugin)
-        .add_plugin(JsonAssetPlugin::<Planes>::new(&["json"]))
+        .add_plugin(JsonAssetPlugin::<Planes>::new(&["scene.json"]))
+        .add_plugin(JsonAssetPlugin::<ConfigData>::new(&["json"]))
         .add_plugin(CameraPlugin)
         .add_plugin(PlanesPlugin)
 
@@ -87,3 +87,4 @@ fn toggle_wireframe(
         }
     }
 }
+

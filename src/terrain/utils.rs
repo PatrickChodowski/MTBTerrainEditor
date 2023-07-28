@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::reflect::TypeUuid;
 
 use serde::{Serialize, Deserialize};
 
@@ -45,3 +46,12 @@ impl AABBs {
   }
 
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
+#[uuid = "201ce530-bfeb-41b3-9db0-4b8b380a2c46"]
+pub struct ConfigData {
+    pub scene_file:         String
+}
+
+#[derive(Resource)]
+pub struct ConfigAsset(pub Handle<ConfigData>);

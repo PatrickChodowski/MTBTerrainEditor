@@ -4,6 +4,7 @@ use bevy::pbr::wireframe::Wireframe;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
+use crate::DisplayMode;
 use crate::terrain::modifiers::{Modifier, ModifierFN};
 use crate::terrain::utils::AABB;
 
@@ -20,6 +21,7 @@ impl Plugin for PlanesPlugin {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlaneData {
+    pub name:         String,
     pub loc:          [f32; 3],
     pub subdivisions: u32,
     pub dims:         (f32, f32),
@@ -138,14 +140,15 @@ fn update(mut commands:           Commands,
           mut materials:          ResMut<Assets<StandardMaterial>>,
           terrain_planes:         Query<Entity, With<TerrainPlane>>,
           planes_assets:          Res<Assets<Planes>>,
-          handle:                 Res<PlanesAsset>){
+          handle:                 Res<PlanesAsset>,
+          display_mode:           Res<State<DisplayMode>>){
 
     for entity in terrain_planes.iter(){
         commands.entity(entity).despawn_recursive();
     }
 
     for pd in planes_assets.get(&handle.0).unwrap().0.iter(){
-        spawn_plane(&mut commands, &mut meshes, &mut materials, &pd); 
+        spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
     }
 }
 
@@ -153,19 +156,26 @@ fn update(mut commands:           Commands,
 fn spawn_plane(commands:           &mut Commands, 
                meshes:             &mut ResMut<Assets<Mesh>>,
                materials:          &mut ResMut<Assets<StandardMaterial>>,   
-               pd:                 &PlaneData){
+               pd:                 &PlaneData,
+               display_mode:       &Res<State<DisplayMode>>
+            ){
 
     let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);
-    commands.spawn((PbrBundle {
+    let entity = commands.spawn((PbrBundle {
         material: materials.add(StandardMaterial{..default()}),
         mesh: meshes.add(mesh),
         transform: Transform::from_translation(pd.loc.into()),
         ..default()
         },
         TerrainPlane,
-        Wireframe
-    ));
+        Name::new(pd.name.clone())
+    )).id();
+
+    match display_mode.0 {
+        DisplayMode::WireFrameOn => {commands.entity(entity).insert(Wireframe);}
+        _ => {}
+    } 
 }
 
 fn plane_mesh(subdivisions: u32, dims: &(f32, f32)) -> Mesh {

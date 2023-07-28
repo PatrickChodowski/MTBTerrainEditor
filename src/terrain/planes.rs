@@ -1,14 +1,9 @@
 
 use bevy::prelude::*;
 use bevy::pbr::wireframe::Wireframe;
-#[allow(unused_imports)]
-use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
-
-#[allow(unused_imports)]
-use crate::settings::{MIN_X, MAX_X, MIN_Z, MAX_Z};
 use crate::terrain::modifiers::{Modifier, ModifierFN};
 use crate::terrain::utils::AABB;
 

@@ -14,8 +14,6 @@ use camera::CameraPlugin;
 mod terrain;
 use terrain::planes::{PlanesPlugin, Planes};
 
-mod settings;
-
 pub const HEIGHT: f32 = 900.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;
 

@@ -1,6 +1,7 @@
 
 use serde::{Serialize, Deserialize};
 
+use crate::terrain::easings::EasingData;
 use crate::terrain::noises::{NoiseData, Noise};
 use crate::terrain::planes::PlaneData;
 use crate::terrain::wanders::TargetWanderNoise;
@@ -17,6 +18,7 @@ pub trait ModifierTrait {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Modifier {
+    Easing(EasingData),
     FlatEdges(FlatEdges),
     FlatEdge(FlatEdge),
     Noise(NoiseData),
@@ -26,6 +28,12 @@ pub enum Modifier {
 impl Modifier {
   pub fn bake(&self, pd: &PlaneData) -> ModifierFN {
     match self {
+      Modifier::Easing(data) => {
+        ModifierFN { 
+          modifier: Box::new(data.clone()),
+          aabbs: data.aabbs(pd)
+        }
+      }
       Modifier::FlatEdges(data) => {
         ModifierFN { 
           modifier: Box::new(data.clone()),

@@ -2904,7 +2904,7 @@ dependencies = [
 
 [[package]]
 name = "terrain_generator"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "bevy",
  "bevy_common_assets",

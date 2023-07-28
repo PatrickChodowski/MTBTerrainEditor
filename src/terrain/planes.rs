@@ -5,8 +5,6 @@ use bevy::pbr::wireframe::Wireframe;
 use bevy::prelude::shape::Plane;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
-
-use bevy::utils::HashMap;
 use serde::{Serialize, Deserialize};
 
 #[allow(unused_imports)]
@@ -43,18 +41,27 @@ impl PlaneData {
     for modifier in self.modifiers.iter(){
       modifier_functions.push(modifier.bake(&self));
     }
+    let mut min_height = f32::MAX;
+    let mut max_height = f32::MIN;
+
 
     // Iterate through vector and apply modifiers
     for pos in v_pos.iter_mut(){
+
       for m in modifier_functions.iter(){
         pos[1] = m.modifier.apply(&pos, &m.aabbs, &self.loc);
       }   
+
+      if pos[1] > max_height {
+        max_height = pos[1];
+      }
+      if pos[1] < min_height {
+        min_height = pos[1];
+      }
     }
 
     // Colors based on height
     let mut v_clr: Vec<[f32; 4]> = Vec::new();
-    let min_height: f32 = 0.0;
-    let max_height: f32 = 0.0;
     for pos in v_pos.iter(){
         v_clr.push(self.color.apply(pos[1], min_height, max_height));
     }
@@ -76,17 +83,36 @@ impl PlaneData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PlaneColor {
-    Color([f32; 4]),
-    Steps(Vec<(f32, [f32; 4])>), // Vector of tuples of (high limit, color)
-    Gradient([f32; 4],[f32; 4])
+    Color([f32; 4]),            // Single Color
+    Steps(Vec<ColorStep>),      // Vector of tuples of (high limit, color)
+    Gradient([f32; 4],[f32; 4]) // Tuple of 2 color (low, high)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ColorStep {
+    pub h:    f32,
+    pub clr: [f32; 4]     
 }
 
 impl PlaneColor {
     pub fn apply(&self, height: f32, min_height: f32, max_height: f32) -> [f32; 4] {
         match self {
-            PlaneColor::Steps(v) => {[0.8, 0.5, 0.5, 1.0]}
-            PlaneColor::Gradient(low, high) => {[0.8, 0.8, 0.5, 1.0]} // need min height and max height
-            _ => {[0.5, 0.5, 0.5, 1.0]}
+            PlaneColor::Steps(v) => {
+                for step in v.iter(){
+                    if height < step.h {
+                        return step.clr;
+                    }
+                }
+                return [1.0, 1.0, 1.0, 1.0];
+            }
+            PlaneColor::Gradient(low, high) => {
+                let scale = (height - min_height)/(max_height - min_height);
+                return [low[0] + scale*(high[0] - low[0]), 
+                        low[1] + scale*(high[1] - low[1]),
+                        low[2] + scale*(high[2] - low[2]),
+                        low[3] + scale*(high[3] - low[3])];
+            } 
+            PlaneColor::Color(clr) => { return *clr;}
         }
     }
 }

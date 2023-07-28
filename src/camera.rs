@@ -12,8 +12,9 @@ const CAMERA_MIN_X: f32 = MIN_X - 2000.0;
 const CAMERA_MAX_X: f32 = MAX_X + 2000.0;
 const CAMERA_MIN_Z: f32 = MIN_Z - 2000.0;
 const CAMERA_MAX_Z: f32 = MAX_Z + 2000.0;
-const CAMERA_START_Y: f32 = 1200.0; // 1000.0
-const CAMERA_START_Z: f32 = MAX_Z; //MAX_Z = 1000.0 //MAX_Z*1.5
+
+const CAMERA_START_Y: f32 = 2000.0; // 1000.0
+const CAMERA_START_Z: f32 = 800.0; //MAX_Z = 1000.0 //MAX_Z*1.5
 
 const CAMERA_SPEED: f32 = 600.0;
 const CAMERA_SENSITIVITY: f32 = 0.0001; // 0.00012 default

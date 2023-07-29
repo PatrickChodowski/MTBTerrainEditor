@@ -12,12 +12,14 @@
         "name": "River Bed",
         "active": true,
         "loc": [500.0, 0.0, 400.0],
-        "subdivisions": [10,10],
+        "subdivisions": [30,40],
         "dims": [1000.0, 400.0],
         "color": {"Gradient": [[0.976, 0.89, 0.768, 1.0], [0.545, 0.733, 0.345, 1.0]]},
         "modifiers": [
-            {"TargetWanderNoise": {"wander": "Wanderer", "width": 170.0, "height": -20.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
-            ,{"SmoothEdge": {"buffer": 0.0, "method": {"Value": 0.0}}}
+             {"TargetWanderNoise": {"wander": "Emu90", "width": 170.0, "height": -20.0, "step": 10.0, 
+                                    "max_steps": 500,"source": {"Edge": "NX"}, 
+                                    "target": {"Edge": "X"}, "seed": "NoSeed"}}
+            ,{"SmoothEdge": {"buffer": 10.0, "method": {"Value": -5.0}}}
 
 
 

@@ -18,7 +18,7 @@ Creates terrain out of json config file.
 ## Plane data:
 - name:  String
 - location: [x,y,z]
-- subdivisions: u32
+- subdivisions: [u32, u32]
 - dims: [width, length]
 - color: 
     - gradient (low color, high color)
@@ -27,15 +27,13 @@ Creates terrain out of json config file.
 - modifiers: [Modifiers]
     - Noise
     - Wander noise
+    - Smooth edge
     - Flat edge
     - Easing
     - more to come...
 
 ## TODO:
-- edge smoothing modifier
-- easing modifier
 - wander noise without target modifier
-
 - convert it to a plugin
 - add some smarter picker/loader for the files
 - terrain exporter to gltf maybe?

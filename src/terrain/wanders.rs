@@ -15,7 +15,7 @@ pub struct TargetWanderNoiseData {
     pub max_steps:            u32,
     pub source:               WanderLoc,
     pub target:               WanderLoc,
-    pub seed:                 u64
+    pub seed:                 NoiseSeed
 }
 
 
@@ -28,10 +28,15 @@ pub struct TargetWanderNoise {
     pub max_steps:            u32,
     pub source:               WanderLoc,
     pub target:               WanderLoc,
-    pub seed:                 u64,
+    pub seed:                 NoiseSeed,
     pub aabbs:                AABBs
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
+pub enum NoiseSeed {
+    SetSeed(u64),
+    NoSeed
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 pub enum WanderLoc {
@@ -40,7 +45,7 @@ pub enum WanderLoc {
 }
 
 impl WanderLoc {
-    fn get_point(&self, pab: &AABB, seed: u64) -> (f32, f32) {
+    fn get_point(&self, pab: &AABB, seed: NoiseSeed) -> (f32, f32) {
         match self {
             WanderLoc::Point(p)   => {return *p;}
             WanderLoc::Edge(edge) =>  {
@@ -152,7 +157,7 @@ pub enum TargetWanders {
 
 impl TargetWanders {
     // returns new x, z, last_angle
-    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32, seed: u64, i: u64) -> (f32, f32, f32) {
+    fn apply(&self, xz: &(f32,f32), last_angle: f32, step: f32, direction: f32, seed: NoiseSeed, i: u64) -> (f32, f32, f32) {
         let mut new_x: f32 = xz.0;
         let mut new_z: f32 = xz.1;
         let mut new_angle: f32 = last_angle;
@@ -178,17 +183,17 @@ impl TargetWanders {
             // }
 
             TargetWanders::Emu30 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.26, direction+0.26, seed+i);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.26, direction+0.26, seed, i);
             }
             TargetWanders::Emu60 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.52, direction+0.52, seed+i);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.52, direction+0.52, seed, i);
             }
             TargetWanders::Emu90 => {
-                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.78, direction+0.78, seed+i);
+                (new_x, new_z, new_angle) = get_random_arc(xz,step, direction-0.78, direction+0.78, seed, i);
             }
             TargetWanders::Wanderer => {
                 let angles: Vec<f32> = vec![direction+1.578, direction-1.578, direction - 3.142, direction, direction, direction]; // :)
-                let final_angle = get_random_element(&angles, seed+i);
+                let final_angle = get_random_element(&angles, seed, i);
                 new_angle = final_angle;
                 (new_x, new_z) = get_point_angle(xz, step, new_angle);
             }
@@ -200,13 +205,19 @@ impl TargetWanders {
     }
 }
 
-
-
-pub fn get_random_element(elements: &Vec<f32>, seed: u64) -> f32{
-    let mut rng = StdRng::seed_from_u64(seed);
-    let random_index = rng.gen_range(0..elements.len());
-    // let random_index = 0; test
-    return elements[random_index];
+pub fn get_random_element(elements: &Vec<f32>, seed: NoiseSeed, i: u64) -> f32{
+    match seed {
+        NoiseSeed::NoSeed => {
+            let mut rng  = thread_rng();
+            let random_index = rng.gen_range(0..elements.len());
+            return elements[random_index];
+        }
+        NoiseSeed::SetSeed(seed) => {
+            let mut rng = StdRng::seed_from_u64(seed+i);
+            let random_index = rng.gen_range(0..elements.len());
+            return elements[random_index];
+        }
+    }
 }
 
 fn get_point_angle(xz: &(f32,f32), r: f32, angle: f32) -> (f32, f32){
@@ -215,17 +226,35 @@ fn get_point_angle(xz: &(f32,f32), r: f32, angle: f32) -> (f32, f32){
     (point_x, point_z)
 }
 
-fn get_random_arc(xz: &(f32,f32), r: f32, start_angle: f32, end_angle: f32, seed: u64) -> (f32, f32, f32) {
-    let mut rng = StdRng::seed_from_u64(seed);
-    let random_angle = rng.gen_range(start_angle..=end_angle);
+fn get_random_arc(xz: &(f32,f32), r: f32, start_angle: f32, end_angle: f32, seed: NoiseSeed, i: u64) -> (f32, f32, f32) {
+    let random_angle: f32;
+    match seed {
+        NoiseSeed::NoSeed => {
+            let mut rng  = thread_rng();
+            random_angle = rng.gen_range(start_angle..=end_angle);
+        }
+        NoiseSeed::SetSeed(seed) => {
+            let mut rng = StdRng::seed_from_u64(seed+i);
+            random_angle = rng.gen_range(start_angle..=end_angle);
+        }
+    }
     let point_x = xz.0 + r * random_angle.cos();
     let point_z = xz.1 + r * random_angle.sin();
     (point_x, point_z, random_angle)
 }
 
-fn get_random_range(min: f32, max: f32, seed: u64) -> f32 {
-    let mut rng = StdRng::seed_from_u64(seed);
-    return rng.gen_range(min..=max);
+fn get_random_range(min: f32, max: f32, seed: NoiseSeed) -> f32 {
+    match seed {
+        NoiseSeed::NoSeed => {
+            let mut rng  = thread_rng();
+            return rng.gen_range(min..=max);
+            
+        }
+        NoiseSeed::SetSeed(seed) => {
+            let mut rng = StdRng::seed_from_u64(seed);
+            return rng.gen_range(min..=max);
+        }
+    }
 }
 
 pub fn get_direction(xz: &(f32, f32), target: &(f32, f32)) -> f32 {

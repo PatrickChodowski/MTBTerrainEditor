@@ -1,4 +1,5 @@
 
+use libm::powf;
 use serde::{Deserialize,Serialize};
 use bevy::utils::HashMap;
 use crate::terrain::planes::PlaneData;
@@ -87,16 +88,28 @@ impl FlatEdge {
         return pos[1];
       }
 }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum SmoothMethod {
+  Distance,
+  DistanceReverse,
+  DistanceSquare,
+  DistancePower(f32),
+  Value(f32)
+}
 
 // Smooth edge line data
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdgeData {
   pub buffer: f32,
+  pub method: SmoothMethod
 }
+
+
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdge {
   pub buffer: f32,
+  pub method: SmoothMethod,
   pub aabbs:  Vec<AABB>,
   pub axes:   Vec<Axis>,
   pub mains:  Vec<f32>
@@ -130,7 +143,7 @@ impl SmoothEdge {
       // Mapping first
       for (pos_index, pos) in v_pos.iter().enumerate(){
         for (index, aabb) in self.aabbs.iter().enumerate() {
-          if aabb.has_point(pos){
+          if aabb.has_point_excl(pos){
             abpoints.entry(index).or_insert(Vec::new()).push((pos, pos_index));
           }
         }
@@ -153,8 +166,14 @@ impl SmoothEdge {
             }
           }
 
-          let scaled_height: f32 = dist/self.buffer * pos[1];
-          // v_pos[*_pos_index][1] = scaled_height;
+          let scaled_height: f32;
+          match self.method {
+            SmoothMethod::Distance          => {scaled_height =  (dist/self.buffer).clamp(0.0, 1.0)* pos[1];}
+            SmoothMethod::DistanceReverse   => {scaled_height =  (1.0- (dist/self.buffer).clamp(0.0, 1.0))*pos[1];}
+            SmoothMethod::DistanceSquare    => {scaled_height =  powf((dist/self.buffer).clamp(0.0, 1.0), 2.0)* pos[1];}
+            SmoothMethod::DistancePower(p)  => {scaled_height =  powf((dist/self.buffer).clamp(0.0, 1.0), p)* pos[1];}
+            SmoothMethod::Value(p)          => {scaled_height = p;}
+          }
           index_heights.insert(*pos_index, scaled_height);
         }
 
@@ -165,6 +184,6 @@ impl SmoothEdge {
 
 impl SmoothEdgeData{
   pub fn set(&self) -> SmoothEdge {
-    return SmoothEdge{buffer: self.buffer, axes: Vec::new(), aabbs: Vec::new(), mains: Vec::new()};
+    return SmoothEdge{buffer: self.buffer, method: self.method.clone(), axes: Vec::new(), aabbs: Vec::new(), mains: Vec::new()};
   }
 }

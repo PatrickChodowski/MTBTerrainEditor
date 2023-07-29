@@ -1,6 +1,7 @@
 [
     {
         "name": "Green flat plane",
+        "active": true,
         "loc": [0.0, 0.0, -100.0],
         "subdivisions": 0,
         "dims": [500.0, 500.0],

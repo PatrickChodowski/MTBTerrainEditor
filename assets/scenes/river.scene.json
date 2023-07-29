@@ -1,0 +1,45 @@
+[
+    {
+        "name": "Green plane 1",
+        "active": true,
+        "loc": [500.0, 0.0, 0.0],
+        "subdivisions": 0   ,
+        "dims": [1000.0, 500.0],
+        "color": {"Color": [0.4, 0.5, 0.1, 1.0]},
+        "modifiers": []
+    },
+    {
+        "name": "River Bed",
+        "active": true,
+        "loc": [500.0, 0.0, 400.0],
+        "subdivisions": 10,
+        "dims": [1000.0, 400.0],
+        "color": {"Gradient": [[1.0, 1.0, 0.2, 1.0], [0.4, 0.5, 0.1, 1.0]]},
+        "modifiers": [
+            {"TargetWanderNoise": {"wander": "Wanderer", "width": 100.0, "height": -100.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
+            ,{"SmoothEdge": {"buffer": 100.0, "method": {"Value": 0.0}}}
+            ,{"SmoothEdge": {"buffer": 40.0, "method": {"Value": -5.0}}}
+            ,{"SmoothEdge": {"buffer": 30.0, "method": {"Value": -10.0}}}
+            ,{"SmoothEdge": {"buffer": 20.0, "method": {"Value": -20.0}}}
+            ,{"SmoothEdge": {"buffer": 10.0, "method": {"Value": -30.0}}}
+        ]
+    },
+    {
+        "name": "Green plane 2",
+        "active": true,
+        "loc": [500.0, 0.0, 800.0],
+        "subdivisions": 0   ,
+        "dims": [1000.0, 500.0],
+        "color": {"Color": [0.4, 0.5, 0.1, 1.0]},
+        "modifiers": []
+    },
+    {
+        "name": "Water",
+        "active": true,
+        "loc": [500.0, -25.0, 400.0],
+        "subdivisions": 0   ,
+        "dims": [1000.0, 300.0],
+        "color": {"Color": [0.0, 0.0, 1.0, 1.0]},
+        "modifiers": []
+    }
+]

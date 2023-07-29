@@ -93,6 +93,10 @@ impl AABB {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
 
+  pub fn has_point_excl(&self, p: &[f32; 3]) -> bool {
+    p[0] > self.min_x && p[0] < self.max_x && p[2] > self.min_z && p[2] < self.max_z
+  }
+
   pub fn from_point(xz: &(f32, f32), dims: &(f32, f32)) -> Self {
     AABB{min_x: xz.0 - dims.0/2.0, max_x: xz.0 + dims.0/2.0, min_z: xz.1 - dims.1/2.0, max_z: xz.1 + dims.1/2.0}
   }

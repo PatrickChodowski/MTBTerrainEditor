@@ -1,6 +1,7 @@
 [
     {
         "name": "Green flat plane",
+        "active": true,
         "loc": [0.0, 0.0, -100.0],
         "subdivisions": 0,
         "dims": [500.0, 500.0],
@@ -9,6 +10,7 @@
     },
     {   
         "name": "Greenish Perlin plane with flat edge x",
+        "active": true,
         "loc": [500.0, 0.0, -100.0],
         "subdivisions": 20,
         "dims": [500.0, 500.0],
@@ -16,11 +18,12 @@
         "modifiers": [
             {"Noise": {"noise": "Perlin", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": true}},
             {"FlatEdge": {"edge": "X", "height": 0.0, "dist": 50.0}},
-            {"SmoothEdge": {"buffer": 100.0}}
+            {"SmoothEdge": {"buffer": 100.0, "method": "Distance"}}
         ]
     },
     {
         "name": "Yellow Perlin plane with flat edges",
+        "active": true,
         "loc": [1000.0, 0.0, -100.0],
         "subdivisions": 20,
         "dims": [500.0, 500.0],
@@ -28,31 +31,38 @@
         "modifiers": [
             {"Noise": {"noise": "PerlinSurflet", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": false}},
             {"FlatEdges": {"height": 0.0, "dist": 50.0}},
-            {"SmoothEdge": {"buffer": 100.0}}
+            {"SmoothEdge": {"buffer": 100.0, "method": "Distance"}}
         ]
     },
     {
         "name": "Stepping color example",
+        "active": true,
         "loc": [0.0, 0.0, 400.0],
         "subdivisions": 120,
         "dims": [500.0, 500.0],
-        "color": {"Steps": [{"h": -20.0, "clr": [0.4, 0.5, 0.1, 1.0]}, {"h":0.0,"clr":[0.1, 0.2, 0.9, 1.0]}]},
+        "color": {"Steps": [{"h": -35.0, "clr": [0.1, 0.2, 0.9, 1.0]}, {"h":0.0,"clr":[1.0, 1.0, 0.3, 1.0]}, {"h":200.0,"clr":[0.4, 0.5, 0.1, 1.0]}]},
         "modifiers": [
             {"Noise": {"noise": "Perlin", "seed": 0, "scale": 0.005, "height_scale": 50.0, "global": true}},
             {"FlatEdges": {"height": 0.0, "dist": 10.0}}]
     },
     {
         "name": "Wander noise with target example",
+        "active": true,
         "loc": [500.0, 0.0, 400.0],
-        "subdivisions": 50,
+        "subdivisions": 10   ,
         "dims": [500.0, 500.0],
-        "color": {"Color": [0.8, 1.0, 0.5, 1.0]},
+        "color": {"Gradient": [[1.0, 1.0, 0.3, 1.0], [0.4, 0.5, 0.1, 1.0]]},
         "modifiers": [
             {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
+            ,{"SmoothEdge": {"buffer": 100.0, "method": {"Value": 0.0}}}
+            ,{"SmoothEdge": {"buffer": 50.0, "method": {"Value": -10.0}}}
+            ,{"SmoothEdge": {"buffer": 30.0, "method": {"Value": -20.0}}}
+            ,{"SmoothEdge": {"buffer": 10.0, "method": {"Value": -30.0}}}
         ]
     },
     {
         "name": "Gradient color example",
+        "active": true,
         "loc": [1000.0, 0.0, 400.0],
         "subdivisions": 50,
         "dims": [500.0, 500.0],
@@ -63,6 +73,7 @@
     },
     {   
         "name": "Gradient Perlin plane with easing",
+        "active": true,
         "loc": [500.0, 0.0, 900.0],
         "subdivisions": 20,
         "dims": [500.0, 500.0],

@@ -28,7 +28,8 @@ pub struct PlaneData {
     pub subdivisions: u32,
     pub dims:         (f32, f32),
     pub color:        PlaneColor,
-    pub modifiers:    Vec<ModifierData>
+    pub modifiers:    Vec<ModifierData>,
+    pub active:       bool
 }
 
 impl PlaneData {
@@ -179,7 +180,9 @@ fn update(mut commands:           Commands,
     }
 
     for pd in planes_assets.get(&planes_handle.0).unwrap().0.iter(){
-        spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
+        if pd.active {
+            spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
+        }
     }
 }
 

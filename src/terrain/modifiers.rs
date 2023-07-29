@@ -91,7 +91,9 @@ impl Modifier {
             Modifier::FlatEdge(data) => {
                 return data.aabbs.to_edges(plane);
             }
-            Modifier::TargetWanderNoise(_data) => {}
+            Modifier::TargetWanderNoise(data) => {
+                return data.to_edges(plane);
+            }
 
             // not used
             Modifier::Easing(_data) => {} 

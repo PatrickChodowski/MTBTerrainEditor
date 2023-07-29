@@ -10,7 +10,6 @@ libm = "0.2.7"
 serde = "1.0"
 serde_json = "1.0.91"
 noise = "0.8.2"
-ordered-float = "3.7.0"
 rand="0.8.5"
 grid = { version = "*", default-features = false }
 

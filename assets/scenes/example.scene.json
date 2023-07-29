@@ -15,7 +15,8 @@
         "color": {"Color": [1.0, 1.0, 0.5, 1.0]},
         "modifiers": [
             {"Noise": {"noise": "Perlin", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": true}},
-            {"FlatEdge": {"edge": "X", "height": 0.0, "dist": 50.0}}
+            {"FlatEdge": {"edge": "X", "height": 0.0, "dist": 50.0}},
+            {"SmoothEdge": {"buffer": 100.0}}
         ]
     },
     {
@@ -26,8 +27,8 @@
         "color": {"Color": [1.0, 0.7, 0.224, 1.0]},
         "modifiers": [
             {"Noise": {"noise": "PerlinSurflet", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": false}},
-            {"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}},
-            {"SmoothEdge": {"buffer": 50.0}}
+            {"FlatEdges": {"height": 0.0, "dist": 50.0}},
+            {"SmoothEdge": {"buffer": 100.0}}
         ]
     },
     {
@@ -38,7 +39,7 @@
         "color": {"Steps": [{"h": -20.0, "clr": [0.4, 0.5, 0.1, 1.0]}, {"h":0.0,"clr":[0.1, 0.2, 0.9, 1.0]}]},
         "modifiers": [
             {"Noise": {"noise": "Perlin", "seed": 0, "scale": 0.005, "height_scale": 50.0, "global": true}},
-            {"FlatEdges": {"height": 0.0, "dist": 10.0, "buffer": 30.0}}]
+            {"FlatEdges": {"height": 0.0, "dist": 10.0}}]
     },
     {
         "name": "Wander noise with target example",

@@ -1,6 +1,10 @@
+
 use serde::{Deserialize,Serialize};
+use bevy::utils::HashMap;
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABB, AABBs, Edge};
+use crate::terrain::utils::{AABB, AABBs, Edge, EdgeLine, Axis};
+
+use super::wanders::get_distance_manhattan;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FlatEdgesData {
@@ -14,8 +18,6 @@ pub struct FlatEdges {
     pub dist:   f32,
     pub aabbs:  AABBs
 }
-
-
 
 impl FlatEdgesData {
   pub fn set(&self, pd: &PlaneData) -> FlatEdges {
@@ -36,11 +38,11 @@ impl FlatEdgesData {
 
 impl FlatEdges {
     pub fn apply(&self, pos: &[f32; 3]) -> f32 {
-        if self.aabbs.has_point(pos) {
-          return self.height;
-        }
-        return pos[1];
+      if self.aabbs.has_point(pos) {
+        return self.height;
       }
+      return pos[1];
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -57,8 +59,6 @@ pub struct FlatEdge {
     pub dist:   f32,
     pub aabbs:  AABBs
 }
-
-
 
 impl FlatEdgeData {
   pub fn set(&self, pd: &PlaneData) -> FlatEdge {
@@ -77,7 +77,6 @@ impl FlatEdgeData {
     }
     return FlatEdge{edge: self.edge, dist: self.dist, height: self.height, aabbs: v};
   }
-
 }
 
 impl FlatEdge {
@@ -89,8 +88,6 @@ impl FlatEdge {
       }
 }
 
-
-
 // Smooth edge line data
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdgeData {
@@ -100,18 +97,74 @@ pub struct SmoothEdgeData {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdge {
   pub buffer: f32,
-  pub aabbs:  AABBs
+  pub aabbs:  Vec<AABB>,
+  pub axes:   Vec<Axis>,
+  pub mains:  Vec<f32>
 }
 
 impl SmoothEdge {
-    pub fn apply(&self) {
+
+    pub fn update(&mut self, edges: &Vec<EdgeLine>){
+
+      let mut aabbs: Vec<AABB> = Vec::new();
+      let mut axes:  Vec<Axis> = Vec::new();
+      let mut mains: Vec<f32> = Vec::new();
+
+      for edge in edges.iter(){
+        let (aabb, main) = edge.to_aabb(self.buffer);
+        aabbs.push(aabb);
+        axes.push(edge.axis);
+        mains.push(main);
+      }
+
+      self.aabbs = aabbs;
+      self.axes = axes;
+      self.mains = mains;
 
     }
 
+    pub fn apply(&self, v_pos: &mut Vec<[f32; 3]>) -> HashMap<usize, f32>{
+      let mut abpoints: HashMap<usize, Vec<(&[f32; 3], usize)>> = HashMap::new();
+      let mut index_heights: HashMap<usize, f32> = HashMap::new();
+
+      // Mapping first
+      for (pos_index, pos) in v_pos.iter().enumerate(){
+        for (index, aabb) in self.aabbs.iter().enumerate() {
+          if aabb.has_point(pos){
+            abpoints.entry(index).or_insert(Vec::new()).push((pos, pos_index));
+          }
+        }
+      }
+
+      // per aabb
+      for (index, points) in abpoints.iter_mut(){
+
+        let axis: Axis = self.axes[*index];
+        let main: f32 = self.mains[*index];
+
+        for (pos, pos_index) in points.iter_mut(){
+          let dist: f32;
+          match axis {
+            Axis::X => {
+              dist = get_distance_manhattan(&(pos[0], pos[2]), &(pos[0], main));
+            }
+            Axis::Z => {
+              dist = get_distance_manhattan(&(pos[0], pos[2]), &(main, pos[2]));
+            }
+          }
+
+          let scaled_height: f32 = dist/self.buffer * pos[1];
+          // v_pos[*_pos_index][1] = scaled_height;
+          index_heights.insert(*pos_index, scaled_height);
+        }
+
+      }
+      return index_heights;
+    }
 }
 
 impl SmoothEdgeData{
   pub fn set(&self) -> SmoothEdge {
-    return SmoothEdge{buffer: self.buffer, aabbs: AABBs::new()};
+    return SmoothEdge{buffer: self.buffer, axes: Vec::new(), aabbs: Vec::new(), mains: Vec::new()};
   }
 }

@@ -7,22 +7,35 @@ pub enum Edge {X, NX, Z, NZ}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EdgeLine {
-  pub axis:   Axis,
-  pub start:  (f32, f32),
-  pub end:    (f32, f32)
+  pub axis:     Axis,
+  pub start:    (f32, f32),
+  pub end:      (f32, f32),
+  pub outside:  Edge // hard to explain but its needed
 }
 
 impl EdgeLine {
-  pub fn to_aabb(&self, width: f32) -> AABB {
+  pub fn to_aabb(&self, width: f32) -> (AABB, f32) {
     let min_x: f32;
     let max_x: f32;
     let min_z: f32;
     let max_z: f32;
 
+    let main: f32;
+
     match self.axis {
       Axis::Z => {
-        min_x = self.start.0 - width/2.0; 
-        max_x = self.end.0 + width/2.0;
+        main = self.start.0;
+        match self.outside {
+          Edge::X => {
+            min_x = self.start.0;
+            max_x = self.start.0 + width;
+          }
+          Edge::NX => {
+            min_x = self.start.0- width;
+            max_x = self.start.0;
+          }
+          _ => {min_x = 0.0; max_x = 0.0} // will not happen :)
+        }
         if self.start.1 < self.end.1 {
           min_z = self.start.1;
           max_z = self.end.1;
@@ -32,8 +45,18 @@ impl EdgeLine {
         }
       }
       Axis::X => {
-        min_z = self.start.1 - width/2.0; 
-        max_z = self.end.1 + width/2.0;
+        main = self.start.1;
+        match self.outside {
+          Edge::Z => {
+            min_z = self.start.1;
+            max_z = self.start.1 + width;
+          }
+          Edge::NZ => {
+            min_z = self.start.1 - width;
+            max_z = self.start.1;
+          }
+          _ => {min_z = 0.0; max_z = 0.0} // will not happen :)
+        }
         if self.start.0 < self.end.0 {
           min_x = self.start.0;
           max_x = self.end.0;
@@ -44,8 +67,7 @@ impl EdgeLine {
       }
     }
     let aabb = AABB{min_x, max_x, min_z, max_z};
-    println!("self edge: {:?}  width: {} aabb: {:?}", self, width, aabb);
-    return aabb;
+    return (aabb, main);
   }
 }
 
@@ -57,7 +79,7 @@ pub struct AABB {
   pub min_x:          f32,
   pub max_x:          f32,
   pub min_z:          f32,
-  pub max_z:          f32,
+  pub max_z:          f32
 }
 
 impl AABB {
@@ -80,16 +102,16 @@ impl AABB {
   
     let mut v: Vec<EdgeLine> = Vec::new();
     if self.min_x > plane.min_x && self.min_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z), outside: Edge::NX});
     }
     if self.max_x > plane.min_x && self.max_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::Z, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z), outside: Edge::X});
     }
     if self.min_z > plane.min_z && self.min_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z)});
+      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z), outside: Edge::NZ});
     }
     if self.max_z > plane.min_z && self.max_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z), outside: Edge::Z});
     }
 
     return v;

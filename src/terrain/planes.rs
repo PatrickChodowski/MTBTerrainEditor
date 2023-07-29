@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::DisplayMode;
 use crate::terrain::modifiers::{Modifier, ModifierData};
-use crate::terrain::utils::{AABB, EdgeLine, ConfigAsset, ConfigData};
+use crate::terrain::utils::{AABB, EdgeLine, ConfigAsset, ConfigData, get_mesh_stats};
 
 pub struct PlanesPlugin;
 
@@ -25,7 +25,7 @@ impl Plugin for PlanesPlugin {
 pub struct PlaneData {
     pub name:         String,
     pub loc:          [f32; 3],
-    pub subdivisions: u32,
+    pub subdivisions: (u32, u32),
     pub dims:         (f32, f32),
     pub color:        PlaneColor,
     pub modifiers:    Vec<ModifierData>,
@@ -194,8 +194,11 @@ fn spawn_plane(commands:           &mut Commands,
                display_mode:       &Res<State<DisplayMode>>
             ){
 
-    let mut mesh = plane_mesh(pd.subdivisions, &pd.dims);
+    let mut mesh = plane_mesh(&pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);
+    
+    get_mesh_stats(&mesh);
+
     let entity = commands.spawn((PbrBundle {
         material: materials.add(StandardMaterial{..default()}),
         mesh: meshes.add(mesh),
@@ -212,11 +215,12 @@ fn spawn_plane(commands:           &mut Commands,
     } 
 }
 
-fn plane_mesh(subdivisions: u32, dims: &(f32, f32)) -> Mesh {
+fn plane_mesh(subdivisions: &(u32, u32), dims: &(f32, f32)) -> Mesh {
     let mesh = Mesh::from(RectPlane {
         width: dims.0,
         length: dims.1,  
-        subdivisions
+        x_subdivisions: subdivisions.0,
+        z_subdivisions: subdivisions.1
     });
     return mesh;
 }
@@ -225,7 +229,8 @@ fn plane_mesh(subdivisions: u32, dims: &(f32, f32)) -> Mesh {
 pub struct RectPlane {
     pub width: f32,   // width
     pub length: f32,   // length or depth, depends on how you look
-    pub subdivisions: u32
+    pub x_subdivisions: u32,
+    pub z_subdivisions: u32
 }
 
 
@@ -233,8 +238,8 @@ pub struct RectPlane {
 
 impl From<RectPlane> for Mesh {
     fn from(rect_plane: RectPlane) -> Self {
-        let z_vertex_count = rect_plane.subdivisions + 2;
-        let x_vertex_count = rect_plane.subdivisions + 2;
+        let z_vertex_count = rect_plane.x_subdivisions + 2;
+        let x_vertex_count = rect_plane.z_subdivisions + 2;
         let num_vertices = (z_vertex_count * x_vertex_count) as usize;
         let num_indices = ((z_vertex_count - 1) * (x_vertex_count - 1) * 6) as usize;
         let up = Vec3::Y.to_array();

@@ -160,3 +160,19 @@ pub struct ConfigData {
 
 #[derive(Resource)]
 pub struct ConfigAsset(pub Handle<ConfigData>);
+
+
+// unpacks mesh stats
+pub fn get_mesh_stats(mesh: &Mesh){
+  if let Some(pos) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+    let v_pos = pos.as_float3().unwrap().to_vec();
+    // pos: 3, color: 4, normals: 3, uvs: 2
+    let v_memory = 3.0 + 4.0 + 3.0 + 2.0;
+
+    info!("  Vertex count: {} Memory: {} Kb", 
+        v_pos.len(), 
+        (v_memory*v_pos.len() as f32)*4.0/1024.0
+      );
+  }
+
+}

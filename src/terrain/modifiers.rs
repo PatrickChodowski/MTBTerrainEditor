@@ -1,165 +1,59 @@
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize,Serialize};
 
 use crate::terrain::easings::EasingData;
 use crate::terrain::noises::{NoiseData, Noise};
 use crate::terrain::planes::PlaneData;
-use crate::terrain::wanders::TargetWanderNoise;
-use crate::terrain::utils::{AABB, AABBs};
+use crate::terrain::other::{FlatEdgeData,FlatEdgesData,SmoothEdgeData,SmoothEdge,FlatEdge,FlatEdges};
+use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
 
-use super::utils::EdgeLine;
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum Edge {
-    X, NX, Z, NZ
-}  
+pub enum ModifierData {
+    Easing(EasingData),
+    FlatEdges(FlatEdgesData),
+    FlatEdge(FlatEdgeData),
+    Noise(NoiseData),
+    SmoothEdge(SmoothEdgeData),
+    TargetWanderNoise(TargetWanderNoiseData)
+} 
 
-pub trait ModifierTrait {
-  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, loc: &[f32; 3]) -> f32;
+impl ModifierData {
+    pub fn set(&self, pd: &PlaneData) -> Modifier {
+        match self {
+            ModifierData::Easing(data)              => {return Modifier::Easing(data.clone())}
+            ModifierData::FlatEdges(data)           => {return Modifier::FlatEdges(data.set(pd))}
+            ModifierData::FlatEdge(data)            => {return Modifier::FlatEdge(data.set(pd))}
+            ModifierData::Noise(data)               => {return Modifier::Noise(data.set())}
+            ModifierData::TargetWanderNoise(data)   => {return Modifier::TargetWanderNoise(data.set(pd))}
+            ModifierData::SmoothEdge(data)          => {return Modifier::SmoothEdge(data.set())}
+        }
+    }
+
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+
+#[derive(Clone)]
 pub enum Modifier {
     Easing(EasingData),
     FlatEdges(FlatEdges),
     FlatEdge(FlatEdge),
-    Noise(NoiseData),
-    SmoothEdge(SmoothEdge),           // Secondary modifier
+    Noise(Noise),
+    SmoothEdge(SmoothEdge),
     TargetWanderNoise(TargetWanderNoise)
-}
+} 
 
 impl Modifier {
-  pub fn bake(&self, pd: &PlaneData) -> Option<ModifierFN> {
-    match self {
-      Modifier::Easing(data) => {
-        Some(ModifierFN { 
-          modifier: Box::new(data.clone()),
-          aabbs: data.aabbs(pd)
-        })
-      }
-      Modifier::FlatEdges(data) => {
-        Some(ModifierFN { 
-          modifier: Box::new(data.clone()),
-          aabbs: data.aabbs(pd)
-        })
-      }
-      Modifier::FlatEdge(data) => {
-        Some(ModifierFN { 
-          modifier: Box::new(data.clone()),
-          aabbs: data.aabbs(pd)
-        })
-      }
-      Modifier::Noise(data) => {
-        Some(ModifierFN { 
-          modifier: Box::new(Noise::from_noise_data(data)),
-          aabbs: Noise::aabbs(pd)
-        })
-      }
-      Modifier::TargetWanderNoise(data) => {
-        Some(ModifierFN { 
-          modifier: Box::new(data.clone()),
-          aabbs:  data.aabbs(pd)
-        })
-      }
-      _ => {None}
+
+    pub fn apply_point(&self, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
+        match self {
+            Modifier::Easing(data) => {return data.easing.apply(pos[1])}
+            Modifier::FlatEdges(data) => {return data.apply(pos)}
+            Modifier::FlatEdge(data) => {return data.apply(pos)}    
+            Modifier::Noise(data) => {return data.apply(pos, loc)}
+            Modifier::SmoothEdge(_data) => {pos[1]} // no impact on point
+            Modifier::TargetWanderNoise(data) => {return data.apply(pos)}
+        }           
     }
-  }
-}
-
-pub struct ModifierFN {
-    pub modifier: Box<dyn ModifierTrait>,
-    pub aabbs:    AABBs
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct FlatEdges {
-    pub height: f32,
-    pub dist:   f32,
-    pub buffer: f32,
-}
-
-impl FlatEdges {
-  pub fn aabbs(&self, pd: &PlaneData) -> AABBs{
-    let min_x = -1.0*pd.dims.0/2.0;
-    let max_x = pd.dims.0/2.0;
-    let min_z = -1.0*pd.dims.1/2.0;
-    let max_z = pd.dims.1/2.0;
-    
-    let mut v: Vec<AABB> = Vec::with_capacity(8);
-    v.push(AABB{min_x, max_x: min_x + self.dist, min_z, max_z});
-    v.push(AABB{min_x: max_x - self.dist, max_x, min_z, max_z});
-    v.push(AABB{min_x, max_x, min_z, max_z: min_z + self.dist});
-    v.push(AABB{min_x, max_x, min_z: max_z-self.dist, max_z});
-
-    return AABBs(v);
-  }
-}
-
-impl ModifierTrait for FlatEdges {
-  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
-    if aabbs.has_point(pos) {
-      return self.height;
-    }
-    return pos[1];
-  }
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct FlatEdge {
-    pub edge:   Edge,
-    pub height: f32,
-    pub dist:   f32,
-}
-
-impl FlatEdge {
-  pub fn aabbs(&self, pd: &PlaneData) -> AABBs {
-    let min_x = -1.0*pd.dims.0/2.0;
-    let max_x = pd.dims.0/2.0;
-    let min_z = -1.0*pd.dims.1/2.0;
-    let max_z = pd.dims.1/2.0;
-
-    match self.edge {
-      Edge::X   => {AABBs(vec![AABB{min_x: max_x - self.dist, max_x, min_z, max_z}])}
-      Edge::NX  => {AABBs(vec![AABB{min_x, max_x: min_x+self.dist, min_z, max_z}])}
-      Edge::Z   => {AABBs(vec![AABB{min_x, max_x, min_z: max_z-self.dist, max_z}])}
-      Edge::NZ  => {AABBs(vec![AABB{min_x, max_x, min_z, max_z: min_z+self.dist}])}
-    }
-
-  }
-}
-
-impl ModifierTrait for FlatEdge {
-  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
-    if aabbs.has_point(pos) {
-      return self.height;
-    }
-    return pos[1];
-  }
-}
-
-
-// Smooth edge line data
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SmoothEdge {
-  pub edges: Vec<EdgeLine>,
-  pub buffer: f32
-}
-
-impl SmoothEdge{
-  pub fn aabbs(&self) -> AABBs {
-    println!("self edges: {:?}", self.edges);
-    println!("self buffer: {:?}", self.buffer);
-    AABBs::new()
-  }
-}
-
-impl ModifierTrait for SmoothEdge {
-  fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
-    if aabbs.has_point(pos) {
-      // return self.height
-      return pos[1];
-    }
-    return pos[1];
-  }
 }

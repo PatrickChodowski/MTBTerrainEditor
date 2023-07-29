@@ -6,7 +6,7 @@ use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
 use crate::DisplayMode;
-use crate::terrain::modifiers::{Modifier, ModifierFN};
+use crate::terrain::modifiers::{Modifier, ModifierData};
 use crate::terrain::utils::{AABB, EdgeLine, ConfigAsset, ConfigData};
 
 pub struct PlanesPlugin;
@@ -28,75 +28,50 @@ pub struct PlaneData {
     pub subdivisions: u32,
     pub dims:         (f32, f32),
     pub color:        PlaneColor,
-    pub modifiers:    Vec<Modifier>
+    pub modifiers:    Vec<ModifierData>
 }
 
 impl PlaneData {
-  pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
 
-    let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
-    // Unpack modifiers
-    let mut modifier_functions: Vec<ModifierFN> = Vec::new();
-    let mut inner_edges: Vec<EdgeLine> = Vec::new();
-    let mut secondary_modifiers: Vec<Modifier> = Vec::new();
 
-    // Primary modifiers
-    for modifier in self.modifiers.iter(){
-        // Pass secondary modifiers further. Their impact is based on baking of primary modifiers.
-        match modifier {
-            Modifier::SmoothEdge(_data) => {
-                secondary_modifiers.push(modifier.clone())
+    // it just may be much much more robust to iterate every time one by one on positions per modifier
+    pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
+        let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
+
+        // Convert modifier data's to modifiers
+        let mut mods: Vec<Modifier> = Vec::new();
+        for modifier in self.modifiers.iter(){
+            mods.push(modifier.set(self));
+        }
+
+        let mut min_height = f32::MAX;
+        let mut max_height = f32::MIN;
+
+        for pos in v_pos.iter_mut(){
+            for m in mods.iter(){
+                pos[1] = m.apply_point(&pos, &self.loc);
+            }   
+            if pos[1] > max_height {
+                max_height = pos[1];
             }
-            _ => {
-                // Bake primary modifiers
-                if let Some(md) = modifier.bake(&self){
-                    let mut edges: Vec<EdgeLine> = md.aabbs.to_edges(&self.get_aabb());
-                    modifier_functions.push(md);
-                    inner_edges.append(&mut edges); 
-                }
+            if pos[1] < min_height {
+                min_height = pos[1];
             }
         }
-    }
 
-    for modifier in secondary_modifiers.iter_mut(){
-        match modifier {
-            Modifier::SmoothEdge(data) => {
-                data.edges = inner_edges.clone();
-                let md = ModifierFN{modifier: Box::new(data.clone()), aabbs:  data.aabbs()};
-                modifier_functions.push(md);
-            }
-            _ => {} 
+        let mut v_clr: Vec<[f32; 4]> = Vec::new();
+        for pos in v_pos.iter(){
+            v_clr.push(self.color.apply(pos[1], min_height, max_height));
         }
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr);
+        return mesh.clone()
+
     }
 
-    // println!("edgelines: {:?}", inner_edges);
-
-    let mut min_height = f32::MAX;
-    let mut max_height = f32::MIN;
-
-    // Iterate through vector and apply modifiers
-    for pos in v_pos.iter_mut(){
-      for m in modifier_functions.iter(){
-        pos[1] = m.modifier.apply(&pos, &m.aabbs, &self.loc);
-      }   
-      if pos[1] > max_height {
-        max_height = pos[1];
-      }
-      if pos[1] < min_height {
-        min_height = pos[1];
-      }
-    }
-
-    // Colors based on height
-    let mut v_clr: Vec<[f32; 4]> = Vec::new();
-    for pos in v_pos.iter(){
-        v_clr.push(self.color.apply(pos[1], min_height, max_height));
-    }
-
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr);
-    return mesh.clone()
-  }
+    // let mut inner_edges: Vec<EdgeLine> = Vec::new();
+    // let mut edges: Vec<EdgeLine> = md.aabbs.to_edges(&self.get_aabb());
 
   pub fn get_aabb(&self) -> AABB {
     let min_x = -1.0*self.dims.0/2.0;

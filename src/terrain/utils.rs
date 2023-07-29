@@ -2,14 +2,19 @@ use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Edge {
+    X, NX, Z, NZ
+}  
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EdgeLine {
   pub axis:   Axis,
   pub start:  (f32, f32),
   pub end:    (f32, f32)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Axis {
   X,
   Z

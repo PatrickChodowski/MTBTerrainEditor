@@ -3,12 +3,11 @@ use serde::{Serialize, Deserialize};
 use libm::{atan2f, fabsf};
 use rand::prelude::*;
 
-use crate::terrain::modifiers::{ModifierTrait, Edge};
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABBs,AABB};
+use crate::terrain::utils::{AABBs,AABB,Edge};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TargetWanderNoise {
+pub struct TargetWanderNoiseData {
     pub wander:               TargetWanders,
     pub width:                f32,
     pub height:               f32,
@@ -19,7 +18,22 @@ pub struct TargetWanderNoise {
     pub seed:                 u64
 }
 
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TargetWanderNoise {
+    pub wander:               TargetWanders,
+    pub width:                f32,
+    pub height:               f32,
+    pub step:                 f32,
+    pub max_steps:            u32,
+    pub source:               WanderLoc,
+    pub target:               WanderLoc,
+    pub seed:                 u64,
+    pub aabbs:                AABBs
+}
+
+
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 pub enum WanderLoc {
     Point((f32,f32)),
     Edge(Edge)
@@ -42,8 +56,8 @@ impl WanderLoc {
 }
 
 
-impl TargetWanderNoise {
-    pub fn aabbs(&self, pd: &PlaneData) -> AABBs {
+impl TargetWanderNoiseData {
+    pub fn set(&self, pd: &PlaneData) -> TargetWanderNoise {
         let pab = pd.get_aabb();
         let mut xz: (f32, f32) = self.source.get_point(&pab, self.seed);
         let end: (f32, f32) = self.target.get_point(&pab, self.seed);
@@ -87,20 +101,20 @@ impl TargetWanderNoise {
         for p in points.iter(){
             aabbs.0.push(AABB::from_point(p, &(self.step*2.0, self.width)));
         }
-
-        return aabbs;
+        return TargetWanderNoise{wander: self.wander, width: self.width, height: self.height, step: self.step,
+            max_steps: self.max_steps, source: self.source, target: self.target, seed: self.seed, aabbs
+        };
     }
 }
 
-impl ModifierTrait for TargetWanderNoise {
-    fn apply(&self, pos: &[f32; 3], aabbs: &AABBs, _loc: &[f32; 3]) -> f32 {
-        if aabbs.has_point(pos) {
+impl TargetWanderNoise {
+    pub fn apply(&self, pos: &[f32; 3]) -> f32 {
+        if self.aabbs.has_point(pos) {
             return self.height;
         }
         return pos[1];
     }
 }
-
 
 
 

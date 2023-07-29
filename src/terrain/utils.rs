@@ -3,9 +3,7 @@ use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Edge {
-    X, NX, Z, NZ
-}  
+pub enum Edge {X, NX, Z, NZ}  
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EdgeLine {
@@ -14,12 +12,45 @@ pub struct EdgeLine {
   pub end:    (f32, f32)
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum Axis {
-  X,
-  Z
+impl EdgeLine {
+  pub fn to_aabb(&self, width: f32) -> AABB {
+    let min_x: f32;
+    let max_x: f32;
+    let min_z: f32;
+    let max_z: f32;
+
+    match self.axis {
+      Axis::Z => {
+        min_x = self.start.0 - width/2.0; 
+        max_x = self.end.0 + width/2.0;
+        if self.start.1 < self.end.1 {
+          min_z = self.start.1;
+          max_z = self.end.1;
+        } else {
+          min_z = self.end.1;
+          max_z = self.start.1;
+        }
+      }
+      Axis::X => {
+        min_z = self.start.1 - width/2.0; 
+        max_z = self.end.1 + width/2.0;
+        if self.start.0 < self.end.0 {
+          min_x = self.start.0;
+          max_x = self.end.0;
+        } else {
+          min_x = self.end.0;
+          max_x = self.start.0;
+        }
+      }
+    }
+    let aabb = AABB{min_x, max_x, min_z, max_z};
+    println!("self edge: {:?}  width: {} aabb: {:?}", self, width, aabb);
+    return aabb;
+  }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum Axis {X, Z}
 
 #[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct AABB {
@@ -49,16 +80,16 @@ impl AABB {
   
     let mut v: Vec<EdgeLine> = Vec::new();
     if self.min_x > plane.min_x && self.min_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z)});
     }
     if self.max_x > plane.min_x && self.max_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::X, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::Z, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z)});
     }
     if self.min_z > plane.min_z && self.min_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z)});
+      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z)});
     }
     if self.max_z > plane.min_z && self.max_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z)});
+      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z)});
     }
 
     return v;

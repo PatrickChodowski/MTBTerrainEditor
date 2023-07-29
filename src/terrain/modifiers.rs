@@ -5,7 +5,7 @@ use crate::terrain::easings::EasingData;
 use crate::terrain::noises::{NoiseData, Noise};
 use crate::terrain::other::{FlatEdgeData,FlatEdgesData,SmoothEdgeData,SmoothEdge,FlatEdge,FlatEdges};
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{EdgeLine, AABB};
+use crate::terrain::utils::{EdgeLine, AABB, AABBs};
 use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,20 +58,21 @@ impl Modifier {
         }           
     }
 
-    pub fn apply_area(&self, v_pos: &mut Vec<[f32; 3]>, edges: &Vec<EdgeLine> ){
+    pub fn apply_area(&mut self, v_pos: &mut Vec<[f32; 3]>, edges: &Vec<EdgeLine> ){
         match self {
             Modifier::SmoothEdge(data) => {
-                println!("edges: {:?}", edges);
-                println!("buffer: {:?}", data.buffer);
-                println!("self edges: {:?}", data.edges);
-
+                let mut aabbs = AABBs::new();
+                for edge in edges.iter(){
+                    aabbs.0.push(edge.to_aabb(data.buffer));
+                }
+                data.aabbs = aabbs;
             }
 
             // point only:
-            Modifier::Easing(_data) => {} 
-            Modifier::FlatEdges(_data) => {}
-            Modifier::FlatEdge(_data) => {}
-            Modifier::Noise(_data) => {}
+            Modifier::Easing(_data)            => {} 
+            Modifier::FlatEdges(_data)         => {}
+            Modifier::FlatEdge(_data)          => {}
+            Modifier::Noise(_data)             => {}
             Modifier::TargetWanderNoise(_data) => {}
         }   
     }

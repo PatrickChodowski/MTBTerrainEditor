@@ -1,6 +1,6 @@
 use serde::{Deserialize,Serialize};
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABB,AABBs, EdgeLine, Edge};
+use crate::terrain::utils::{AABB, AABBs, Edge};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FlatEdgesData {
@@ -99,7 +99,6 @@ pub struct SmoothEdgeData {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdge {
-  pub edges:  Vec<EdgeLine>,
   pub buffer: f32,
   pub aabbs:  AABBs
 }
@@ -113,6 +112,6 @@ impl SmoothEdge {
 
 impl SmoothEdgeData{
   pub fn set(&self) -> SmoothEdge {
-    return SmoothEdge{buffer: self.buffer, edges: Vec::new(), aabbs: AABBs::new()};
+    return SmoothEdge{buffer: self.buffer, aabbs: AABBs::new()};
   }
 }

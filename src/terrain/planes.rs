@@ -68,7 +68,7 @@ impl PlaneData {
 
 
         // Applying modifiers to local area
-        for m in mods.iter(){
+        for m in mods.iter_mut(){
             m.apply_area(&mut v_pos, &inner_edges);
         }
 

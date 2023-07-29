@@ -26,7 +26,8 @@
         "color": {"Color": [1.0, 0.7, 0.224, 1.0]},
         "modifiers": [
             {"Noise": {"noise": "PerlinSurflet", "seed": 0, "scale": 0.01, "height_scale": 50.0, "global": false}},
-            {"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}}
+            {"FlatEdges": {"height": 0.0, "dist": 50.0, "buffer": 30.0}},
+            {"SmoothEdge": {"buffer": 50.0}}
         ]
     },
     {
@@ -46,8 +47,7 @@
         "dims": [500.0, 500.0],
         "color": {"Color": [0.8, 1.0, 0.5, 1.0]},
         "modifiers": [
-            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}},
-            {"SmoothEdge": {"buffer": 50.0, "edges": []}}
+            {"TargetWanderNoise": {"wander": "Wanderer", "width": 150.0, "height": -40.0, "step": 10.0, "max_steps": 300,"source": {"Edge": "NX"}, "target": {"Edge": "X"}, "seed": 20}}
         ]
     },
     {

@@ -94,7 +94,6 @@ impl FlatEdge {
 // Smooth edge line data
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmoothEdgeData {
-  pub edges: Vec<EdgeLine>,
   pub buffer: f32,
 }
 
@@ -109,12 +108,11 @@ impl SmoothEdge {
     pub fn apply(&self) {
 
     }
+
 }
 
 impl SmoothEdgeData{
   pub fn set(&self) -> SmoothEdge {
-    println!("self edges: {:?}", self.edges);
-    println!("self buffer: {:?}", self.buffer);
-    return SmoothEdge{edges: self.edges.clone(), buffer: self.buffer, aabbs: AABBs::new()};
+    return SmoothEdge{buffer: self.buffer, edges: Vec::new(), aabbs: AABBs::new()};
   }
 }

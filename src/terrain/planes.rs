@@ -37,16 +37,23 @@ impl PlaneData {
     // it just may be much much more robust to iterate every time one by one on positions per modifier
     pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
         let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
+        let plane_aabb = self.get_aabb();
 
-        // Convert modifier data's to modifiers
+        // Needed for some (smoothedge) modifiers
+        let mut inner_edges: Vec<EdgeLine> = Vec::new();
+
+        // Convert modifier data's to modifiers, extract meta data like edges for other modifiers
         let mut mods: Vec<Modifier> = Vec::new();
         for modifier in self.modifiers.iter(){
-            mods.push(modifier.set(self));
+            let m = modifier.set(self);
+            inner_edges.append(&mut m.get_inner_edges(&plane_aabb));
+            mods.push(m);
         }
 
         let mut min_height = f32::MAX;
         let mut max_height = f32::MIN;
 
+        // Applying modifiers to point by point
         for pos in v_pos.iter_mut(){
             for m in mods.iter(){
                 pos[1] = m.apply_point(&pos, &self.loc);
@@ -58,6 +65,14 @@ impl PlaneData {
                 min_height = pos[1];
             }
         }
+
+
+        // Applying modifiers to local area
+        for m in mods.iter(){
+            m.apply_area(&mut v_pos, &inner_edges);
+        }
+
+
 
         let mut v_clr: Vec<[f32; 4]> = Vec::new();
         for pos in v_pos.iter(){

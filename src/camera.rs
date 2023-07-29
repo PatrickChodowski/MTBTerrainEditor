@@ -2,24 +2,14 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
-// use bevy_atmosphere::prelude::*;
+use libm::atan2f; 
 
-use crate::tools::mapgrid::{MAX_Z, CENTER_X, CENTER_Z, MAX_X, MIN_Z, MIN_X};
-use crate::utils::{get_yaw, get_pitch};
-
-
-
-const CAMERA_MIN_Y: f32 = 50.0;
-const CAMERA_MAX_Y: f32 = 1500.0;
-const CAMERA_MIN_X: f32 = MIN_X - 200.0;
-const CAMERA_MAX_X: f32 = MAX_X + 200.0;
-const CAMERA_MIN_Z: f32 = MIN_Z - 200.0;
-const CAMERA_MAX_Z: f32 = MAX_Z + 200.0;
-const CAMERA_START_Y: f32 = CAMERA_MAX_Y; // 1000.0
-const CAMERA_START_Z: f32 = MAX_Z; //MAX_Z = 1000.0 //MAX_Z*1.5
-
-const CAMERA_SPEED: f32 = 400.0;
-const CAMERA_SENSITIVITY: f32 = 0.0001; // 0.00012 default
+const CENTER_X: f32 = 0.0;
+const CENTER_Z: f32 = 0.0;
+const CAMERA_START_Y: f32 = 2000.0;
+const CAMERA_START_Z: f32 = 800.0; 
+const CAMERA_SPEED: f32 = 600.0;
+const CAMERA_SENSITIVITY: f32 = 0.0001; 
 
 pub struct CameraPlugin;
 
@@ -36,7 +26,14 @@ impl Plugin for CameraPlugin {
   }
 }
 
-/// Keeps track of mouse motion events, pitch, and yaw
+pub fn get_yaw(q: Quat) -> f32 {
+  return atan2f(2.0*q.y*q.w - 2.0*q.x *q.z, 1.0 - 2.0*q.y*q.y - 2.0*q.z*q.z);
+}
+
+pub fn get_pitch(q: Quat) -> f32 {
+  return atan2f(2.0*q.x*q.w - 2.0*q.y*q.z, 1.0 - 2.0*q.x*q.x - 2.0*q.z*q.z);
+}
+
 #[derive(Resource, Default)]
 struct InputState {
     reader_motion: ManualEventReader<MouseMotion>,
@@ -53,13 +50,9 @@ fn setup(mut commands: Commands,
 
   let start_camera_transform = Transform::from_xyz(CENTER_X, CAMERA_START_Y, CAMERA_START_Z)
                                          .looking_at([CENTER_X, 0.0, CENTER_Z].into(), Vec3::Y);
-  commands.spawn(Camera3dBundle {
-    transform: start_camera_transform,
-    ..default()
-  })
-  .insert(MainCamera)
-  .insert(Name::new("Main Camera"))
-  ;
+  commands.spawn((Camera3dBundle {
+                  transform: start_camera_transform,
+                  ..default()}, MainCamera));
 
   state.yaw = get_yaw(start_camera_transform.rotation);
   state.pitch = get_pitch(start_camera_transform.rotation);
@@ -94,32 +87,8 @@ fn move_camera(keys:         Res<Input<KeyCode>>,
   velocity = velocity.normalize_or_zero();
   transform.translation += velocity * CAMERA_SPEED * time.delta_seconds();
 
-  // Camera Boundaries
-  if transform.translation.x >= CAMERA_MAX_X{
-    transform.translation.x = CAMERA_MAX_X;
-  }
-  if transform.translation.x <= CAMERA_MIN_X{
-    transform.translation.x = CAMERA_MIN_X;
-  }
-  if transform.translation.z >= CAMERA_MAX_Z{
-    transform.translation.z = CAMERA_MAX_Z;
-  }
-  if transform.translation.z <= CAMERA_MIN_Z{
-    transform.translation.z = CAMERA_MIN_Z;
-  }
-  if transform.translation.y >= CAMERA_MAX_Y{
-    transform.translation.y = CAMERA_MAX_Y;
-  }
-  if transform.translation.y <= CAMERA_MIN_Y{
-    transform.translation.y = CAMERA_MIN_Y;
-  }
-
-
-  // println!("camera transform: {:?}", transform.translation);
 }
 
-
-// Zoom camera work
 fn zoom_camera(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query: Query<&mut Transform, With<MainCamera>>){
@@ -132,18 +101,10 @@ fn zoom_camera(
 
     for mut transform in query.iter_mut(){
       transform.translation.y -= dy;
-      if transform.translation.y <= CAMERA_MIN_Y {
-        transform.translation.y = CAMERA_MIN_Y;
-      }
-      if transform.translation.y >= CAMERA_MAX_Y {
-        transform.translation.y = CAMERA_MAX_Y;
-      }
     }
   }
 }
 
-
-// Pan camera when clicking middle button
 fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
             motion: Res<Events<MouseMotion>>,
             buttons: Res<Input<MouseButton>>,
@@ -160,7 +121,6 @@ fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
           delta_state.yaw -= (CAMERA_SENSITIVITY * ev.delta.x * window_scale).to_radians();
         }
         delta_state.pitch = delta_state.pitch.clamp(-1.54, 1.54);
-        // Order is important to prevent unintended roll
         transform.rotation = Quat::from_axis_angle(Vec3::Y, delta_state.yaw)* Quat::from_axis_angle(Vec3::X, delta_state.pitch);
       }
     }
@@ -179,10 +139,6 @@ fn set_camera(keys: Res<Input<KeyCode>>,
     let xyz: (f32, f32, f32);
     match pressed_key {
       KeyCode::Key1 => {xyz = (CENTER_X, CAMERA_START_Y, CAMERA_START_Z)}
-      KeyCode::Key2 => {xyz = (1350.0, 670.0, 1330.0)}
-      KeyCode::Key3 => {xyz = (1350.0, 280.0, 1330.0)}
-      KeyCode::Key4 => {xyz = (-490.0, 750.0, 1500.0)}
-      KeyCode::Key5 => {xyz = (CENTER_X, CAMERA_MAX_Y, 800.0)}
       _ => {xyz = (0.0, 0.0, 0.0)}
     }
     for mut transform in query.iter_mut() {

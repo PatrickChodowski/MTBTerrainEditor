@@ -1,6 +1,6 @@
-# Text based modular terrain generator in bevy
+# Modular Text Based Terrain Generator in Bevy
 
-Creates terrain out of json config file. 
+Creates terrain out of toml config file. 
 
 ## Features:
 
@@ -11,7 +11,7 @@ Creates terrain out of json config file.
 
 ## Steps:
 
-- In config.json specify which file should be loaded
+- In config.toml specify which file should be loaded
 - Define the scene in scenes folder
 
 

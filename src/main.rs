@@ -7,7 +7,7 @@ use bevy::window::WindowPlugin;
 use bevy::log::LogPlugin;
 use bevy::window::WindowResolution;
 use bevy::pbr::wireframe::WireframePlugin;
-use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_common_assets::toml::TomlAssetPlugin;
 
 mod camera;
 use camera::CameraPlugin;
@@ -26,7 +26,7 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
-                    title: "Terrain Generator".to_string(),
+                    title: "MTB Terrain Generator".to_string(),
                     // present_mode: PresentMode::AutoNoVsync,
                     present_mode: PresentMode::AutoVsync,
                     resizable: true,
@@ -44,8 +44,8 @@ fn main() {
             })
         )
         .add_plugin(WireframePlugin)
-        .add_plugin(JsonAssetPlugin::<Planes>::new(&["scene.json"]))
-        .add_plugin(JsonAssetPlugin::<ConfigData>::new(&["json"]))
+        .add_plugin(TomlAssetPlugin::<Planes>::new(&["scene.toml"]))
+        .add_plugin(TomlAssetPlugin::<ConfigData>::new(&["toml"]))
         .add_plugin(CameraPlugin)
         .add_plugin(PlanesPlugin)
 

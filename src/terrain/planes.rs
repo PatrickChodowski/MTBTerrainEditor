@@ -103,7 +103,13 @@ impl PlaneData {
 pub enum PlaneColor {
     Color([f32; 4]),            // Single Color
     Steps(Vec<ColorStep>),      // Vector of tuples of (high limit, color)
-    Gradient([f32; 4],[f32; 4]) // Tuple of 2 color (low, high)
+    Gradient(ColorGradient) // Tuple of 2 color (low, high)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ColorGradient {
+    pub low: [f32; 4],
+    pub high: [f32; 4]
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -123,12 +129,12 @@ impl PlaneColor {
                 }
                 return [1.0, 1.0, 1.0, 1.0];
             }
-            PlaneColor::Gradient(low, high) => {
+            PlaneColor::Gradient(cgr) => {
                 let scale = (height - min_height)/(max_height - min_height);
-                return [low[0] + scale*(high[0] - low[0]), 
-                        low[1] + scale*(high[1] - low[1]),
-                        low[2] + scale*(high[2] - low[2]),
-                        low[3] + scale*(high[3] - low[3])];
+                return [cgr.low[0] + scale*(cgr.high[0] - cgr.low[0]), 
+                        cgr.low[1] + scale*(cgr.high[1] - cgr.low[1]),
+                        cgr.low[2] + scale*(cgr.high[2] - cgr.low[2]),
+                        cgr.low[3] + scale*(cgr.high[3] - cgr.low[3])];
             } 
             PlaneColor::Color(clr) => {return *clr;}
         }
@@ -138,7 +144,9 @@ impl PlaneColor {
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
-pub struct Planes(pub Vec<PlaneData>);
+pub struct Planes {
+    pub planes: Vec<PlaneData>
+}
 
 #[derive(Resource)]
 pub struct PlanesAsset(pub Handle<Planes>);
@@ -148,7 +156,7 @@ pub struct TerrainPlane;
 
 fn setup_config(mut commands:    Commands, 
                 ass:             Res<AssetServer>,) {
-    let config_handle = ConfigAsset(ass.load("config.json"));
+    let config_handle = ConfigAsset(ass.load("config.toml"));
     commands.insert_resource(config_handle);
 }
 
@@ -160,7 +168,7 @@ fn setup_planes_handle(mut commands:    Commands,
                        conifg_handle:   Res<ConfigAsset>){
 
     let scene_file = &conifg_assets.get(&conifg_handle.0).unwrap().scene_file;
-    let path: &str = &format!("scenes/{}.scene.json", scene_file);
+    let path: &str = &format!("scenes/{}.scene.toml", scene_file);
     let planes_handle = PlanesAsset(ass.load(path));
     commands.insert_resource(planes_handle);
 }
@@ -179,7 +187,7 @@ fn update(mut commands:           Commands,
         commands.entity(entity).despawn_recursive();
     }
 
-    for pd in planes_assets.get(&planes_handle.0).unwrap().0.iter(){
+    for pd in planes_assets.get(&planes_handle.0).unwrap().planes.iter(){
         if pd.active {
             spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
         }

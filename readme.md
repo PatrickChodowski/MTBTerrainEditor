@@ -5,6 +5,7 @@ Creates terrain out of toml config file.
 <img src="static/example_wf.png"  width="80%" height="80%">
 <img src="static/rivermap.png"  width="80%" height="80%">
 </p>
+
 ## Features:
 - modular: Specify as many planes as you want with its parameters and modifiers
 - text based: Fill out the config and get the terrain

@@ -9,10 +9,13 @@ modifiers = []
 
 [[planes]]
 name = "Land"
-active = false
+active = true
 loc = [500.0, 20.0, 500.0]
-subdivisions= [0,0]
+subdivisions= [10,10]
 dims = [800.0, 800.0]
-color = {Color = [0.976, 0.89, 0.768, 1.0]}
-modifiers = []
+color = {Gradient = {low = [0.647, 0.556, 0.505, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+modifiers = [
+    {Noise = {noise= "Perlin", seed = 2, scale= 0.002, height_scale= 75.0, global=true}},
+    {Terraces = {terraces = [[0.00, -1000.0, 0.0], [40.00, 0.0, 1000.0]]}}
+]
 

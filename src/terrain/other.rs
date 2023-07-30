@@ -7,6 +7,29 @@ use crate::terrain::utils::{AABB, AABBs, Edge, EdgeLine, Axis};
 
 use super::wanders::get_distance_manhattan;
 
+
+// Smooth edge line data
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TerracesData {
+  pub terraces: Vec<[f32;3]>, // height, from, to
+}
+
+impl TerracesData {
+  pub fn apply(&self, pos: &[f32; 3]) -> f32 {
+    for terrace in self.terraces.iter(){
+      if pos[1] >= terrace[1] && pos[1] < terrace[2] {
+        return terrace[0];
+      }
+    }
+    return pos[1];
+  }
+}
+
+// pub enum TerraceValue {
+//   Value(f32),
+// }
+
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FlatEdgesData {
     pub height: f32,

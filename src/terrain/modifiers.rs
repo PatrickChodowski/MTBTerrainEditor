@@ -4,7 +4,7 @@ use bevy::utils::HashMap;
 
 use crate::terrain::easings::EasingData;
 use crate::terrain::noises::{NoiseData, Noise};
-use crate::terrain::other::{FlatEdgeData,FlatEdgesData,SmoothEdgeData,SmoothEdge,FlatEdge,FlatEdges};
+use crate::terrain::other::{FlatEdgeData,FlatEdgesData,SmoothEdgeData,SmoothEdge,FlatEdge,FlatEdges, TerracesData};
 use crate::terrain::planes::PlaneData;
 use crate::terrain::utils::{EdgeLine, AABB};
 use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
@@ -16,6 +16,7 @@ pub enum ModifierData {
     FlatEdge(FlatEdgeData),
     Noise(NoiseData),
     SmoothEdge(SmoothEdgeData),
+    Terraces(TerracesData),
     TargetWanderNoise(TargetWanderNoiseData)
 } 
 
@@ -27,6 +28,7 @@ impl ModifierData {
             ModifierData::FlatEdge(data)            => {return Modifier::FlatEdge(data.set(pd))}
             ModifierData::Noise(data)               => {return Modifier::Noise(data.set())}
             ModifierData::TargetWanderNoise(data)   => {return Modifier::TargetWanderNoise(data.set(pd))}
+            ModifierData::Terraces(data)            => {return Modifier::Terraces(data.clone())}
             ModifierData::SmoothEdge(data)          => {return Modifier::SmoothEdge(data.set())}
         }
     }
@@ -41,6 +43,7 @@ pub enum Modifier {
     FlatEdge(FlatEdge),
     Noise(Noise),
     SmoothEdge(SmoothEdge),
+    Terraces(TerracesData),
     TargetWanderNoise(TargetWanderNoise)
 } 
 
@@ -52,7 +55,9 @@ impl Modifier {
             Modifier::FlatEdges(data)           => {return data.apply(pos)}
             Modifier::FlatEdge(data)            => {return data.apply(pos)}    
             Modifier::Noise(data)               => {return data.apply(pos, loc)}
+            Modifier::Terraces(data)            => {return data.apply(pos)}
             Modifier::TargetWanderNoise(data)   => {return data.apply(pos)}
+            
 
             // Area only:
             Modifier::SmoothEdge(_data)         => {pos[1]}
@@ -76,6 +81,7 @@ impl Modifier {
             Modifier::FlatEdges(_data)         => {}
             Modifier::FlatEdge(_data)          => {}
             Modifier::Noise(_data)             => {}
+            Modifier::Terraces(_data)          => {}
             Modifier::TargetWanderNoise(_data) => {}
         }   
     }
@@ -98,6 +104,7 @@ impl Modifier {
             // not used
             Modifier::Easing(_data) => {} 
             Modifier::Noise(_data) => {}
+            Modifier::Terraces(_data) => {}
             Modifier::SmoothEdge(_data) => {}
         }
 

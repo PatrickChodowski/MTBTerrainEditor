@@ -26,7 +26,7 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
-                    title: "Terrain Generator".to_string(),
+                    title: "MTB Terrain Generator".to_string(),
                     // present_mode: PresentMode::AutoNoVsync,
                     present_mode: PresentMode::AutoVsync,
                     resizable: true,

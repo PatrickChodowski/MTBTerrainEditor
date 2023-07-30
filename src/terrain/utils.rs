@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
+use super::wanders::get_distance_manhattan;
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Edge {X, NX, Z, NZ}  
 
@@ -175,4 +177,34 @@ pub fn get_mesh_stats(mesh: &Mesh){
       );
   }
 
+}
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
+pub struct Ellipse {
+  pub a: f32,  // axis
+  pub b: f32,  // axis
+  pub x: f32,  // loc 
+  pub z: f32   // loc
+}
+
+impl Ellipse {
+
+  pub fn _has_point(&self, p: &[f32; 3]) -> bool {
+    let dx = p[0] - self.x;
+    let dz = p[2] - self.z;
+    (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0
+  }
+
+  pub fn has_point_dist(&self, p: &[f32; 3]) -> Option<f32> {
+    let dx = p[0] - self.x;
+    let dz = p[2] - self.z;
+
+    if (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0 {
+      Some(get_distance_manhattan(&(self.x, self.z), &(p[0],p[2])))
+    } else {
+      None
+    }
+
+  }
 }

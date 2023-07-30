@@ -2,18 +2,17 @@
 
 Creates terrain out of toml config file. 
 
-## Features:
+<img src="static/example_wf.png"  width="50%" height="50%">
+<img src="static/rivermap.png"  width="50%" height="50%">
 
-- text based: Fill out the config and get the terrain
+## Features:
 - modular: Specify as many planes as you want with its parameters and modifiers
+- text based: Fill out the config and get the terrain
 - extensible: define your own modifiers and apply them
 
-
 ## Steps:
-
 - In config.toml specify which file should be loaded
 - Define the scene in scenes folder
-
 
 ## Plane data:
 - name:  String

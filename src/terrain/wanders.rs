@@ -1,6 +1,6 @@
 
 use serde::{Serialize, Deserialize};
-use libm::{atan2f, fabsf, powf};
+use libm::{atan2f, fabsf};
 use rand::prelude::*;
 
 use crate::terrain::planes::PlaneData;

@@ -19,7 +19,7 @@ modifiers = []
 [[planes]]
 name = "Water"
 active = true
-loc = [500.0, -4.0, 400.0]
+loc = [500.0, -8.0, 400.0]
 subdivisions= [0,0]
 dims = [1000.0, 300.0]
 color = {Color = [0.4, 0.92, 0.964, 1.0]}

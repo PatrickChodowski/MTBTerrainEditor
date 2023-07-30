@@ -1,0 +1,44 @@
+[[planes]]
+name = "Water"
+active = false 
+loc = [500.0, 1.0, 500.0]
+subdivisions= [0,0]
+dims = [1000.0, 1000.0]
+color = {Color = [0.4, 0.92, 0.964, 1.0]}
+modifiers = []
+
+[[planes]]
+name = "Land"
+active = false
+loc = [500.0, 20.0, 500.0]
+subdivisions= [0,0]
+dims = [800.0, 800.0]
+color = {Color = [0.976, 0.89, 0.768, 1.0]}
+modifiers = []
+
+[[planes]]
+name = "Mountain Range"
+active = true
+loc = [500.0, 0.0, 500.0]
+subdivisions= [50, 50]
+dims = [500.0, 500.0]
+color = {Gradient = {low = [0.647, 0.556, 0.505, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+modifiers = [
+    {TargetWanderNoise = {wander = {Emu=180.0}, width = 100.0, height = 100.0, step = 10.0, max_steps = 200, source = {Point = [-500.0, 0.0]}, target = {Point = [500.0, 0.0]}, seed = "NoSeed", easing="None"}}
+
+]
+
+[[planes]]
+name = "Ridge"
+active = false
+loc = [500.0, 0.0, 500.0]
+subdivisions= [25, 25]
+dims = [500.0, 200.0]
+# color = {Gradient = {low = [0.627, 0.411, 0.294, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+color = {Gradient = {low = [0.537, 0.435, 0.376, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+# color = {Gradient = {low = [0.337, 0.25, 0.25, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+# color = {Gradient = {low = [0.0, 0.0, 0.0, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+modifiers = [
+    {TargetWanderNoise = {wander = {Emu=120.0}, width = 20.0, height = 50.0, step = 10.0, max_steps = 200, source = {Point = [-500.0, 0.0]}, target = {Point = [500.0, 0.0]}, seed = "NoSeed", easing="SmoothStart"}}
+
+]

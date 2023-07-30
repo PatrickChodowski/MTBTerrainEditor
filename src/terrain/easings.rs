@@ -11,6 +11,7 @@ pub struct EasingData {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Easings {
+    None,
     SmoothStep,
     SmoothStop,
     SmoothStart,
@@ -40,6 +41,9 @@ impl Easings {
             }
             Easings::AbsoluteValuePow(p) => {
                 return powf(x.abs(), *p);
+            }
+            Easings::None => {
+                return x;
             }
         }
     }

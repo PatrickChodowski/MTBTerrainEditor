@@ -4,6 +4,11 @@ use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Axis {
+  X,Z
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct AreaDims {
     pub x: f32,
     pub z: f32
@@ -44,6 +49,21 @@ impl Area {
     }
     return has_point;
   }
+
+  pub fn get_center(&self) -> (f32, f32){
+    match &self {
+      Area::AABB(aabb) => {aabb.get_center()}
+      Area::Ellipse(ellipse) => {ellipse.get_center()}
+    }
+  }
+
+  pub fn get_radius(&self) -> f32 {
+    match &self {
+      Area::AABB(aabb) => {aabb.get_radius()}
+      Area::Ellipse(ellipse) => {ellipse.get_radius()}
+    }
+  }
+
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -58,6 +78,23 @@ pub struct AABB {
 }
 
 impl AABB {
+
+  // abomination of mathematics, radius in aabb
+  pub fn get_radius(&self) -> f32 {
+    let x_r = (self.max_x - self.min_x)/2.0;
+    let z_r = (self.max_z - self.min_z)/2.0;
+
+    // get longest of two
+    if x_r >= z_r {
+      x_r
+    } else {
+      z_r
+    }
+  }
+
+  pub fn get_center(&self) -> (f32,f32){
+    ((self.min_x + self.max_x)/2.0, (self.min_z + self.max_z)/2.0)
+  }
 
   pub fn _intersect(self, other: &AABB) -> bool {
     self.max_x >= other.min_x && self.min_x <= other.max_x &&
@@ -113,6 +150,21 @@ pub struct Ellipse {
 }
 
 impl Ellipse {
+  pub fn get_radius(&self) -> f32 {
+    let x_r = self.x/2.0;
+    let z_r = self.z/2.0;
+
+    // get longest of two
+    if x_r >= z_r {
+      x_r
+    } else {
+      z_r
+    }
+  }
+
+  pub fn get_center(&self) -> (f32,f32){
+    (self.x, self.z)
+  }
 
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     let dx = p[0] - self.x;
@@ -125,7 +177,7 @@ impl Ellipse {
     let dz = p[2] - self.z;
 
     if (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0 {
-      Some(get_distance_manhattan(&(self.x, self.z), &(p[0],p[2])))
+      Some(get_distance_euclidean(&(self.x, self.z), &(p[0],p[2])))
     } else {
       None
     }

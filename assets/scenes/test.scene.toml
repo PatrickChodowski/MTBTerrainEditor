@@ -11,7 +11,7 @@ modifiers = []
 name= "Test noise with easing"
 active= true
 loc= [0.0, 0.0, 0.0]
-subdivisions= [40,40]
+subdivisions= [50,50]
 dims= [500.0, 500.0]
 color = {Gradient = {low = [1.0, 0.0, 0.0, 1.0], high = [0.0, 1.0, 0.0, 1.0]}}
 
@@ -19,62 +19,17 @@ color = {Gradient = {low = [1.0, 0.0, 0.0, 1.0], high = [0.0, 1.0, 0.0, 1.0]}}
 [planes.modifiers.Value]
 mb = {area = {AABB = {x=1000.0, z=1000.0}}, loc = [0.0, 0.0]}
 scaling = "None"
-val = {Value=20.0}
-
-[[planes.modifiers]]
-[planes.modifiers.Noise]
-mb = {area = {AABB = {x=1000.0, z=1000.0}}, loc = [0.0, 0.0]}
-noise = "FBMValue"
-seed = 14
-scale = 0.0045
-global = false
-easing = "SmoothEnd"
-octaves = 4
-freq = 2.0
-
-# [[planes.modifiers]]
-# [planes.modifiers.Value]
-# mb = {area = {AABB = {x=15.0, z=250.0}}, loc = [220.0, 0.0]}
-# val = {Value=10.0}
-
-# [[planes.modifiers]]
-# [planes.modifiers.Terraces]
-# mb = {area = {AABB = {x=1000.0, z=1000.0}}, loc = [0.0, 0.0]}
-# terraces = [
-#     {from=-1000.0, to=-100.0, val={Value=0.0}}
-#     # {from= 20.0, to=100.0, val={Value=20.0}},
-# ]
+easing = "None"
+val = {Value=5.0}
 
 [[planes.modifiers]]
 [planes.modifiers.Value]
-mb = {area = {Ellipse = {x=100.0, z=100.0}}, loc = [200.0, 200.0]}
-scaling = "Distance"
-val = {Value=-30.0}
-
-# [[planes.modifiers]]
-# [planes.modifiers.Value]
-# mb = {area = {AABB = {x=50.0, z=50.0}}, loc = [160.0, 115.0]}
-# val = {Value=50.0}
+mb = {area = {AABB = {x=100.0, z=100.0}}, loc = [0.0, 0.0]}
+scaling = "None"
+easing = "None"
+val = {Diff=20.0}
 
 [[planes.modifiers]]
-[planes.modifiers.Smoothing]
-mb = {area = {Ellipse = {x=70.0, z=50.0}}, loc = [200.0, 100.0]}
-method = "HeightNormalize"
-
-[[planes.modifiers]]
-[planes.modifiers.Smoothing]
-mb = {area = {AABB = {x=40.0, z=40.0}}, loc = [120.0, 120.0]}
-method = {DistanceToPoint=[160.0, 130.0, -50.0]}
-
-
-# [[planes.modifiers]]
-# [planes.modifiers.Smoothing]
-# mb = {area = {Ellipse = {x=100.0, z=100.0}}, loc = [200.0, 200.0]}
-# method = {DistanceToPoint=[500.0, 500.0, -25.0]}
-
-
-# `Perlin`, `PerlinSurflet`, `OpenSimplex`, `Value`, `SuperSimplex`, `Worley`, 
-# `Simplex`, `FBMPerlin`, `BMPerlin`, `BPerlin`, `RMPerlin`, `HMPerlin`, `FBMPerlinSurflet`, 
-# `BMPerlinSurflet`, `BPerlinSurflet`, `RMPerlinSurflet`, `HMPerlinSurflet`, `FBMValue`, 
-# `BMValue`, `BValue`, `RMValue`, `HMValue`, `FBMSS`, `BMSS`, `BSS`, `RMSS`, `HMSS`
-
+[planes.modifiers.Wave]
+mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [50.0, 0.0]}
+noise = {noise="Perlin", seed=0, scale= 0.001, global=false}

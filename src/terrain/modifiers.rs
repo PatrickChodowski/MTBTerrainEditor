@@ -7,11 +7,12 @@ use crate::terrain::terraces::{TerracesData, Terraces};
 use crate::terrain::planes::PlaneData;
 use crate::terrain::value::{ValueData, Value};
 use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
+use crate::terrain::wave::{WaveData,Wave};
 use crate::terrain::utils::{AreaData, Area};
 
 
 // Struct needed for every modifier. Added as component to all modifiers
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct ModifierBase {
     pub area:      AreaData,
     pub loc:       [f32; 2],
@@ -28,6 +29,7 @@ pub enum ModifierData {
     Smoothing(SmoothingData),
     Terraces(TerracesData),
     TargetWanderNoise(TargetWanderNoiseData),
+    Wave(WaveData),
     Value(ValueData)
 } 
 
@@ -38,6 +40,7 @@ impl ModifierData {
             ModifierData::Smoothing(data)           => {return Modifier::Smoothing(data.set())}
             ModifierData::TargetWanderNoise(data)   => {return Modifier::TargetWanderNoise(data.set(pd))}
             ModifierData::Terraces(data)            => {return Modifier::Terraces(data.set())}
+            ModifierData::Wave(data)                => {return Modifier::Wave(data.set())}
             ModifierData::Value(data)               => {return Modifier::Value(data.set())}
         }
     }
@@ -51,6 +54,7 @@ pub enum Modifier {
     Smoothing(Smoothing),
     Terraces(Terraces),
     Value(Value),
+    Wave(Wave),
     TargetWanderNoise(TargetWanderNoise)
 } 
 
@@ -65,8 +69,12 @@ impl Modifier {
             
             // Area only:
             Modifier::Smoothing(_data)         => {pos[1]}
+
+            // XZ only:
+            Modifier::Wave(_data)              => {pos[1]}
         }           
     }
+
 
     pub fn apply_area(&mut self, v_pos: &mut Vec<[f32; 3]>){
         match self {
@@ -77,6 +85,9 @@ impl Modifier {
             Modifier::Value(_data)             => {}
             Modifier::Terraces(_data)          => {}
             Modifier::TargetWanderNoise(_data) => {}
+
+            // XZ only:
+            Modifier::Wave(data)               => {data.apply(v_pos)}
         }   
     }
 

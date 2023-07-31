@@ -7,3 +7,4 @@ pub mod value;
 pub mod wanders;
 pub mod utils;
 pub mod smoothing;
+pub mod wave;

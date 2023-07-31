@@ -4,7 +4,7 @@ use libm::{atan2f, fabsf};
 use rand::prelude::*;
 
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABBs,AABB,Edge,EdgeLine};
+use crate::terrain::utils::{AABBs,AABB,Edge};
 
 use super::easings::Easings;
 use super::utils::Ellipse;
@@ -136,24 +136,6 @@ impl TargetWanderNoise {
         }
 
         return pos[1];
-    }
-
-
-    // It should be only alongside width
-    pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
-        // println!("debug wander aabbs: {:?}", self.aabbs);
-        let mut abs: Vec<EdgeLine> = Vec::new();
-        for aabb in self.aabbs.0.iter(){
-          let edges = aabb.to_edges(plane);
-          for (_index, edge) in edges.iter().enumerate(){
-
-            if fabsf(edge.start.1 - edge.end.1) == self.step*2.0 || fabsf(edge.start.0 - edge.end.0) >= self.step*2.0 {
-                abs.push(*edge);
-            }
-            // abs.push(*edge);
-          }
-        }
-        return abs;
     }
 }
 

@@ -1,21 +1,62 @@
 [[planes]]
 name = "Water"
-active = false 
-loc = [500.0, 1.0, 500.0]
+active = false
+loc = [0.0, -15.0, 0.0]
 subdivisions= [0,0]
 dims = [1000.0, 1000.0]
 color = {Color = [0.4, 0.92, 0.964, 1.0]}
 modifiers = []
 
 [[planes]]
-name = "Land"
+name = "Island1"
 active = true
-loc = [500.0, 20.0, 500.0]
-subdivisions= [10,10]
-dims = [800.0, 800.0]
-color = {Gradient = {low = [0.647, 0.556, 0.505, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
-modifiers = [
-    {Noise = {noise= "Perlin", seed = 2, scale= 0.002, height_scale= 75.0, global=true}},
-    {Terraces = {terraces = [[0.00, -1000.0, 0.0], [40.00, 0.0, 1000.0]]}}
-]
+loc = [0.0, 0.0, 0.0]
+subdivisions= [80,80]
+dims = [500.0, 500.0]
+color = {Gradient = {low = [0.647, 0.34, 0.205, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
 
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {AABB = {x=1000.0, z=1000.0}}
+loc = [0.0, 0.0]
+height = 100.0
+
+[[planes.modifiers]]
+[planes.modifiers.Noise]
+noise = "FBMValue"
+seed = 0
+scale = 0.048
+global = false
+octaves = 2
+freq = 1.0
+
+[[planes.modifiers]]
+[planes.modifiers.Terraces]
+terraces = [
+        [-25.0, -10000.0, -25.0],
+        [10.0, -20.0, 0.0,],
+        [10.0, 0.0, 1000.0]]
+
+[[planes]]
+name = "Island1"
+active = true
+loc = [0.0, 0.0, 500.0]
+subdivisions= [30,30]
+dims = [500.0, 500.0]
+# color = {Gradient = {low = [0.647, 0.34, 0.205, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}
+color = {Gradient = {low = [1.0, 0.0, 0.0, 1.0], high = [0.0, 1.0, 0.0, 1.0]}}
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {AABB = {x=1000.0, z=1000.0}}
+loc = [0.0, 0.0]
+height = 100.0
+
+[[planes.modifiers]]
+[planes.modifiers.Noise]
+noise = "Worley"
+seed = 4
+scale = 0.005
+global = false
+octaves = 5
+freq = 2.0

@@ -28,7 +28,6 @@ Creates terrain out of toml config file.
     - Noise
     - Wander noise
     - Smooth edge
-    - Flat edge
     - Easing
     - more to come...
 

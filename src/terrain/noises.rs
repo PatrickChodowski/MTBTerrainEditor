@@ -6,7 +6,6 @@ use serde::{Serialize, Deserialize};
 pub struct NoiseData {
     pub noise:          Noises,
     pub seed:           u32,
-    pub height_scale:   f32,
     pub scale:          f64,
     pub octaves:        Option<usize>,
     pub freq:           Option<f64>,
@@ -17,7 +16,6 @@ pub struct NoiseData {
 pub struct Noise {
     pub noise:          Noises,
     pub seed:           u32,
-    pub height_scale:   f32,
     pub scale:          f64,
     pub octaves:        Option<usize>,
     pub freq:           Option<f64>,
@@ -241,8 +239,13 @@ impl NoiseData {
             }
         }
 
-        return Noise {noise: self.noise.clone(), seed: self.seed, height_scale: self.height_scale, 
-                      scale: self.scale, octaves: self.octaves, freq: self.freq, global: self.global, noise_function: nfn};
+        return Noise {noise: self.noise.clone(), 
+                      seed: self.seed, 
+                      scale: self.scale, 
+                      octaves: self.octaves, 
+                      freq: self.freq, 
+                      global: self.global, 
+                      noise_function: nfn};
     }
 
 }
@@ -327,35 +330,35 @@ impl Noise {
         let r: f64;
         match &self.noise_function {
             // XD but I really dont know how to make it better
-            NoiseFunction::Perlin(f)                     => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::PerlinSurflet(f)              => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::Value(f)                      => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::OpenSimplex(f)                => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::SuperSimplex(f)               => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::Worley(f)                     => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::Simplex(f)                    => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::FBMPerlin(f)                  => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BMPerlin(f)                   => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BPerlin(f)                    => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::RMPerlin(f)                   => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::HMPerlin(f)                   => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::FBMPerlinSurflet(f)           => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BMPerlinSurflet(f)            => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BPerlinSurflet(f)             => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::RMPerlinSurflet(f)            => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::HMPerlinSurflet(f)            => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::FBMValue(f)                   => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BMValue(f)                    => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BValue(f)                     => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::RMValue(f)                    => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::HMValue(f)                    => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::FBMSS(f)                      => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BMSS(f)                       => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::BSS(f)                        => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::RMSS(f)                       => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
-            NoiseFunction::HMSS(f)                       => {r = f.get([pos[0] as f64 * self.scale, pos[2] as f64 * self.scale])}
+            NoiseFunction::Perlin(f)                     => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::PerlinSurflet(f)              => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::Value(f)                      => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::OpenSimplex(f)                => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::SuperSimplex(f)               => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::Worley(f)                     => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::Simplex(f)                    => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::FBMPerlin(f)                  => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BMPerlin(f)                   => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BPerlin(f)                    => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::RMPerlin(f)                   => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::HMPerlin(f)                   => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::FBMPerlinSurflet(f)           => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BMPerlinSurflet(f)            => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BPerlinSurflet(f)             => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::RMPerlinSurflet(f)            => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::HMPerlinSurflet(f)            => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::FBMValue(f)                   => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BMValue(f)                    => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BValue(f)                     => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::RMValue(f)                    => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::HMValue(f)                    => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::FBMSS(f)                      => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BMSS(f)                       => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::BSS(f)                        => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::RMSS(f)                       => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
+            NoiseFunction::HMSS(f)                       => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
         }
-        return r as f32 * self.height_scale;    
+        return r as f32 * gpos[1];    
     }
 
 }

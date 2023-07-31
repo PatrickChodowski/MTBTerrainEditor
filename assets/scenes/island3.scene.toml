@@ -1,0 +1,70 @@
+[[planes]]
+name = "Plane"
+active = true
+loc = [0.0, 0.0, 0.0]
+subdivisions= [60,60]
+dims = [1000.0, 1000.0]
+color = {Gradient = {low = [1.0, 0.0, 0.0, 1.0], high = [0.0, 1.0, 0.0, 1.0]}}
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+# lift all vertices for noise to work
+shapetypedata = {AABB = {x=1000.0, z=1000.0}}
+loc = [0.0, 0.0]
+height = 10.0
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {AABB = {x=100.0, z=100.0}}
+loc = [-150.0, -100.0]
+height = 50.0
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {AABB = {x=100.0, z=100.0}}
+loc = [150.0, -100.0]
+height = 50.0
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {Ellipse = {x=200.0, z=100.0}}
+loc = [0.0, 200.0]
+height = 50.0
+
+[[planes.modifiers]]
+[planes.modifiers.Noise]
+noise = "Perlin"
+scale = 0.01
+seed = 0
+global = false
+
+[[planes.modifiers]]
+[planes.modifiers.Noise]
+noise = "Value"
+scale = 0.1
+seed = 0
+global = false
+
+[[planes.modifiers]]
+[planes.modifiers.Noise]
+noise = "Value"
+scale = 0.1
+seed = 1000
+global = false
+
+[[planes.modifiers]]
+[planes.modifiers.Shape]
+shapetypedata = {Ellipse = {x=1000.0, z=100.0}}
+loc = [0.0, 450.0]
+height = -10.0
+
+
+[[planes]]
+name = "Water"
+active = true
+loc = [0.0, -4.0, 0.0]
+subdivisions= [0,0]
+dims = [1000.0, 1000.0]
+color = {Color = [0.4, 0.92, 0.964, 1.0]}
+modifiers = []
+

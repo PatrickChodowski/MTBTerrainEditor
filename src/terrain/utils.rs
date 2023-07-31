@@ -16,7 +16,7 @@ pub struct EdgeLine {
 }
 
 impl EdgeLine {
-  pub fn to_aabb(&self, width: f32) -> (AABB, f32) {
+  pub fn _to_aabb(&self, width: f32) -> (AABB, f32) {
     let min_x: f32;
     let max_x: f32;
     let min_z: f32;
@@ -95,7 +95,7 @@ impl AABB {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
 
-  pub fn has_point_excl(&self, p: &[f32; 3]) -> bool {
+  pub fn _has_point_excl(&self, p: &[f32; 3]) -> bool {
     p[0] > self.min_x && p[0] < self.max_x && p[2] > self.min_z && p[2] < self.max_z
   }
 
@@ -104,7 +104,7 @@ impl AABB {
   }
 
   // Convert aabb into edges (thin AABB box)
-  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
+  pub fn _to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
   
     let mut v: Vec<EdgeLine> = Vec::new();
     if self.min_x > plane.min_x && self.min_x < plane.max_x{
@@ -143,10 +143,10 @@ impl AABBs {
     return false;
   }
 
-  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
+  pub fn _to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
     let mut abs: Vec<EdgeLine> = Vec::new();
     for aabb in self.0.iter(){
-      let mut edges = aabb.to_edges(plane);
+      let mut edges = aabb._to_edges(plane);
       abs.append(&mut edges);
     }
     return abs;
@@ -190,7 +190,7 @@ pub struct Ellipse {
 
 impl Ellipse {
 
-  pub fn _has_point(&self, p: &[f32; 3]) -> bool {
+  pub fn has_point(&self, p: &[f32; 3]) -> bool {
     let dx = p[0] - self.x;
     let dz = p[2] - self.z;
     (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0

@@ -144,7 +144,7 @@ impl SimpleNoise {
         return r as f32;    
     }
     pub fn _apply3d(&self, x: f32, y: f32, z: f32) -> f32 {
-        let r: f64 = self.noise_function.apply3d(self.scale, x as f64, y as f64, z as f64);
+        let r: f64 = self.noise_function._apply3d(self.scale, x as f64, y as f64, z as f64);
         return r as f32;    
     }
 }

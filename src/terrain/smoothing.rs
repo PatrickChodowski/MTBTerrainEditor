@@ -2,28 +2,37 @@
 use libm::powf;
 use serde::{Deserialize,Serialize};
 use bevy::utils::HashMap;
+
 use crate::terrain::planes::PlaneData;
 use crate::terrain::utils::{AABB, AABBs, Edge, Axis};
+use crate::terrains::wanders::get_distance_manhattan;
 
-use super::wanders::get_distance_manhattan;
 
 
-// Smooth edge line data
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TerracesData {
-  pub terraces: Vec<[f32;3]>, // height, from, to
-}
+// takes area of points and smoothes them out
 
-impl TerracesData {
-  pub fn apply(&self, pos: &[f32; 3]) -> f32 {
-    for terrace in self.terraces.iter(){
-      if pos[1] >= terrace[1] && pos[1] < terrace[2] {
-        return terrace[0];
-      }
-    }
-    return pos[1];
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // #[derive(Serialize, Deserialize, Clone, Debug)]
 // pub enum SmoothMethod {

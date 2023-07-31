@@ -4,7 +4,7 @@ use libm::{atan2f, fabsf};
 use rand::prelude::*;
 
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABBs,AABB,Edge};
+use crate::terrain::utils::{AABB,Edge};
 
 use super::easings::Easings;
 use super::utils::Ellipse;
@@ -33,7 +33,7 @@ pub struct TargetWanderNoise {
     pub source:               WanderLoc,
     pub target:               WanderLoc,
     pub seed:                 NoiseSeed,
-    pub aabbs:                AABBs,
+    pub aabbs:                Vec<AABB>,
     pub ellipses:             Vec<Ellipse>,
     pub easing:               Easings
 }
@@ -108,9 +108,9 @@ impl TargetWanderNoiseData {
         }
 
         // construct aabbs from points
-        let mut aabbs = AABBs::new();
+        let mut aabbs = Vec::new();
         for p in points.iter(){
-            aabbs.0.push(AABB::from_point(p, &(self.step*2.0, self.width)));
+            aabbs.push(AABB::from_point(p, &(self.step*2.0, self.width)));
         }
 
         // construct ellipses from points

@@ -1,14 +1,6 @@
 use libm::powf;
 use serde::{Serialize, Deserialize};
 
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct EasingData {
-    pub easing: Easings,
-    pub global: bool,
-}
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Easings {
     None,

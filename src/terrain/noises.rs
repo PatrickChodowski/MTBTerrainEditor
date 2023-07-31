@@ -2,23 +2,31 @@
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
 use serde::{Serialize, Deserialize};
 
+use crate::terrain::easings::Easings;
+use crate::terrain::modifiers::ModifierBase;
+use crate::terrain::utils::Area;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NoiseData {
+    pub mb:             ModifierBase,
     pub noise:          Noises,
     pub seed:           u32,
     pub scale:          f64,
     pub octaves:        Option<usize>,
     pub freq:           Option<f64>,
+    pub easing:         Easings,
     pub global:         bool
 }
 
 #[derive(Clone)]
 pub struct Noise {
+    pub area:           Area,
     pub noise:          Noises,
     pub seed:           u32,
     pub scale:          f64,
     pub octaves:        Option<usize>,
     pub freq:           Option<f64>,
+    pub easing:         Easings,
     pub global:         bool,
     pub noise_function: NoiseFunction
 }
@@ -239,13 +247,15 @@ impl NoiseData {
             }
         }
 
-        return Noise {noise: self.noise.clone(), 
-                      seed: self.seed, 
-                      scale: self.scale, 
-                      octaves: self.octaves, 
-                      freq: self.freq, 
-                      global: self.global, 
-                      noise_function: nfn};
+        return Noise {area:             self.mb.to_area(),
+                      noise:            self.noise.clone(), 
+                      seed:             self.seed, 
+                      scale:            self.scale, 
+                      octaves:          self.octaves, 
+                      freq:             self.freq, 
+                      easing:           self.easing,
+                      global:           self.global, 
+                      noise_function:   nfn};
     }
 
 }
@@ -358,7 +368,9 @@ impl Noise {
             NoiseFunction::RMSS(f)                       => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
             NoiseFunction::HMSS(f)                       => {r = f.get([gpos[0] as f64 * self.scale, gpos[2] as f64 * self.scale])}
         }
-        return r as f32 * gpos[1];    
+
+        let eased_r = self.easing.apply(r as f32);
+        return eased_r * gpos[1];    
     }
 
 }

@@ -8,6 +8,7 @@ use bevy::log::LogPlugin;
 use bevy::window::WindowResolution;
 use bevy::pbr::wireframe::WireframePlugin;
 use bevy_common_assets::toml::TomlAssetPlugin;
+// use bevy_debug_grid::*;
 
 mod camera;
 use camera::CameraPlugin;
@@ -43,6 +44,7 @@ fn main() {
                 ..default()
             })
         )
+        // .add_plugin(DebugGridPlugin::with_floor_grid())
         .add_plugin(WireframePlugin)
         .add_plugin(TomlAssetPlugin::<Planes>::new(&["scene.toml"]))
         .add_plugin(TomlAssetPlugin::<ConfigData>::new(&["toml"]))

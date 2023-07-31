@@ -330,11 +330,16 @@ pub enum NoiseFunction {
 
 impl Noise {
     pub fn apply(&self, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
+
         let mut gpos: [f32; 3] = *pos;
         if self.global {
             gpos[0] = pos[0] + loc[0];
             gpos[1] = pos[1] + loc[1];
             gpos[2] = pos[2] + loc[2];
+        }
+
+        if !self.area.has_point(pos) {
+            return gpos[1];
         }
 
         let r: f64;

@@ -1,8 +1,7 @@
+use libm::{fabsf, powf, sqrtf};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
-
-use super::wanders::get_distance_manhattan;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct AreaDims {
@@ -38,7 +37,7 @@ pub enum Area {
 }
 impl Area {
   pub fn has_point(&self, pos: &[f32; 3]) -> bool {
-    let mut has_point = false;
+    let has_point: bool;
     match &self {
       Area::AABB(aabb) => {has_point = aabb.has_point(pos)}
       Area::Ellipse(ellipse) => {has_point = ellipse.has_point(pos)}
@@ -130,6 +129,13 @@ impl Ellipse {
     } else {
       None
     }
-
   }
+}
+
+pub fn get_distance_manhattan(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
+  return fabsf(target.0 - xz.0) + fabsf(target.1 - xz.1);
+}
+
+pub fn get_distance_euclidean(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
+  return sqrtf(powf(target.0 - xz.0, 2.0) + powf(target.1 - xz.1, 2.0));
 }

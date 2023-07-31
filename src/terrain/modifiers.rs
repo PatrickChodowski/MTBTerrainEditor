@@ -2,7 +2,8 @@
 use serde::{Deserialize,Serialize};
 
 use crate::terrain::noises::{NoiseData, Noise};
-use crate::terrain::terraces::TerracesData;
+use crate::terrain::smoothing::{SmoothingData,Smoothing};
+use crate::terrain::terraces::{TerracesData, Terraces};
 use crate::terrain::planes::PlaneData;
 use crate::terrain::value::{ValueData, Value};
 use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
@@ -21,23 +22,23 @@ impl ModifierBase {
     }
   }
 
-
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ModifierData {
     Noise(NoiseData),
+    Smoothing(SmoothingData),
     Terraces(TerracesData),
     TargetWanderNoise(TargetWanderNoiseData),
     Value(ValueData)
 } 
 
 impl ModifierData {
-    pub fn set(&self, pd: &PlaneData, v_pos: &Vec<[f32; 3]>) -> Modifier {
+    pub fn set(&self, pd: &PlaneData) -> Modifier {
         match self {
             ModifierData::Noise(data)               => {return Modifier::Noise(data.set())}
-            ModifierData::Value(data)               => {return Modifier::Value(data.set())}
+            ModifierData::Smoothing(data)           => {return Modifier::Smoothing(data.set())}
             ModifierData::TargetWanderNoise(data)   => {return Modifier::TargetWanderNoise(data.set(pd))}
-            ModifierData::Terraces(data)            => {return Modifier::Terraces(data.clone())}
+            ModifierData::Terraces(data)            => {return Modifier::Terraces(data.set())}
+            ModifierData::Value(data)               => {return Modifier::Value(data.set())}
         }
     }
 
@@ -47,8 +48,9 @@ impl ModifierData {
 #[derive(Clone)]
 pub enum Modifier {
     Noise(Noise),
+    Smoothing(Smoothing),
+    Terraces(Terraces),
     Value(Value),
-    Terraces(TerracesData),
     TargetWanderNoise(TargetWanderNoise)
 } 
 
@@ -61,23 +63,15 @@ impl Modifier {
             Modifier::Terraces(data)            => {return data.apply(pos)}
             Modifier::TargetWanderNoise(data)   => {return data.apply(pos)}
             
-
             // Area only:
-            // Modifier::SmoothArea(_data)         => {pos[1]}
+            Modifier::Smoothing(_data)         => {pos[1]}
         }           
     }
 
-    pub fn apply_area(&mut self, _v_pos: &mut Vec<[f32; 3]>){
+    pub fn apply_area(&mut self, v_pos: &mut Vec<[f32; 3]>){
         match self {
-
-            // Modifier::SmoothEdge(_data) => {
-            //     // data.update(edges);
-            //     // let index_heights: HashMap<usize, f32> = data.apply(v_pos);
-            //     // for (index, height) in index_heights.iter(){
-            //     //     v_pos[*index][1] = *height;
-            //     // }
-            // }
-
+            Modifier::Smoothing(data)          => {data.apply(v_pos)}
+            
             // point only:
             Modifier::Noise(_data)             => {}
             Modifier::Value(_data)             => {}

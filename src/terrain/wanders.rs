@@ -1,10 +1,10 @@
 
 use serde::{Serialize, Deserialize};
-use libm::{atan2f, fabsf};
+use libm::atan2f;
 use rand::prelude::*;
 
 use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABB,Edge};
+use crate::terrain::utils::{AABB,Edge, get_distance_manhattan};
 
 use super::easings::Easings;
 use super::utils::Ellipse;
@@ -250,6 +250,3 @@ pub fn get_direction(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
     return atan2f(target.1 - xz.1, target.0 - xz.0);
 }
 
-pub fn get_distance_manhattan(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
-    return fabsf(target.0 - xz.0) + fabsf(target.1 - xz.1);
-}

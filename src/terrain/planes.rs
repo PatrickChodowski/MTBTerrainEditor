@@ -42,7 +42,7 @@ impl PlaneData {
         // Convert modifier data's to modifiers, extract meta data like edges for other modifiers
         let mut mods: Vec<Modifier> = Vec::new();
         for modifier in self.modifiers.iter(){
-            let m = modifier.set(self, &v_pos);
+            let m = modifier.set(self);
             mods.push(m);
         }
 

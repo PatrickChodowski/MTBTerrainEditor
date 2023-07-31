@@ -1,105 +1,117 @@
 
-use libm::powf;
-use serde::{Deserialize,Serialize};
 use bevy::utils::HashMap;
+use serde::{Deserialize,Serialize};
+use libm::logf;
 
-use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABB, AABBs, Edge, Axis};
-use crate::terrains::wanders::get_distance_manhattan;
-
-
+use crate::terrain::modifiers::ModifierBase;
+use crate::terrain::utils::{Area,get_distance_euclidean};
 
 // takes area of points and smoothes them out
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SmoothingData {
+    pub mb:     ModifierBase,
+    pub method: SmoothingMethod
+}
+
+impl SmoothingData {
+    pub fn set(&self) -> Smoothing {
+        return Smoothing{
+            area: self.mb.to_area(),
+            method: self.method
+        };
+    }
+}
 
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Smoothing {
+    pub area:   Area,
+    pub method: SmoothingMethod
+}
+
+impl Smoothing {
+    pub fn apply(&self, v_pos: &mut Vec<[f32; 3]>) {
+        let mut min_height = f32::MAX;
+        let mut max_height = f32::MIN;
+        let mut points: HashMap<usize, [f32; 3]> = HashMap::new();
+
+        for (index, pos) in v_pos.iter().enumerate(){
+            if self.area.has_point(pos){
+                if pos[1] > max_height {
+                    max_height = pos[1];
+                }
+                if pos[1] < min_height {
+                    min_height = pos[1];
+                }
+                points.insert(index, *pos);
+            }  
+        }
+
+        self.method.apply(&mut points, min_height, max_height);
+
+        for (index, pos) in points.iter(){
+            v_pos[*index] = *pos;
+        }
+    }
+}
 
 
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
+pub enum SmoothingMethod {
+    HeightNormalize,
+    DistanceToPoint((f32, f32, f32))
+}
 
+impl SmoothingMethod {
+    pub fn apply(&self, points:  &mut HashMap<usize, [f32;3]>, min_height: f32, max_height: f32){
+        match self {
+            SmoothingMethod::HeightNormalize => {
+                let range = max_height - min_height;
+                if range <= 0.0 {
+                    return;
+                }
+                let mut new_points: Vec<(usize, (f32, f32, f32))> = Vec::with_capacity(points.len());
+                for (index, point) in points.iter(){
+                    let mut p2: [f32; 3] = point.clone();
+                    let st_point: f32 = (p2[1] - min_height)/range + 1.0; // +1 to standardadize between 1 and 2 instead 0 and for logarithms
+                    let ph: f32 = p2[1].clone()*(1.0-logf(st_point));
+                    p2[1] = ph;
+                    new_points.push((*index, (p2[0], p2[1], p2[2])));
+                }
+                for np in new_points.iter(){
+                    points.insert(np.0, [np.1.0, np.1.1, np.1.2]);
+                }
 
+            }
+            SmoothingMethod::DistanceToPoint((x, z, height)) => {
+                let mut dists: Vec<(usize,f32)> = Vec::with_capacity(points.len());
+                let mut max_dist = f32::MIN;
+                for (index, point) in points.iter(){
+                    let dist = get_distance_euclidean(&(*x,*z), &(point[0], point[2]));
+                    if dist > max_dist {
+                        max_dist = dist;
+                    }
+                    dists.push((*index, dist));
+                }
 
+                for (index, dist) in dists.iter(){
+                    let old_point = points[index];
+                    let scale = 1.0 - dist/max_dist;
+                    let mut height2 = height*scale;
 
+                    if height < &old_point[1] && height2 > old_point[1]{
+                        height2 = old_point[1];
+                    }
 
+                    if height > &old_point[1] && height2 < old_point[1]{
+                        height2 = old_point[1];
+                    }
 
+                    points.insert(*index, [old_point[0], height2, old_point[2]]);
+                }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// #[derive(Serialize, Deserialize, Clone, Debug)]
-// pub enum SmoothMethod {
-//   Distance,
-//   DistanceReverse,
-//   DistanceSquare,
-//   DistancePower(f32),
-//   Value(f32)
-// }
-
-// // Smooth edge line data
-// #[derive(Serialize, Deserialize, Clone, Debug)]
-// pub struct SmoothEdgeData {
-//   pub buffer: f32,
-//   pub method: SmoothMethod
-// }
-
-
-//     pub fn _apply(&self, v_pos: &mut Vec<[f32; 3]>) -> HashMap<usize, f32>{
-//       let mut abpoints: HashMap<usize, Vec<(&[f32; 3], usize)>> = HashMap::new();
-//       let mut index_heights: HashMap<usize, f32> = HashMap::new();
-
-//       // Mapping first
-//       for (pos_index, pos) in v_pos.iter().enumerate(){
-//         for (index, aabb) in self.aabbs.iter().enumerate() {
-//           if aabb._has_point_excl(pos){
-//             abpoints.entry(index).or_insert(Vec::new()).push((pos, pos_index));
-//           }
-//         }
-//       }
-
-//       // per aabb
-//       for (index, points) in abpoints.iter_mut(){
-
-//         let axis: Axis = self.axes[*index];
-//         let main: f32 = self.mains[*index];
-
-//         for (pos, pos_index) in points.iter_mut(){
-//           let dist: f32;
-//           match axis {
-//             Axis::X => {
-//               dist = get_distance_manhattan(&(pos[0], pos[2]), &(pos[0], main));
-//             }
-//             Axis::Z => {
-//               dist = get_distance_manhattan(&(pos[0], pos[2]), &(main, pos[2]));
-//             }
-//           }
-
-//           let scaled_height: f32;
-//           match self.method {
-//             SmoothMethod::Distance          => {scaled_height =  (dist/self.buffer).clamp(0.0, 1.0)* pos[1];}
-//             SmoothMethod::DistanceReverse   => {scaled_height =  (1.0- (dist/self.buffer).clamp(0.0, 1.0))*pos[1];}
-//             SmoothMethod::DistanceSquare    => {scaled_height =  powf((dist/self.buffer).clamp(0.0, 1.0), 2.0)* pos[1];}
-//             SmoothMethod::DistancePower(p)  => {scaled_height =  powf((dist/self.buffer).clamp(0.0, 1.0), p)* pos[1];}
-//             SmoothMethod::Value(p)          => {scaled_height = p;}
-//           }
-//           index_heights.insert(*pos_index, scaled_height);
-//         }
-
-//       }
-//       return index_heights;
-//     }
-// }
-
-// impl SmoothEdgeData{
-//   pub fn set(&self) -> SmoothEdge {
-//     return SmoothEdge{buffer: self.buffer, method: self.method.clone(), axes: Vec::new(), aabbs: Vec::new(), mains: Vec::new()};
-//   }
-// }
-
+    
+            }
+        }
+    }
+}

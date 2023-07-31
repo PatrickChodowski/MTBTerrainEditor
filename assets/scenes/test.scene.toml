@@ -31,5 +31,7 @@ val = {Diff=20.0}
 
 [[planes.modifiers]]
 [planes.modifiers.Wave]
-mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [50.0, 0.0]}
-noise = {noise="Perlin", seed=0, scale= 0.001, global=false}
+mb = {area = {AABB = {x=20.0, z=100.0}}, loc = [50.0, 0.0]}
+noise = {noise="Perlin", seed=0, scale= 0.2}
+scale_x = 15.0
+scale_z = 15.0

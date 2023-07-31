@@ -1,6 +1,6 @@
 [package]
 name = "mtb_terrain_gen"
-version = "0.3.2"
+version = "0.3.5"
 edition = "2021"
 
 [dependencies]

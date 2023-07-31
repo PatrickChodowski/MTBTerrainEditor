@@ -143,6 +143,10 @@ impl SimpleNoise {
         let r: f64 = self.noise_function.apply(self.scale, x as f64, z as f64);
         return r as f32;    
     }
+    pub fn _apply3d(&self, x: f32, y: f32, z: f32) -> f32 {
+        let r: f64 = self.noise_function.apply3d(self.scale, x as f64, y as f64, z as f64);
+        return r as f32;    
+    }
 }
 
 
@@ -212,6 +216,41 @@ impl NoiseFunction {
             NoiseFunction::BSS(f)                        => {r = f.get([x* scale, z * scale])}
             NoiseFunction::RMSS(f)                       => {r = f.get([x* scale, z * scale])}
             NoiseFunction::HMSS(f)                       => {r = f.get([x* scale, z * scale])}
+        }
+        return r;
+    }
+
+    pub fn _apply3d(&self, scale: f64, x: f64, y: f64, z: f64) -> f64 {
+        let r: f64;
+        match &self {
+            // XD but I really dont know how to make it better
+            NoiseFunction::Perlin(f)                     => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::PerlinSurflet(f)              => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::Value(f)                      => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::OpenSimplex(f)                => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::SuperSimplex(f)               => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::Worley(f)                     => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::Simplex(f)                    => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::FBMPerlin(f)                  => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BMPerlin(f)                   => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BPerlin(f)                    => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::RMPerlin(f)                   => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::HMPerlin(f)                   => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::FBMPerlinSurflet(f)           => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BMPerlinSurflet(f)            => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BPerlinSurflet(f)             => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::RMPerlinSurflet(f)            => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::HMPerlinSurflet(f)            => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::FBMValue(f)                   => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BMValue(f)                    => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BValue(f)                     => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::RMValue(f)                    => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::HMValue(f)                    => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::FBMSS(f)                      => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BMSS(f)                       => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::BSS(f)                        => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::RMSS(f)                       => {r = f.get([x* scale, y*scale, z * scale])}
+            NoiseFunction::HMSS(f)                       => {r = f.get([x* scale, y*scale, z * scale])}
         }
         return r;
     }

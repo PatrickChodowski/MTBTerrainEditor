@@ -10,19 +10,23 @@ use crate::terrain::noises::{SimpleNoiseData, SimpleNoise};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaveData {
     pub mb:        ModifierBase,
-    pub noise:     SimpleNoiseData
+    pub noise:     SimpleNoiseData,
+    pub scale_x:   f32,
+    pub scale_z:   f32,
 }
 
 impl WaveData {
     pub fn set(&self) -> Wave {
-        Wave{area: self.mb.to_area(), noise: self.noise.set()}
+        Wave{area: self.mb.to_area(), noise: self.noise.set(), scale_x: self.scale_x, scale_z: self.scale_z}
     }
 }
 
 #[derive(Clone)]
 pub struct Wave {
     pub area:       Area,
-    pub noise:      SimpleNoise
+    pub noise:      SimpleNoise,
+    pub scale_x:   f32,
+    pub scale_z:   f32,
 }
 
 impl Wave {
@@ -34,13 +38,13 @@ impl Wave {
             }  
         }
 
-
         for (index, pos) in points.iter(){
-            let nudge = self.noise.apply(pos[1], pos[2]);
-            v_pos[*index] = [pos[0]+nudge, pos[1], pos[2]];
+            let nudge_x = self.noise.apply(pos[1], pos[2]);
+            let nudge_z = self.noise.apply(pos[0], pos[1]);
+            let nudged_x = nudge_x*self.scale_x;
+            let nudged_z = nudge_z*self.scale_z;
+            v_pos[*index] = [pos[0]+nudged_x, pos[1], pos[2]+nudged_z];
         }
-
-
 
     }
 }

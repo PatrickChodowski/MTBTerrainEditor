@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.10.1", features = ["dynamic_linking"] }
 bevy_common_assets = {  version ="0.6.0", features = ["toml"]}
-bevy_debug_grid = "0.1"
 libm = "0.2.7"
 serde = "1.0"
 noise = "0.8.2"

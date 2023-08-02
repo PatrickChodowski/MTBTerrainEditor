@@ -43,7 +43,7 @@ fn hover_check(//gui:                 Query<(&Node, &Style, &Visibility), With<G
                 let int_z: f32 = ray.origin.z + dist * ray.direction.z;
                 let tile_xz: (i32, i32) = grid.get_tile(int_x, int_z);
                 hover_data.hovered_tile_xz = tile_xz;
-                println!(" [Debug] Tile: {:?} Loc: ({},{})", hover_data.hovered_tile_xz, int_x, int_z);
+                hover_data.hovered_xz = (int_x, int_z);
             }
         }
 
@@ -69,16 +69,17 @@ pub enum Hoverables {
 }
 
 #[derive(Resource, Debug)]
-struct HoverData {
-  cursor_position:      Option<(f32,f32)>,
-  hovered_entity:       Option<Entity>,
-  hovered_tile_xz:      (i32, i32),
-  is_hovered_gui:       bool,
-  is_hovered_entity:    bool,
-  hoverable:            Hoverables,
-  old_hoverable:        Hoverables,
-  old_hovered_tile_xz:  (i32, i32),
-  old_hovered_entity:   Option<Entity>
+pub struct HoverData {
+  pub cursor_position:      Option<(f32,f32)>,
+  pub hovered_entity:       Option<Entity>,
+  pub hovered_tile_xz:      (i32, i32),
+  pub hovered_xz:           (f32, f32),
+  pub is_hovered_gui:       bool,
+  pub is_hovered_entity:    bool,
+  pub hoverable:            Hoverables,
+  pub old_hoverable:        Hoverables,
+  pub old_hovered_tile_xz:  (i32, i32),
+  pub old_hovered_entity:   Option<Entity>
 }
 
 impl HoverData {
@@ -86,6 +87,7 @@ impl HoverData {
         return HoverData{cursor_position: None,
                          hovered_entity: None, 
                          hovered_tile_xz: (0, 0),
+                         hovered_xz: (0.0, 0.0),
                          is_hovered_gui: false, 
                          is_hovered_entity: false,
                          hoverable: Hoverables::None,

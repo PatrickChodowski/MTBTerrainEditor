@@ -3,7 +3,7 @@ use bevy::input::common_conditions::input_just_pressed;
 use bevy::pbr::wireframe::Wireframe;
 use bevy_common_assets::toml::TomlAssetPlugin;
 
-pub mod mtbgrid;
+pub mod mtb_grid;
 pub mod easings;
 pub mod modifiers;
 pub mod noises;
@@ -14,8 +14,11 @@ pub mod wanders;
 pub mod utils;
 pub mod smoothing;
 pub mod wave;
+pub mod mtb_gui;
 
-use mtbgrid::GridPlugin;
+use mtb_grid::GridPlugin;
+use mtb_gui::MTBGuiPlugin;
+
 use planes::{Planes, PlanesAsset, TerrainPlane, spawn_plane};
 use utils::{MTBConfigData, MTBConfigAsset};
 
@@ -32,6 +35,7 @@ impl Plugin for MTBTerrainPlugin {
       .add_system(update.run_if(on_event::<AssetEvent<Planes>>()))
       .add_system(toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)))
       .add_plugin(GridPlugin)
+      .add_plugin(MTBGuiPlugin)
       ;
   }
 }

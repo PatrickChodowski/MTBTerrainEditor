@@ -4,7 +4,7 @@ use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f; 
 
-use crate::mtbterrain::mtbgrid::MTBCamera;
+use crate::mtbterrain::mtb_grid::MTBCamera;
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
@@ -115,7 +115,7 @@ fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
 
   if buttons.pressed(MouseButton::Middle) {
     if let Ok(window) = windows.get_single() {        
-      let mut delta_state = state.as_mut();
+      let delta_state = state.as_mut();
       for mut transform in query.iter_mut() {
         for ev in delta_state.reader_motion.iter(&motion) {
           let window_scale = window.height().min(window.width());

@@ -32,6 +32,20 @@ val = {Diff=20.0}
 [[planes.modifiers]]
 [planes.modifiers.Wave]
 mb = {area = {AABB = {x=20.0, z=100.0}}, loc = [50.0, 0.0]}
-noise = {noise="Perlin", seed=0, scale= 0.2}
-scale_x = 15.0
-scale_z = 15.0
+noise = {noise="RMPerlinSurflet", seed=0, scale= 0.4}
+scale_x = 4.0
+scale_z = 2.0
+
+[[planes.modifiers]]
+[planes.modifiers.Wave]
+mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [0.0, 50.0]}
+noise = {noise="Value", seed=1, scale= 0.4}
+scale_x = 2.0
+scale_z = 4.0
+
+
+# `Perlin`, `PerlinSurflet`, `OpenSimplex`, `Value`, `SuperSimplex`, `Worley`, `Simplex`, `FBMPerlin`, 
+# `BMPerlin`, `BPerlin`, `RMPerlin`, `HMPerlin`, `FBMPerlinSurflet`, `BMPerlinSurflet`, `BPerlinSurflet`,
+#  `RMPerlinSurflet`, `HMPerlinSurflet`, `FBMValue`, `BMValue`, `BValue`, `RMValue`, `HMValue`, 
+#  `FBMSS`, `BMSS`, `BSS`, `RMSS`, `HMSS`
+

@@ -22,7 +22,7 @@ use mtb_gui::MTBGuiPlugin;
 use planes::{Planes, PlanesAsset, TerrainPlane, spawn_plane};
 use utils::{MTBConfigData, MTBConfigAsset};
 
-use self::mtb_gui::DebugMode;
+use self::{mtb_gui::DebugMode, modifiers::DebugModifierBox};
 
 pub struct MTBTerrainPlugin;
 
@@ -68,6 +68,7 @@ pub fn planes_update(mut commands:           Commands,
                      mut meshes:             ResMut<Assets<Mesh>>,
                      mut materials:          ResMut<Assets<StandardMaterial>>,
                      terrain_planes:         Query<Entity, With<TerrainPlane>>,
+                     debug_boxes:            Query<Entity, With<DebugModifierBox>>,
                      planes_assets:          Res<Assets<Planes>>,
                      planes_handle:          Res<PlanesAsset>,
                      display_mode:           Res<State<DisplayMode>>,
@@ -75,6 +76,9 @@ pub fn planes_update(mut commands:           Commands,
                     ){
 
     for entity in terrain_planes.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
+    for entity in debug_boxes.iter(){
         commands.entity(entity).despawn_recursive();
     }
 

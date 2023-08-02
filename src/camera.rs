@@ -8,7 +8,7 @@ use crate::mtbterrain::mtb_grid::MTBCamera;
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
-const CAMERA_START_Y: f32 = 1500.0;
+const CAMERA_START_Y: f32 = 1000.0;
 const CAMERA_START_Z: f32 = 800.0; 
 const CAMERA_SPEED: f32 = 600.0;
 const CAMERA_SENSITIVITY: f32 = 0.0001; 

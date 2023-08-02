@@ -1,80 +1,73 @@
+use libm::{fabsf, powf, sqrtf};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
-use super::wanders::get_distance_manhattan;
-
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Edge {X, NX, Z, NZ}  
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct EdgeLine {
-  pub axis:     Axis,
-  pub start:    (f32, f32),
-  pub end:      (f32, f32),
-  pub outside:  Edge // hard to explain but its needed
+pub enum Axis {
+  X,Z
 }
 
-impl EdgeLine {
-  pub fn to_aabb(&self, width: f32) -> (AABB, f32) {
-    let min_x: f32;
-    let max_x: f32;
-    let min_z: f32;
-    let max_z: f32;
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct AreaDims {
+    pub x: f32,
+    pub z: f32
+}
 
-    let main: f32;
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum AreaData {
+    AABB(AreaDims),
+    Ellipse(AreaDims)
+}
 
-    match self.axis {
-      Axis::Z => {
-        main = self.start.0;
-        match self.outside {
-          Edge::X => {
-            min_x = self.start.0;
-            max_x = self.start.0 + width;
-          }
-          Edge::NX => {
-            min_x = self.start.0- width;
-            max_x = self.start.0;
-          }
-          _ => {min_x = 0.0; max_x = 0.0} // will not happen :)
+impl AreaData {
+  pub fn to_area(&self, loc: &[f32; 2]) -> Area {
+    let area: Area;
+    match self {
+        AreaData::AABB(dims) => {
+            area = Area::AABB(AABB{min_x: loc[0]-1.0*dims.x/2.0, max_x: loc[0]+dims.x/2.0, min_z: loc[1]-1.0*dims.z/2.0, max_z: loc[1]+dims.z/2.0});
         }
-        if self.start.1 < self.end.1 {
-          min_z = self.start.1;
-          max_z = self.end.1;
-        } else {
-          min_z = self.end.1;
-          max_z = self.start.1;
+        AreaData::Ellipse(dims) => {
+            area = Area::Ellipse(Ellipse{ a: dims.x, b: dims.z, x: loc[0], z: loc[1] });
         }
-      }
-      Axis::X => {
-        main = self.start.1;
-        match self.outside {
-          Edge::Z => {
-            min_z = self.start.1;
-            max_z = self.start.1 + width;
-          }
-          Edge::NZ => {
-            min_z = self.start.1 - width;
-            max_z = self.start.1;
-          }
-          _ => {min_z = 0.0; max_z = 0.0} // will not happen :)
-        }
-        if self.start.0 < self.end.0 {
-          min_x = self.start.0;
-          max_x = self.end.0;
-        } else {
-          min_x = self.end.0;
-          max_x = self.start.0;
-        }
-      }
     }
-    let aabb = AABB{min_x, max_x, min_z, max_z};
-    return (aabb, main);
+    return area;
   }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum Axis {X, Z}
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Area {
+    AABB(AABB),
+    Ellipse(Ellipse)
+}
+impl Area {
+  pub fn has_point(&self, pos: &[f32; 3]) -> bool {
+    let has_point: bool;
+    match &self {
+      Area::AABB(aabb) => {has_point = aabb.has_point(pos)}
+      Area::Ellipse(ellipse) => {has_point = ellipse.has_point(pos)}
+    }
+    return has_point;
+  }
+
+  pub fn get_center(&self) -> (f32, f32){
+    match &self {
+      Area::AABB(aabb) => {aabb.get_center()}
+      Area::Ellipse(ellipse) => {ellipse.get_center()}
+    }
+  }
+
+  pub fn get_radius(&self) -> f32 {
+    match &self {
+      Area::AABB(aabb) => {aabb.get_radius()}
+      Area::Ellipse(ellipse) => {ellipse.get_radius()}
+    }
+  }
+
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Edge {X, NX, Z, NZ}  
 
 #[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct AABB {
@@ -86,6 +79,23 @@ pub struct AABB {
 
 impl AABB {
 
+  // abomination of mathematics, radius in aabb
+  pub fn get_radius(&self) -> f32 {
+    let x_r = (self.max_x - self.min_x)/2.0;
+    let z_r = (self.max_z - self.min_z)/2.0;
+
+    // get longest of two
+    if x_r >= z_r {
+      x_r
+    } else {
+      z_r
+    }
+  }
+
+  pub fn get_center(&self) -> (f32,f32){
+    ((self.min_x + self.max_x)/2.0, (self.min_z + self.max_z)/2.0)
+  }
+
   pub fn _intersect(self, other: &AABB) -> bool {
     self.max_x >= other.min_x && self.min_x <= other.max_x &&
     self.max_z >= other.min_z && self.min_z <= other.max_z
@@ -95,61 +105,12 @@ impl AABB {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
   }
 
-  pub fn has_point_excl(&self, p: &[f32; 3]) -> bool {
+  pub fn _has_point_excl(&self, p: &[f32; 3]) -> bool {
     p[0] > self.min_x && p[0] < self.max_x && p[2] > self.min_z && p[2] < self.max_z
   }
 
   pub fn from_point(xz: &(f32, f32), dims: &(f32, f32)) -> Self {
     AABB{min_x: xz.0 - dims.0/2.0, max_x: xz.0 + dims.0/2.0, min_z: xz.1 - dims.1/2.0, max_z: xz.1 + dims.1/2.0}
-  }
-
-  // Convert aabb into edges (thin AABB box)
-  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
-  
-    let mut v: Vec<EdgeLine> = Vec::new();
-    if self.min_x > plane.min_x && self.min_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.min_x, self.min_z), end: (self.min_x, self.max_z), outside: Edge::NX});
-    }
-    if self.max_x > plane.min_x && self.max_x < plane.max_x{
-      v.push(EdgeLine{axis: Axis::Z, start: (self.max_x, self.min_z), end: (self.max_x, self.max_z), outside: Edge::X});
-    }
-    if self.min_z > plane.min_z && self.min_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.min_z), end: (self.max_x, self.min_z), outside: Edge::NZ});
-    }
-    if self.max_z > plane.min_z && self.max_z < plane.max_z{
-      v.push(EdgeLine{axis: Axis::X, start: (self.min_x, self.max_z), end: (self.max_x, self.max_z), outside: Edge::Z});
-    }
-
-    return v;
-  }
-
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AABBs(pub Vec<AABB>);
-
-impl AABBs {
-
-  pub fn new() -> Self {
-    AABBs(Vec::new())
-  }
-
-  pub fn has_point(&self, p: &[f32; 3]) -> bool {
-    for aabb in self.0.iter() {
-      if aabb.has_point(p){
-        return true;
-      }
-    }
-    return false;
-  }
-
-  pub fn to_edges(&self, plane: &AABB) -> Vec<EdgeLine> {
-    let mut abs: Vec<EdgeLine> = Vec::new();
-    for aabb in self.0.iter(){
-      let mut edges = aabb.to_edges(plane);
-      abs.append(&mut edges);
-    }
-    return abs;
   }
 
 }
@@ -189,8 +150,23 @@ pub struct Ellipse {
 }
 
 impl Ellipse {
+  pub fn get_radius(&self) -> f32 {
+    let x_r = self.x/2.0;
+    let z_r = self.z/2.0;
 
-  pub fn _has_point(&self, p: &[f32; 3]) -> bool {
+    // get longest of two
+    if x_r >= z_r {
+      x_r
+    } else {
+      z_r
+    }
+  }
+
+  pub fn get_center(&self) -> (f32,f32){
+    (self.x, self.z)
+  }
+
+  pub fn has_point(&self, p: &[f32; 3]) -> bool {
     let dx = p[0] - self.x;
     let dz = p[2] - self.z;
     (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0
@@ -201,10 +177,17 @@ impl Ellipse {
     let dz = p[2] - self.z;
 
     if (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0 {
-      Some(get_distance_manhattan(&(self.x, self.z), &(p[0],p[2])))
+      Some(get_distance_euclidean(&(self.x, self.z), &(p[0],p[2])))
     } else {
       None
     }
-
   }
+}
+
+pub fn get_distance_manhattan(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
+  return fabsf(target.0 - xz.0) + fabsf(target.1 - xz.1);
+}
+
+pub fn get_distance_euclidean(xz: &(f32, f32), target: &(f32, f32)) -> f32 {
+  return sqrtf(powf(target.0 - xz.0, 2.0) + powf(target.1 - xz.1, 2.0));
 }

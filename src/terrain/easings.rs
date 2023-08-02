@@ -1,16 +1,9 @@
 use libm::powf;
 use serde::{Serialize, Deserialize};
 
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct EasingData {
-    pub easing: Easings,
-    pub global: bool,
-}
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Easings {
+    None,
     SmoothStep,
     SmoothStop,
     SmoothStart,
@@ -40,6 +33,9 @@ impl Easings {
             }
             Easings::AbsoluteValuePow(p) => {
                 return powf(x.abs(), *p);
+            }
+            Easings::None => {
+                return x;
             }
         }
     }

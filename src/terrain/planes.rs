@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::DisplayMode;
 use crate::terrain::modifiers::{Modifier, ModifierData};
-use crate::terrain::utils::{AABB, EdgeLine, ConfigAsset, ConfigData, get_mesh_stats};
+use crate::terrain::utils::{AABB, ConfigAsset, ConfigData, get_mesh_stats};
 
 pub struct PlanesPlugin;
 
@@ -38,16 +38,11 @@ impl PlaneData {
     // it just may be much much more robust to iterate every time one by one on positions per modifier
     pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
         let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
-        let plane_aabb = self.get_aabb();
-
-        // Needed for some (smoothedge) modifiers
-        let mut inner_edges: Vec<EdgeLine> = Vec::new();
 
         // Convert modifier data's to modifiers, extract meta data like edges for other modifiers
         let mut mods: Vec<Modifier> = Vec::new();
         for modifier in self.modifiers.iter(){
             let m = modifier.set(self);
-            inner_edges.append(&mut m.get_inner_edges(&plane_aabb));
             mods.push(m);
         }
 
@@ -70,7 +65,7 @@ impl PlaneData {
 
         // Applying modifiers to local area
         for m in mods.iter_mut(){
-            m.apply_area(&mut v_pos, &inner_edges);
+            m.apply_area(&mut v_pos);
         }
 
 
@@ -96,6 +91,8 @@ impl PlaneData {
     let max_z = self.dims.1/2.0;
     return AABB{min_x, max_x, min_z, max_z};
   }
+
+  
 
 }
 

@@ -32,7 +32,7 @@ impl Plugin for MTBTerrainPlugin {
       .add_plugin(TomlAssetPlugin::<MTBConfigData>::new(&["mtbconfig.toml"]))
       .add_startup_system(setup_config)
       .add_system(setup_terrains_file_handle.run_if(on_event::<AssetEvent<MTBConfigData>>()))
-      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()))
+      .add_system(planes_update.run_if(on_event::<AssetEvent<Planes>>()))
       .add_system(toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)))
       .add_plugin(GridPlugin)
       .add_plugin(MTBGuiPlugin)
@@ -62,13 +62,13 @@ fn setup_config(mut commands:    Commands,
 }
 
 // generates planes
-fn update(mut commands:           Commands,
-          mut meshes:             ResMut<Assets<Mesh>>,
-          mut materials:          ResMut<Assets<StandardMaterial>>,
-          terrain_planes:         Query<Entity, With<TerrainPlane>>,
-          planes_assets:          Res<Assets<Planes>>,
-          planes_handle:          Res<PlanesAsset>,
-          display_mode:           Res<State<DisplayMode>>){
+pub fn planes_update(mut commands:           Commands,
+                     mut meshes:             ResMut<Assets<Mesh>>,
+                     mut materials:          ResMut<Assets<StandardMaterial>>,
+                     terrain_planes:         Query<Entity, With<TerrainPlane>>,
+                     planes_assets:          Res<Assets<Planes>>,
+                     planes_handle:          Res<PlanesAsset>,
+                     display_mode:           Res<State<DisplayMode>>){
 
     for entity in terrain_planes.iter(){
         commands.entity(entity).despawn_recursive();

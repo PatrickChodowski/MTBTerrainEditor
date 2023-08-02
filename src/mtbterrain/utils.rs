@@ -20,9 +20,22 @@ impl AreaDims {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct ArcData {
+  pub r: f32,
+  pub a: f32
+}
+impl ArcData {
+  fn to_tuple(&self) -> (f32, f32){
+    return (self.r, self.a);
+  }
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum AreaData {
     AABB(AreaDims),
-    Ellipse(AreaDims)
+    Ellipse(AreaDims),
+    Arc(ArcData)
 }
 
 impl AreaData {
@@ -35,6 +48,9 @@ impl AreaData {
         AreaData::Ellipse(dims) => {
             area = Area::Ellipse(Ellipse{ a: dims.x, b: dims.z, x: loc[0], z: loc[1] });
         }
+        AreaData::Arc(dims) => {
+          area = Area::Arc(Arc{r: dims.r, a: dims.a, loc: *loc});
+      }
     }
     return area;
   }
@@ -42,6 +58,7 @@ impl AreaData {
     match self {
       AreaData::AABB(dims) => {dims.to_tuple()}
       AreaData::Ellipse(dims) => {dims.to_tuple()}
+      AreaData::Arc(dims) => {dims.to_tuple()}
     }
   }
 }
@@ -49,7 +66,8 @@ impl AreaData {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Area {
     AABB(AABB),
-    Ellipse(Ellipse)
+    Ellipse(Ellipse),
+    Arc(Arc)
 }
 impl Area {
   pub fn has_point(&self, pos: &[f32; 3]) -> bool {
@@ -57,6 +75,7 @@ impl Area {
     match &self {
       Area::AABB(aabb) => {has_point = aabb.has_point(pos)}
       Area::Ellipse(ellipse) => {has_point = ellipse.has_point(pos)}
+      Area::Arc(arc) => {has_point = arc.has_point(pos)}
     }
     return has_point;
   }
@@ -65,6 +84,7 @@ impl Area {
     match &self {
       Area::AABB(aabb) => {aabb.get_center()}
       Area::Ellipse(ellipse) => {ellipse.get_center()}
+      Area::Arc(arc) => {arc.get_center()}
     }
   }
 
@@ -72,6 +92,7 @@ impl Area {
     match &self {
       Area::AABB(aabb) => {aabb.get_radius()}
       Area::Ellipse(ellipse) => {ellipse.get_radius()}
+      Area::Arc(arc) => {arc.get_radius()}
     }
   }
 
@@ -107,17 +128,8 @@ impl AABB {
     ((self.min_x + self.max_x)/2.0, (self.min_z + self.max_z)/2.0)
   }
 
-  pub fn _intersect(self, other: &AABB) -> bool {
-    self.max_x >= other.min_x && self.min_x <= other.max_x &&
-    self.max_z >= other.min_z && self.min_z <= other.max_z
-  }
-
   pub fn has_point(&self, p: &[f32; 3]) -> bool {
     p[0] >= self.min_x && p[0] <= self.max_x && p[2] >= self.min_z && p[2] <= self.max_z
-  }
-
-  pub fn _has_point_excl(&self, p: &[f32; 3]) -> bool {
-    p[0] > self.min_x && p[0] < self.max_x && p[2] > self.min_z && p[2] < self.max_z
   }
 
   pub fn from_point(xz: &(f32, f32), dims: &(f32, f32)) -> Self {
@@ -125,6 +137,58 @@ impl AABB {
   }
 
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Arc {
+  pub r:    f32,
+  pub a:    f32,
+  pub loc:  [f32; 2]
+}
+
+impl Arc {
+  pub fn has_point(&self, pos: &[f32; 3]) -> bool {
+    let dx = pos[0] - self.loc[0];
+    let dz = pos[2] - self.loc[1];
+    let dist = (dx * dx + dz * dz).sqrt();
+    if dist > self.r {
+      return false;
+    }
+    let theta = (dz / dist).atan2(dx / dist);
+    let mut normalized_theta = theta;
+    if normalized_theta < 0.0 {
+        normalized_theta += 2.0 * std::f32::consts::PI;
+    }
+
+    let half_a = self.a / 2.0;
+    let lower_bound = (self.a - half_a) % (2.0 * std::f32::consts::PI);
+    let upper_bound = (self.a + half_a) % (2.0 * std::f32::consts::PI);
+    normalized_theta >= lower_bound && normalized_theta <= upper_bound
+
+  }
+
+  pub fn get_center(&self) -> (f32, f32) {
+    return (self.loc[0], self.loc[1]);
+  }
+
+  pub fn get_radius(&self) -> f32 {
+    return self.r;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
 #[uuid = "201ce530-bfeb-41b3-9db0-4b8b380a2c46"]

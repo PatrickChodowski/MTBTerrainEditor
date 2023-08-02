@@ -55,19 +55,19 @@ impl ModifierData {
                     ) {
         
         let mut spawn: bool = true;
-        let mut material: Handle<StandardMaterial> = materials.add(Color::WHITE.into());
+        let mut clr: Color = Color::WHITE;
         let mut loc: [f32;2] = [0.0, 0.0]; 
         let mut dims: (f32, f32) = (10.0, 10.0);
         const HEIGHT: f32 = 20.0;
         
         match &self {
             ModifierData::Wave(data)      => {
-                material = materials.add(Color::PINK.into()); 
+                clr = Color::PINK; 
                 loc = data.mb.loc;
                 dims = data.mb.area.get_dims();
             }
             ModifierData::Smoothing(data) => {
-                material = materials.add(Color::GREEN.into()); 
+                clr = Color::GREEN; 
                 loc = data.mb.loc;
                 dims = data.mb.area.get_dims();
             }
@@ -80,10 +80,10 @@ impl ModifierData {
                 DebugMode::DebugOn  => {vis = Visibility::Inherited;}
                 DebugMode::DebugOff => {vis = Visibility::Hidden;}
             }
-
+            clr.set_a(0.5);
             commands.spawn((PbrBundle {
                 mesh: meshes.add(shape::Box::new(dims.0, HEIGHT, dims.1).into()),
-                material,
+                material: materials.add(clr.into()),
                 transform: Transform::from_xyz(loc[0], 0.0, loc[1]),
                 ..default()
             }, DebugModifierBox))

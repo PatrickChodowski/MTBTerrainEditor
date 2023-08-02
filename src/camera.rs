@@ -4,6 +4,8 @@ use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f; 
 
+use crate::mtbterrain::mtbgrid::MTBCamera;
+
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
 const CAMERA_START_Y: f32 = 1500.0;
@@ -52,7 +54,7 @@ fn setup(mut commands: Commands,
                                          .looking_at([CENTER_X, 0.0, CENTER_Z].into(), Vec3::Y);
   commands.spawn((Camera3dBundle {
                   transform: start_camera_transform,
-                  ..default()}, MainCamera));
+                  ..default()}, MainCamera, MTBCamera));
 
   state.yaw = get_yaw(start_camera_transform.rotation);
   state.pitch = get_pitch(start_camera_transform.rotation);

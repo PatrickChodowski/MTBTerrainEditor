@@ -2,12 +2,10 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use grid::*;
 
-// use crate::mtbterrain::planes::TerrainPlane;
-use crate::camera::MainCamera;
-
-
-// use bevy_mod_picking::prelude::*;
 pub const TILE_DIM: f32 = 10.0;
+
+#[derive(Component)]
+pub struct MTBCamera;
 
 pub struct GridPlugin;
 
@@ -26,7 +24,7 @@ fn hover_check(//gui:                 Query<(&Node, &Style, &Visibility), With<G
                mut hover_data:      ResMut<HoverData>,
             //    planes:              Query<Entity, With<TerrainPlane>>,
                window:              Query<&Window, With<PrimaryWindow>>,
-               camera:              Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+               camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                grid:                Res<GridData>){
 
     hover_data.reset();

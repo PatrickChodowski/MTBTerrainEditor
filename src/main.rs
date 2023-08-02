@@ -10,9 +10,6 @@ use bevy::pbr::wireframe::WireframePlugin;
 mod camera;
 use camera::CameraPlugin;
 
-mod ui;
-use ui::grid::GridPlugin;
-
 mod mtbterrain;
 use mtbterrain::MTBTerrainPlugin;
 
@@ -43,7 +40,6 @@ fn main() {
             })
         )
 
-        .add_plugin(GridPlugin)
         .add_plugin(WireframePlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(MTBTerrainPlugin)

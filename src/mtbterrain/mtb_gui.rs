@@ -1,7 +1,7 @@
 
 use bevy::prelude::*;
 
-use super::mtb_grid::HoverData;
+use super::mtb_grid::{HoverData, GridData};
 
 pub struct MTBGuiPlugin;
 
@@ -27,6 +27,7 @@ fn setup(mut commands:  Commands) {
 
 
 fn update_left_into_panel(mut commands:  Commands,
+                          grid:          Res<GridData>,
                           hover_data:    Res<HoverData>,
                           ass:           Res<AssetServer>,
                           top_left:      Query<Entity, With<TopLeftInfoPanel>>){
@@ -36,6 +37,11 @@ fn update_left_into_panel(mut commands:  Commands,
   let mut v: Vec<Entity> = Vec::new();
   v.push(make_text_node(&format!(" Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
   v.push(make_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
+
+  if let Some(height) = grid.data.get(&hover_data.hovered_tile_xz) {
+    v.push(make_text_node(&format!("    Height: {}",  height), &mut commands, &ass)); 
+  }
+
   commands.entity(ent).push_children(&v);
  
 }

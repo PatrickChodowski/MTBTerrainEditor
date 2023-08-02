@@ -1695,12 +1695,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grid"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eec1c01eb1de97451ee0d60de7d81cf1e72aabefb021616027f3d1c3ec1c723c"
-
-[[package]]
 name = "guillotiere"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2085,11 +2079,10 @@ dependencies = [
 
 [[package]]
 name = "mtb_terrain_gen"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
  "bevy",
  "bevy_common_assets",
- "grid",
  "libm",
  "noise",
  "rand 0.8.5",

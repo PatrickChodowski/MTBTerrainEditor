@@ -1,13 +1,8 @@
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
-use grid::*;
 
 use super::{TerrainPlane, Planes, planes_update};
-
-
 pub const TILE_DIM: f32 = 10.0;
-
-
 
 #[derive(Component)]
 pub struct MTBCamera;
@@ -28,11 +23,11 @@ impl Plugin for GridPlugin {
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
 fn update(mut grid: ResMut<GridData>, 
           meshes:   Res<Assets<Mesh>>,
-          // planes:   Query<Entity, With<TerrainPlane>>
           planes:   Query<&Handle<Mesh>, With<TerrainPlane>>
         ){
   
   // Hashmap key by tuple? well, it works
+  grid.data.clear();
   let mut tiles: HashMap<(i32, i32), Vec<f32>> = HashMap::new();
 
   println!("DEBUG: updating grid heights");
@@ -47,15 +42,8 @@ fn update(mut grid: ResMut<GridData>,
 
   for (tile, heights) in tiles.iter(){
     let avg_height:f32 = heights.iter().sum::<f32>()/heights.len() as f32;
-
-    // mmmm left top corner should be in  0.0, 0.0, 0.0 for grid to work well
-    grid.data[tile.0 as usize][tile.1 as usize]
-
+    grid.data.insert(*tile, avg_height);
   }
-
-
-
-
 
   println!("DEBUG: updating grid heights");
 }
@@ -79,7 +67,7 @@ fn hover_check(//gui:                 Query<(&Node, &Style, &Visibility), With<G
               
         let (camera, camera_transform) = camera.single();
         if let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position){
-            let dist = (grid.loc.1 - ray.origin.y)/ray.direction.y;
+            let dist = (grid.y - ray.origin.y)/ray.direction.y;
             if dist >= 0.0 {
                 let int_x: f32 = ray.origin.x + dist * ray.direction.x;
                 let int_z: f32 = ray.origin.z + dist * ray.direction.z;
@@ -154,31 +142,18 @@ impl HoverData {
 
 #[derive(Resource, Debug)]
 pub struct GridData {
-    pub data:           Grid<f32>, //heights
+    pub data:           HashMap<(i32, i32), f32>, // feels dodgy but works well?
     pub tile_dim:       f32,
-    pub counts_xz:      (u32, u32),
-    pub dims:           (f32, f32),
-    pub loc:            (f32, f32, f32)
+    pub y:              f32
 }
 
 impl GridData {
     pub fn new() -> Self {
-        let mut gp = GridData {
-            data:       grid![],
+        let gp = GridData {
+            data:       HashMap::new(),
             tile_dim:   TILE_DIM,
-            loc:        (0.0, 0.0, 0.0),
-            counts_xz:  (0, 0),
-            dims:       (0.0, 0.0)
+            y:          0.0
         };
-
-        for _x in 0..gp.counts_xz.0{
-            let mut row: Vec<f32> = Vec::with_capacity(gp.counts_xz.1 as usize);
-            for _z in 0..gp.counts_xz.1 {
-              row.push(0.0);
-            }
-            gp.data.push_row(row);
-          }
-
         return gp;
     }
     
@@ -190,16 +165,3 @@ impl GridData {
     }
 
 }
-
-
-// #[derive(Copy, Clone, Debug, Reflect)]
-// pub struct GridTile {
-//   pub height:   f32,
-//   pub tile:     (u32, u32),     
-// }
-
-// impl GridTile {
-//     pub fn new(x: u32, z: u32) -> Self {
-//         return GridTile{height: 0.0, tile:(x,z)};
-//     }
-// }

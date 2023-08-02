@@ -5,21 +5,10 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
-use crate::DisplayMode;
-use crate::terrain::modifiers::{Modifier, ModifierData};
-use crate::terrain::utils::{AABB, ConfigAsset, ConfigData, get_mesh_stats};
+use super::DisplayMode;
+use super::modifiers::{Modifier, ModifierData};
+use super::utils::{AABB, get_mesh_stats};
 
-pub struct PlanesPlugin;
-
-impl Plugin for PlanesPlugin {
-  fn build(&self, app: &mut App) {
-      app
-      .add_startup_system(setup_config)
-      .add_system(setup_planes_handle.run_if(on_event::<AssetEvent<ConfigData>>()))
-      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()))
-      ;
-  }
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlaneData {
@@ -81,9 +70,6 @@ impl PlaneData {
 
     }
 
-    // let mut inner_edges: Vec<EdgeLine> = Vec::new();
-    // let mut edges: Vec<EdgeLine> = md.aabbs.to_edges(&self.get_aabb());
-
   pub fn get_aabb(&self) -> AABB {
     let min_x = -1.0*self.dims.0/2.0;
     let max_x = self.dims.0/2.0;
@@ -134,9 +120,13 @@ impl PlaneColor {
                         cgr.low[3] + scale*(cgr.high[3] - cgr.low[3])];
             } 
             PlaneColor::Color(clr) => {return *clr;}
-        }
+        }  
+  
     }
 }
+  
+  
+  
 
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
@@ -151,53 +141,11 @@ pub struct PlanesAsset(pub Handle<Planes>);
 #[derive(Component)]
 pub struct TerrainPlane;
 
-fn setup_config(mut commands:    Commands, 
-                ass:             Res<AssetServer>,) {
-    let config_handle = ConfigAsset(ass.load("config.toml"));
-    commands.insert_resource(config_handle);
-}
-
-
-
-fn setup_planes_handle(mut commands:    Commands, 
-                       ass:             Res<AssetServer>,
-                       conifg_assets:   Res<Assets<ConfigData>>,
-                       conifg_handle:   Res<ConfigAsset>){
-
-    let scene_file = &conifg_assets.get(&conifg_handle.0).unwrap().scene_file;
-    let path: &str = &format!("scenes/{}.scene.toml", scene_file);
-    let planes_handle = PlanesAsset(ass.load(path));
-    commands.insert_resource(planes_handle);
-}
-
-
-// generates planes
-fn update(mut commands:           Commands,
-          mut meshes:             ResMut<Assets<Mesh>>,
-          mut materials:          ResMut<Assets<StandardMaterial>>,
-          terrain_planes:         Query<Entity, With<TerrainPlane>>,
-          planes_assets:          Res<Assets<Planes>>,
-          planes_handle:          Res<PlanesAsset>,
-          display_mode:           Res<State<DisplayMode>>){
-
-    for entity in terrain_planes.iter(){
-        commands.entity(entity).despawn_recursive();
-    }
-
-    for pd in planes_assets.get(&planes_handle.0).unwrap().planes.iter(){
-        if pd.active {
-            spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode); 
-        }
-    }
-}
-
-
-fn spawn_plane(commands:           &mut Commands, 
-               meshes:             &mut ResMut<Assets<Mesh>>,
-               materials:          &mut ResMut<Assets<StandardMaterial>>,   
-               pd:                 &PlaneData,
-               display_mode:       &Res<State<DisplayMode>>
-            ){
+pub fn spawn_plane(commands:           &mut Commands, 
+                   meshes:             &mut ResMut<Assets<Mesh>>,
+                   materials:          &mut ResMut<Assets<StandardMaterial>>,   
+                   pd:                 &PlaneData,
+                   display_mode:       &Res<State<DisplayMode>>){
 
     let mut mesh = plane_mesh(&pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);

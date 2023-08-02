@@ -3,8 +3,8 @@ use bevy::utils::HashMap;
 use serde::{Deserialize,Serialize};
 use libm::logf;
 
-use crate::terrain::modifiers::ModifierBase;
-use crate::terrain::utils::{Area,get_distance_euclidean};
+use super::modifiers::ModifierBase;
+use super::utils::{Area,get_distance_euclidean};
 
 // takes area of points and smoothes them out
 #[derive(Serialize, Deserialize, Clone, Debug)]

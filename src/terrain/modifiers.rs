@@ -1,14 +1,14 @@
 
 use serde::{Deserialize,Serialize};
 
-use crate::terrain::noises::{NoiseData, Noise};
-use crate::terrain::smoothing::{SmoothingData,Smoothing};
-use crate::terrain::terraces::{TerracesData, Terraces};
-use crate::terrain::planes::PlaneData;
-use crate::terrain::value::{ValueData, Value};
-use crate::terrain::wanders::{TargetWanderNoiseData,TargetWanderNoise};
-use crate::terrain::wave::{WaveData,Wave};
-use crate::terrain::utils::{AreaData, Area};
+use super::noises::{NoiseData, Noise};
+use super::smoothing::{SmoothingData,Smoothing};
+use super::terraces::{TerracesData, Terraces};
+use super::planes::PlaneData;
+use super::value::{ValueData, Value};
+use super::wanders::{TargetWanderNoiseData,TargetWanderNoise};
+use super::wave::{WaveData,Wave};
+use super::utils::{AreaData, Area};
 
 
 // Struct needed for every modifier. Added as component to all modifiers

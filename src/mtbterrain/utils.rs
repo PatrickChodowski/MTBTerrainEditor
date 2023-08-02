@@ -12,6 +12,11 @@ pub enum Axis {
 pub struct AreaDims {
     pub x: f32,
     pub z: f32
+} 
+impl AreaDims {
+  fn to_tuple(&self) -> (f32, f32){
+    return (self.x, self.z);
+  }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -32,6 +37,12 @@ impl AreaData {
         }
     }
     return area;
+  }
+  pub fn get_dims(&self) -> (f32, f32) {
+    match self {
+      AreaData::AABB(dims) => {dims.to_tuple()}
+      AreaData::Ellipse(dims) => {dims.to_tuple()}
+    }
   }
 }
 

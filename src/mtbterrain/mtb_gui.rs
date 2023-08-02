@@ -1,18 +1,51 @@
 
 use bevy::prelude::*;
+use bevy::input::common_conditions::input_just_pressed;
 
-use super::mtb_grid::{HoverData, GridData};
+use super::{mtb_grid::{HoverData, GridData}, modifiers::DebugModifierBox};
 
 pub struct MTBGuiPlugin;
 
 impl Plugin for MTBGuiPlugin {
   fn build(&self, app: &mut App) {
       app
+      .add_state::<DebugMode>()
       .add_startup_system(setup)
       .add_system(update_left_into_panel)
+      .add_system(toggle_debug.run_if(input_just_pressed(KeyCode::Z)))
       ;
   }
 }
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum DebugMode {
+    DebugOn,
+    #[default]
+    DebugOff
+}
+
+fn toggle_debug(
+      mut debug_boxes:       Query<&mut Visibility, With<DebugModifierBox>>,
+      debug_mode:            Res<State<DebugMode>>,
+      mut next_debug_mode:   ResMut<NextState<DebugMode>>){
+
+  match debug_mode.0 {
+    DebugMode::DebugOn => {
+      next_debug_mode.set(DebugMode::DebugOff);
+      for mut vis in debug_boxes.iter_mut(){
+        *vis = Visibility::Hidden;
+      }
+    }
+    DebugMode::DebugOff => {
+      next_debug_mode.set(DebugMode::DebugOn);
+      for mut vis in debug_boxes.iter_mut(){
+        *vis = Visibility::Inherited;
+      }
+    }
+}
+}
+
 
 #[derive(Component)]
 pub struct TopLeftInfoPanel;

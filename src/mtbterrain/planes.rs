@@ -7,6 +7,7 @@ use serde::{Serialize, Deserialize};
 
 use super::DisplayMode;
 use super::modifiers::{Modifier, ModifierData};
+use super::mtb_gui::DebugMode;
 use super::utils::{AABB, get_mesh_stats};
 
 
@@ -145,7 +146,9 @@ pub fn spawn_plane(commands:           &mut Commands,
                    meshes:             &mut ResMut<Assets<Mesh>>,
                    materials:          &mut ResMut<Assets<StandardMaterial>>,   
                    pd:                 &PlaneData,
-                   display_mode:       &Res<State<DisplayMode>>){
+                   display_mode:       &Res<State<DisplayMode>>,
+                   debug_mode:         &Res<State<DebugMode>>
+                ){
 
     let mut mesh = plane_mesh(&pd.subdivisions, &pd.dims);
     mesh = pd.apply(&mut mesh);
@@ -166,6 +169,12 @@ pub fn spawn_plane(commands:           &mut Commands,
         DisplayMode::WireFrameOn => {commands.entity(entity).insert(Wireframe);}
         _ => {}
     } 
+
+    // Spawn entities for debug modifiers
+    for modifier in pd.modifiers.iter(){
+        modifier.spawn_debug(commands, meshes, materials, debug_mode);
+    } 
+
 }
 
 fn plane_mesh(subdivisions: &(u32, u32), dims: &(f32, f32)) -> Mesh {
@@ -232,3 +241,4 @@ impl From<RectPlane> for Mesh {
         mesh
     }
 }
+

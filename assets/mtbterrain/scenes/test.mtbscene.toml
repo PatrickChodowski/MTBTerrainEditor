@@ -24,7 +24,7 @@ val = {Value=5.0}
 
 [[planes.modifiers]]
 [planes.modifiers.Value]
-mb = {area = {AABB = {x=100.0, z=100.0}}, loc = [0.0, 0.0]}
+mb = {area = {Ellipse = {x=50.0, z=50.0}}, loc = [0.0, 0.0]}
 scaling = "None"
 easing = "None"
 val = {Diff=20.0}
@@ -36,10 +36,24 @@ noise = {noise="RMPerlinSurflet", seed=0, scale= 0.4}
 scale_x = 4.0
 scale_z = 2.0
 
+# [[planes.modifiers]]
+# [planes.modifiers.Wave]
+# mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [0.0, 50.0]}
+# noise = {noise="Value", seed=15, scale= 0.4}
+# scale_x = 2.0
+# scale_z = 4.0
+
 [[planes.modifiers]]
 [planes.modifiers.Wave]
-mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [0.0, 50.0]}
-noise = {noise="Value", seed=1, scale= 0.4}
+mb = {area = {AABB = {x=20.0, z=100.0}}, loc = [-53.0, 0.0]}
+noise = {noise="Value", seed=15125, scale= 0.4}
+scale_x = 4.0
+scale_z = 2.0
+
+[[planes.modifiers]]
+[planes.modifiers.Wave]
+mb = {area = {AABB = {x=100.0, z=20.0}}, loc = [-3.0, -54.0]}
+noise = {noise="Value", seed=5, scale= 0.4}
 scale_x = 2.0
 scale_z = 4.0
 

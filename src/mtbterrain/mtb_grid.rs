@@ -30,7 +30,7 @@ fn update(mut grid: ResMut<GridData>,
   grid.data.clear();
   let mut tiles: HashMap<(i32, i32), Vec<f32>> = HashMap::new();
 
-  println!("DEBUG: updating grid heights");
+  // println!("DEBUG: updating grid heights");
   for mesh in planes.iter(){
     let md = meshes.get(mesh).unwrap();
     let v_pos: Vec<[f32; 3]> = md.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
@@ -45,7 +45,7 @@ fn update(mut grid: ResMut<GridData>,
     grid.data.insert(*tile, avg_height);
   }
 
-  println!("DEBUG: updating grid heights");
+  // println!("DEBUG: updating grid heights");
 }
 
 

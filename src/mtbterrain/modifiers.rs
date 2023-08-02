@@ -1,6 +1,8 @@
 
+use bevy::prelude::*;
 use serde::{Deserialize,Serialize};
 
+use super::mtb_gui::DebugMode;
 use super::noises::{NoiseData, Noise};
 use super::smoothing::{SmoothingData,Smoothing};
 use super::terraces::{TerracesData, Terraces};
@@ -42,6 +44,50 @@ impl ModifierData {
             ModifierData::Terraces(data)            => {return Modifier::Terraces(data.set())}
             ModifierData::Wave(data)                => {return Modifier::Wave(data.set())}
             ModifierData::Value(data)               => {return Modifier::Value(data.set())}
+        }
+    }
+
+    pub fn spawn_debug(&self, 
+                       commands:    &mut Commands, 
+                       meshes:      &mut ResMut<Assets<Mesh>>, 
+                       materials:   &mut ResMut<Assets<StandardMaterial>>,
+                       debug_mode:  &Res<State<DebugMode>>
+                    ) {
+        
+        let mut spawn: bool = true;
+        let mut material: Handle<StandardMaterial> = materials.add(Color::WHITE.into());
+        let mut loc: [f32;2] = [0.0, 0.0]; 
+        let mut dims: (f32, f32) = (10.0, 10.0);
+        const HEIGHT: f32 = 20.0;
+        
+        match &self {
+            ModifierData::Wave(data)      => {
+                material = materials.add(Color::PINK.into()); 
+                loc = data.mb.loc;
+                dims = data.mb.area.get_dims();
+            }
+            ModifierData::Smoothing(data) => {
+                material = materials.add(Color::GREEN.into()); 
+                loc = data.mb.loc;
+                dims = data.mb.area.get_dims();
+            }
+            _ => {spawn=false;}
+        }
+
+        if spawn {
+            let vis: Visibility;
+            match &debug_mode.0 {
+                DebugMode::DebugOn  => {vis = Visibility::Inherited;}
+                DebugMode::DebugOff => {vis = Visibility::Hidden;}
+            }
+
+            commands.spawn((PbrBundle {
+                mesh: meshes.add(shape::Box::new(dims.0, HEIGHT, dims.1).into()),
+                material,
+                transform: Transform::from_xyz(loc[0], 0.0, loc[1]),
+                ..default()
+            }, DebugModifierBox))
+            .insert(vis);
         }
     }
 
@@ -93,3 +139,8 @@ impl Modifier {
 
 
 }
+
+
+
+#[derive(Component)]
+pub struct DebugModifierBox;

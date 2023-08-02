@@ -2,10 +2,9 @@
 use serde::{Deserialize,Serialize};
 use bevy::utils::HashMap;
 
-use crate::terrain::modifiers::ModifierBase;
-use crate::terrain::utils::Area;
-use crate::terrain::noises::{SimpleNoiseData, SimpleNoise};
-
+use super::modifiers::ModifierBase;
+use super::noises::{SimpleNoiseData, SimpleNoise};
+use super::utils::Area;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaveData {

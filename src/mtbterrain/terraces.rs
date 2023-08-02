@@ -1,9 +1,9 @@
 
 use serde::{Deserialize,Serialize};
 
-use crate::terrain::modifiers::ModifierBase;
-use crate::terrain::utils::Area;
-use crate::terrain::value::Val;
+use super::modifiers::ModifierBase;
+use super::utils::Area;
+use super::value::Val;
 
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

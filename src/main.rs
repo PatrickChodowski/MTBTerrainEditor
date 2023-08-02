@@ -13,8 +13,8 @@ use camera::CameraPlugin;
 mod ui;
 use ui::grid::GridPlugin;
 
-mod terrain;
-use terrain::MTBTerrainPlugin;
+mod mtbterrain;
+use mtbterrain::MTBTerrainPlugin;
 
 pub const HEIGHT: f32 = 900.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;

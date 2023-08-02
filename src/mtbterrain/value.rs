@@ -1,10 +1,9 @@
 
 use serde::{Deserialize,Serialize};
 
-use crate::terrain::utils::{Area, Axis, get_distance_euclidean};
-use crate::terrain::modifiers::ModifierBase;
-
 use super::easings::Easings;
+use super::modifiers::ModifierBase;
+use super::utils::{Area, Axis, get_distance_euclidean};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Val {

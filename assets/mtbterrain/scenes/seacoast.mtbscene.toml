@@ -1,0 +1,56 @@
+[[planes]]
+name = "Water"
+active = true
+loc = [0.0, 7.0, 0.0]
+subdivisions= [0,0]
+dims = [500.0, 500.0]
+color = {data = [{clr = {Color = [0.4, 0.92, 0.964, 1.0]}, from=-10.0, to=10.0}]}
+modifiers = []
+
+[[planes]]
+name= "Test noise with easing"
+active= true
+loc= [0.0, 0.0, 0.0]
+subdivisions= [50,50]
+dims= [500.0, 500.0]
+color = {data = [
+    {clr = {Gradient = {low = [0.647, 0.34, 0.205, 1.0], high = [0.976, 0.89, 0.768, 1.0]}}, from=5.0, to=35.0},
+    {clr = {Gradient = {low = [0.29, 0.16, 0.0, 1.0], high = [0.15, 0.08, 0.0, 1.0]}}, from=35.0, to=60.0},
+]}
+
+[[planes.modifiers]]
+[planes.modifiers.Value]
+mb = {area = {AABB = {x=1000.0, z=1000.0}}, loc = [0.0, 0.0]}
+scaling = "None"
+easing = "None"
+val = {Value=5.0}
+
+[[planes.modifiers]]
+[planes.modifiers.Value]
+mb = {area = {AABB = {x=1000.0, z=500.0}}, loc = [0.0, 100.0]}
+# scaling = {DistanceCenter=0.5}
+scaling = "None"
+easing = "None"
+val = {Value=20.0}
+
+[[planes.modifiers]]
+[planes.modifiers.Wave]
+mb = {area = {AABB = {x=500.0, z=80.0}}, loc = [0.0, -150.0]}
+noise = {noise="Perlin", seed=1, scale= 0.1}
+scale_x = 1.0
+scale_z = 8.0
+
+
+[[planes.modifiers]]
+[planes.modifiers.Value]
+mb = {area = {Ellipse = {x=100.0, z=120.0}}, loc = [100.0, 0.0]}
+scaling = "None"
+easing = "None"
+val = {Diff=10.0}
+
+[[planes.modifiers]]
+[planes.modifiers.Value]
+mb = {area = {Arc = {r=100.0, a=2.54}}, loc = [100.0, 80.0]}
+scaling = "None"
+easing = "None"
+val = {Diff=10.0}

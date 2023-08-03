@@ -17,7 +17,7 @@ pub struct PlaneData {
     pub loc:          [f32; 3],
     pub subdivisions: (u32, u32),
     pub dims:         (f32, f32),
-    pub color:        PlaneColor,
+    pub color:        Colors,
     pub modifiers:    Vec<ModifierData>,
     pub active:       bool
 }
@@ -78,17 +78,30 @@ impl PlaneData {
     let max_z = self.dims.1/2.0;
     return AABB{min_x, max_x, min_z, max_z};
   }
-
-  
-
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PlaneColor {
-    Color([f32; 4]),            // Single Color
-    Steps(Vec<ColorStep>),      // Vector of tuples of (high limit, color)
+    Color([f32; 4]),        // Single Color
     Gradient(ColorGradient) // Tuple of 2 color (low, high)
 }
+
+impl PlaneColor {
+    pub fn apply(&self, height: f32, min_height: f32, max_height: f32) -> [f32; 4] {
+        match self {
+            PlaneColor::Color(clr) => {return *clr;}
+            PlaneColor::Gradient(cgr) => {
+                let scale = (height - min_height)/(max_height - min_height);
+                return [cgr.low[0] + scale*(cgr.high[0] - cgr.low[0]), 
+                        cgr.low[1] + scale*(cgr.high[1] - cgr.low[1]),
+                        cgr.low[2] + scale*(cgr.high[2] - cgr.low[2]),
+                        cgr.low[3] + scale*(cgr.high[3] - cgr.low[3])];
+            } 
+        }
+
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColorGradient {
@@ -97,36 +110,27 @@ pub struct ColorGradient {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ColorStep {
-    pub h:    f32,
-    pub clr:  [f32; 4]     
+pub struct ColorRange {
+    pub from: f32,
+    pub to:   f32,
+    pub clr:  PlaneColor
 }
 
-impl PlaneColor {
-    pub fn apply(&self, height: f32, min_height: f32, max_height: f32) -> [f32; 4] {
-        match self {
-            PlaneColor::Steps(v) => {
-                for step in v.iter(){
-                    if height < step.h {
-                        return step.clr;
-                    }
-                }
-                return [1.0, 1.0, 1.0, 1.0];
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Colors {
+    pub data: Vec<ColorRange>
+}
+impl Colors {
+    pub fn apply(&self, height: f32, _min_height: f32, _max_height: f32) -> [f32; 4] {
+        for color_range in self.data.iter() {
+            if height >= color_range.from && height < color_range.to {
+                return color_range.clr.apply(height, color_range.from, color_range.to);
             }
-            PlaneColor::Gradient(cgr) => {
-                let scale = (height - min_height)/(max_height - min_height);
-                return [cgr.low[0] + scale*(cgr.high[0] - cgr.low[0]), 
-                        cgr.low[1] + scale*(cgr.high[1] - cgr.low[1]),
-                        cgr.low[2] + scale*(cgr.high[2] - cgr.low[2]),
-                        cgr.low[3] + scale*(cgr.high[3] - cgr.low[3])];
-            } 
-            PlaneColor::Color(clr) => {return *clr;}
-        }  
-  
+        }
+        return [1.0, 1.0, 1.0, 1.0];
     }
 }
-  
-  
+
   
 
 

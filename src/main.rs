@@ -44,7 +44,6 @@ fn main() {
         .add_plugin(WireframePlugin)
         .add_plugin(CameraPlugin)
         .add_plugin(MTBTerrainPlugin)
-
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
         .run();

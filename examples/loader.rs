@@ -15,17 +15,13 @@ fn main() {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
                     title: "MTB Terrain Generator Loader".to_string(),
-                    // present_mode: PresentMode::AutoNoVsync,
                     present_mode: PresentMode::AutoVsync,
                     resizable: true,
                     mode: WindowMode::Windowed,
-
                 ..default()
             }), ..default()})
-            .set(AssetPlugin {watch_for_changes: true,..default()
-            })
+            .set(AssetPlugin {watch_for_changes: true, ..default()})
         )
-
         .add_plugin(WireframePlugin)
         .add_plugin(MTBLoaderPlugin)
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})

@@ -1,7 +1,6 @@
 
 pub mod easings;
 pub mod modifiers;
-pub mod mtb_grid;
 pub mod noises;
 pub mod planes;
 pub mod smoothing;

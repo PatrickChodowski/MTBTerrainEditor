@@ -1,13 +1,13 @@
 
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, Planes};
+use mtb_core::utils::AABB;
 
 use crate::mtb_camera::MTBCamera;
-
+use crate::mtb_ui::GUIElement;
 pub const TILE_DIM: f32 = 10.0;
-
-
 
 pub struct MTBGridPlugin;
 
@@ -17,20 +17,18 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
-      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
+      // .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
+      .add_system(click.run_if(input_just_pressed(MouseButton::Left)))
       ;
   }
 }
 
 
 // Click on grid in edit mode
-fn click(hover_data:        Res<HoverData>
-){
-    println!("clicked in edit mode");
-
-    // Check which plane was clicked.
-    // add modifier to it
-
+fn click(hover_data:        Res<HoverData>){
+  if let Hoverables::Grid = hover_data.hoverable {
+    info!("just clicked in editor");
+  }
 }
 
 
@@ -66,20 +64,35 @@ fn update(mut grid: ResMut<GridData>,
 
 // check if mouse is hovering over grid, plane or gui
 fn hover_check(mut hover_data:      ResMut<HoverData>,
+               gui:                 Query<(&Node, &Style, &Visibility), With<GUIElement>>,
                window:              Query<&Window, With<PrimaryWindow>>,
                camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                grid:                Res<GridData>){
 
     hover_data.reset();
     let Ok(primary) = window.get_single() else {return;};
-    // let window_width = primary.width();
-    // let window_height = primary.height();
+    let window_width = primary.width();
+    let window_height = primary.height();
 
-    if let Some(cursor_position) = primary.cursor_position(){
-        hover_data.cursor_position = Some((cursor_position.x, cursor_position.y));
-              
+    if let Some(pos) = primary.cursor_position(){
+        hover_data.cursor_position = Some((pos.x, pos.y));
+
+        for (n, s, v) in gui.iter(){
+          if v != Visibility::Hidden {
+            let ns = n.size();
+            let aabb = AABB{min_x: s.position.left.evaluate(window_width).unwrap(), 
+                              max_x: ns.x, 
+                              max_z: window_height - s.position.top.evaluate(window_height).unwrap(),
+                              min_z: window_height - ns.y};
+            if aabb.has_point(&[pos.x, 0.0, pos.y]){
+              hover_data.is_hovered_gui = true;
+              break;
+            }
+          }
+        }
+
         let (camera, camera_transform) = camera.single();
-        if let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position){
+        if let Some(ray) = camera.viewport_to_world(camera_transform, pos){
             let dist = (grid.y - ray.origin.y)/ray.direction.y;
             if dist >= 0.0 {
                 let int_x: f32 = ray.origin.x + dist * ray.direction.x;

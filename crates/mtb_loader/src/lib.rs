@@ -60,10 +60,4 @@ pub fn planes_update(mut commands:           Commands,
             spawn_plane(&mut commands, &mut meshes, &mut materials, &pd); 
         }
     }
-
-    // for pd in manual_planes.data.iter(){
-    //     if pd.active {
-    //         spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode, &debug_mode); 
-    //     }
-    // }
 }

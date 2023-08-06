@@ -152,7 +152,7 @@ pub fn spawn_plane(commands:           &mut Commands,
     
     get_mesh_stats(&mesh);
 
-    let entity = commands.spawn((PbrBundle {
+    let _entity = commands.spawn((PbrBundle {
         material: materials.add(StandardMaterial{..default()}),
         mesh: meshes.add(mesh),
         transform: Transform::from_translation(pd.loc.into()),

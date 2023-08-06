@@ -2,8 +2,8 @@
 
 Creates terrain out of toml config file. 
 <p align="center">
-<img src="static/example_wf.png"  width="80%" height="80%">
-<img src="static/rivermap.png"  width="80%" height="80%">
+<img src="assets/imgs/example_wf.png"  width="80%" height="80%">
+<img src="assets/imgs/rivermap.png"  width="80%" height="80%">
 </p>
 
 ## Features:
@@ -27,17 +27,23 @@ Creates terrain out of toml config file.
 - modifiers: [Modifiers]
     - Noise
     - Wander noise
-    - Shapes
+    - Value
     - Terraces
     - more to come...
 
 ## TODO:
+- Convert to gui based editor instead of pure text (unsolvable control problems)
 - wander noise without target modifier
 - convert it to a plugin
 - add some smarter picker/loader for the files
 - terrain exporter to gltf maybe?
 - More modifiers..?
 
+## TODO (Converting to gui)
+- create a plane from ui (dont load file)
+
 
 
 PR's welcome :)
+
+

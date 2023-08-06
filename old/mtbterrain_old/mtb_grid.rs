@@ -1,6 +1,9 @@
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 
+use super::AppMode;
+use super::editmode::ManualEdits;
 use super::{TerrainPlane, Planes, planes_update};
 pub const TILE_DIM: f32 = 10.0;
 
@@ -16,9 +19,25 @@ impl Plugin for GridPlugin {
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
       .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate).after(planes_update))
+
+      .add_system(click.run_if(in_state(AppMode::Edit).and_then(input_just_pressed(MouseButton::Left))).after(hover_check))
       ;
   }
 }
+
+
+// Click on grid in edit mode
+fn click(hover_data:        Res<HoverData>,
+         mut manual_edits:  ResMut<ManualEdits>
+){
+    println!("clicked in edit mode");
+
+    // Check which plane was clicked.
+    // add modifier to it
+
+}
+
+
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
 fn update(mut grid: ResMut<GridData>, 
@@ -50,9 +69,7 @@ fn update(mut grid: ResMut<GridData>,
 
 
 // check if mouse is hovering over grid, plane or gui
-fn hover_check(//gui:                 Query<(&Node, &Style, &Visibility), With<GUIHoverable>>,
-               mut hover_data:      ResMut<HoverData>,
-            //    planes:              Query<Entity, With<TerrainPlane>>,
+fn hover_check(mut hover_data:      ResMut<HoverData>,
                window:              Query<&Window, With<PrimaryWindow>>,
                camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                grid:                Res<GridData>){

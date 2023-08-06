@@ -2,8 +2,10 @@ use bevy::prelude::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::pbr::wireframe::Wireframe;
 use bevy_common_assets::toml::TomlAssetPlugin;
+use bevy_debug_grid::*;
 
 pub mod mtb_grid;
+pub mod editmode;
 pub mod easings;
 pub mod modifiers;
 pub mod noises;
@@ -16,13 +18,14 @@ pub mod smoothing;
 pub mod wave;
 pub mod mtb_gui;
 
+use editmode::EditModePlugin;
 use mtb_grid::GridPlugin;
 use mtb_gui::MTBGuiPlugin;
 
 use planes::{Planes, PlanesAsset, TerrainPlane, spawn_plane};
 use utils::{MTBConfigData, MTBConfigAsset};
 
-use self::{mtb_gui::DebugMode, modifiers::DebugModifierBox};
+use self::{mtb_gui::DebugMode, modifiers::DebugModifierBox, editmode::ManualEdits};
 
 pub struct MTBTerrainPlugin;
 
@@ -30,14 +33,18 @@ impl Plugin for MTBTerrainPlugin {
   fn build(&self, app: &mut App) {
       app
       .add_state::<DisplayMode>()
+      .add_state::<AppMode>()
       .add_plugin(TomlAssetPlugin::<Planes>::new(&["mtbscene.toml"]))
       .add_plugin(TomlAssetPlugin::<MTBConfigData>::new(&["mtbconfig.toml"]))
       .add_startup_system(setup_config)
       .add_system(setup_terrains_file_handle.run_if(on_event::<AssetEvent<MTBConfigData>>()))
       .add_system(planes_update.run_if(on_event::<AssetEvent<Planes>>()))
       .add_system(toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)))
+      .add_system(toggle_appmode.run_if(input_just_pressed(KeyCode::Tab)))
       .add_plugin(GridPlugin)
       .add_plugin(MTBGuiPlugin)
+      .add_plugin(EditModePlugin)
+    //   .add_plugin(DebugGridPlugin::with_floor_grid())
       ;
   }
 }
@@ -71,6 +78,7 @@ pub fn planes_update(mut commands:           Commands,
                      debug_boxes:            Query<Entity, With<DebugModifierBox>>,
                      planes_assets:          Res<Assets<Planes>>,
                      planes_handle:          Res<PlanesAsset>,
+                     manual_planes:          Res<ManualEdits>,
                      display_mode:           Res<State<DisplayMode>>,
                      debug_mode:             Res<State<DebugMode>>
                     ){
@@ -87,6 +95,12 @@ pub fn planes_update(mut commands:           Commands,
             spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode, &debug_mode); 
         }
     }
+
+    // for pd in manual_planes.data.iter(){
+    //     if pd.active {
+    //         spawn_plane(&mut commands, &mut meshes, &mut materials, &pd, &display_mode, &debug_mode); 
+    //     }
+    // }
 }
 
 
@@ -118,6 +132,29 @@ fn toggle_wireframe(
             for entity in planes.iter() {
                 commands.entity(entity).insert(Wireframe);
             }
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum AppMode {
+    #[default]
+    View,
+    Edit
+}
+
+fn toggle_appmode(
+    app_mode:                Res<State<AppMode>>,
+    mut next_app_mode:       ResMut<NextState<AppMode>>,
+){
+    
+    match app_mode.0 {
+        AppMode::View => {
+            next_app_mode.set(AppMode::Edit);        
+        }
+        AppMode::Edit => {
+            next_app_mode.set(AppMode::View);
         }
     }
 }

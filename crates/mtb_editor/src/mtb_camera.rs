@@ -3,10 +3,6 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f; 
-use bevy::pbr::CascadeShadowConfigBuilder;
-use core::f32::consts::PI;
-
-use crate::mtbterrain::mtb_grid::MTBCamera;
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
@@ -15,9 +11,9 @@ const CAMERA_START_Z: f32 = 800.0;
 const CAMERA_SPEED: f32 = 600.0;
 const CAMERA_SENSITIVITY: f32 = 0.0001; 
 
-pub struct CameraPlugin;
+pub struct MTBCameraPlugin;
 
-impl Plugin for CameraPlugin {
+impl Plugin for MTBCameraPlugin {
   fn build(&self, app: &mut App) {
       app
       .init_resource::<InputState>()
@@ -46,7 +42,7 @@ struct InputState {
 }
 
 #[derive(Component)]
-pub struct MainCamera;
+pub struct MTBCamera;
 
 
 fn setup(mut commands: Commands, 
@@ -56,40 +52,17 @@ fn setup(mut commands: Commands,
                                          .looking_at([CENTER_X, 0.0, CENTER_Z].into(), Vec3::Y);
   commands.spawn((Camera3dBundle {
                   transform: start_camera_transform,
-                  ..default()}, MainCamera, MTBCamera));
+                  ..default()}, MTBCamera));
 
   state.yaw = get_yaw(start_camera_transform.rotation);
   state.pitch = get_pitch(start_camera_transform.rotation);
   state.pitch = state.pitch.clamp(-1.54, 1.54);
 
-  commands.spawn(DirectionalLightBundle {
-    directional_light: DirectionalLight {
-        shadows_enabled: true,
-        ..default()
-    },
-    transform: Transform {
-        translation: Vec3::new(0.0, 100.0, 0.0),
-        rotation: Quat::from_rotation_x(-PI / 4.),
-        ..default()
-    },
-    // The default cascade config is designed to handle large scenes.
-    // As this example has a much smaller world, we can tighten the shadow
-    // bounds for better visual quality.
-    cascade_shadow_config: CascadeShadowConfigBuilder {
-        first_cascade_far_bound: 4.0,
-        maximum_distance: 10.0,
-        ..default()
-    }
-    .into(),
-    ..default()
-});
-
-
 }
 
 
 fn move_camera(keys:         Res<Input<KeyCode>>,
-               mut query:    Query<&mut Transform, With<MainCamera>>,
+               mut query:    Query<&mut Transform, With<MTBCamera>>,
                time:         Res<Time>){
 
   let mut transform = query.single_mut();
@@ -117,7 +90,7 @@ fn move_camera(keys:         Res<Input<KeyCode>>,
 
 fn zoom_camera(
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    mut query: Query<&mut Transform, With<MainCamera>>){
+    mut query: Query<&mut Transform, With<MTBCamera>>){
 
   for mouse_wheel_event in mouse_wheel_events.iter() {
     let dy = match mouse_wheel_event.unit {
@@ -135,7 +108,7 @@ fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
             motion: Res<Events<MouseMotion>>,
             buttons: Res<Input<MouseButton>>,
             mut state: ResMut<InputState>,
-            mut query: Query<&mut Transform, With<MainCamera>>,){
+            mut query: Query<&mut Transform, With<MTBCamera>>,){
 
   if buttons.pressed(MouseButton::Middle) {
     if let Ok(window) = windows.get_single() {        
@@ -156,7 +129,7 @@ fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
 
 
 fn set_camera(keys: Res<Input<KeyCode>>, 
-              mut query: Query<&mut Transform, With<MainCamera>>,
+              mut query: Query<&mut Transform, With<MTBCamera>>,
               mut state: ResMut<InputState>,
             ){
 

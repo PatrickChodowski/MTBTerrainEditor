@@ -7,6 +7,7 @@ use serde::{Serialize, Deserialize};
 
 use super::DisplayMode;
 use super::modifiers::{Modifier, ModifierData};
+use super::mtb_grid::TILE_DIM;
 use super::mtb_gui::DebugMode;
 use super::utils::{AABB, get_mesh_stats};
 
@@ -23,7 +24,6 @@ pub struct PlaneData {
 }
 
 impl PlaneData {
-
 
     // it just may be much much more robust to iterate every time one by one on positions per modifier
     pub fn apply(&self, mesh: &mut Mesh) -> Mesh {

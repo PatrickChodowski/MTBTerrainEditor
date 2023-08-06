@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use bevy::input::common_conditions::input_just_pressed;
 
-use super::{mtb_grid::{HoverData, GridData}, modifiers::DebugModifierBox};
+use super::{mtb_grid::{HoverData, GridData}, modifiers::DebugModifierBox, AppMode};
 
 pub struct MTBGuiPlugin;
 
@@ -56,6 +56,7 @@ pub struct GUIElement;
 
 fn setup(mut commands:  Commands) {
   let _info_panel_entity = spawn_info_panel(&mut commands);
+  // let _menu = spawn_menu(&mut commands);
 }
 
 
@@ -63,12 +64,15 @@ fn update_left_into_panel(mut commands:  Commands,
                           grid:          Res<GridData>,
                           hover_data:    Res<HoverData>,
                           ass:           Res<AssetServer>,
-                          top_left:      Query<Entity, With<TopLeftInfoPanel>>){
+                          top_left:      Query<Entity, With<TopLeftInfoPanel>>,
+                          app_mode:      Res<State<AppMode>>
+                        ){
   let ent = top_left.get_single().unwrap();                  
   commands.entity(ent).despawn_descendants();
 
   let mut v: Vec<Entity> = Vec::new();
-  v.push(make_text_node(&format!(" Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
+  v.push(make_text_node(&format!("  Mode: {:?}", app_mode.0), &mut commands, &ass));  
+  v.push(make_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
   v.push(make_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
 
   if let Some(height) = grid.data.get(&hover_data.hovered_tile_xz) {
@@ -111,6 +115,17 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
   ;
   return ent;
 }
+
+
+// fn spawn_menu(commands:  &mut Commands){
+//   commands.spawn(NodeBundle {});
+
+// }
+
+
+
+
+
 
 
 pub fn make_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer>,) -> Entity {

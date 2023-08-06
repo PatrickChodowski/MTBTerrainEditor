@@ -1,5 +1,5 @@
 [package]
-name = "mtb_terrain_gen"
+name = "mtb_core"
 version = "0.3.7"
 authors = ["Patrick Chodowski <chodowski.patrick@gmail.com>"]
 edition = "2021"
@@ -10,9 +10,6 @@ keywords = ["gamedev", "perlin noise", "bevy", "terrain generation"]
 categories = ["game-engines", "terrain-generation"]
 resolver = "2"
 
-[workspace]
-members = ["crates/*"]
-
 [dependencies]
 bevy = { version = "0.10.1", features = ["dynamic_linking"] }
 bevy_common_assets = {  version ="0.6.0", features = ["toml"]}
@@ -20,29 +17,3 @@ libm = "0.2.7"
 serde = "1.0"
 noise = "0.8.2"
 rand="0.8.5"
-
-# Local
-mtb_core = { path = "crates/mtb_core", version = "0.3.7" }
-mtb_editor = { path = "crates/mtb_editor", version = "0.3.7" }
-mtb_loader = { path = "crates/mtb_loader", version = "0.3.7" }
-
-
-[profile.dev]
-opt-level = 1
-
-# Belly: commented out works
-[profile.dev.package."*"]
-opt-level = 3
-
-[target.x86_64-unknown-linux-gnu]
-linker = "clang"
-rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
-
-
-[[example]]
-name = "editor"
-path = "examples/editor.rs"
-
-[[example]]
-name = "loader"
-path = "examples/loader.rs"

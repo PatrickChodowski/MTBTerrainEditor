@@ -1,7 +1,6 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use belly::widgets::range::RangeWidgetExtension;
 use belly::prelude::*;
 use belly::widgets::common::Label;
 use belly::build::BellyPlugin;
@@ -17,46 +16,37 @@ impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_plugin(BellyPlugin)
-        .add_event::<EditPlaneEvent>()
         .add_event::<SpawnNewPlaneEvent>()
-        .add_system(update_planes)
-        .add_system(spawn_new_plane)
-        .add_system(edit_planes)
+        .add_system(spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
+        .add_system(update_planes.after(spawn_new_plane).in_base_set(CoreSet::PostUpdate))
         ;
     }
   }
-
-  pub struct EditPlaneEvent;
   pub struct SpawnNewPlaneEvent;
 
-
-  pub fn spawn_new_plane(mut commands:    Commands, 
-                         mut meshes:      ResMut<Assets<Mesh>>,
-                         mut materials:   ResMut<Assets<StandardMaterial>>,
-                         mut spawn_plane: EventReader<SpawnNewPlaneEvent>){
+  pub fn spawn_new_plane(mut commands:     Commands, 
+                         mut meshes:       ResMut<Assets<Mesh>>,
+                         mut materials:    ResMut<Assets<StandardMaterial>>,
+                         mut spawn_plane:  EventReader<SpawnNewPlaneEvent>,
+                        ){
     for _ev in spawn_plane.iter(){
         let pd = PlaneData::new();
-        if let Some(pd_entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
-            commands.entity(pd_entity).insert(PlaneStatus::New);
-            pd.edit(pd_entity, &mut commands);
+        if let Some(entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
+            pd.edit(entity, &mut commands);
+            info!("DEBUG spawn plane {:?}", entity);
+            commands.entity(entity).insert(PlaneStatus::Edit);
         }
     }
   }
 
-  pub fn edit_planes(){
-
-  }
-
-
-
-  pub fn update_planes(mut commands:    Commands, 
-                       mut meshes:      ResMut<Assets<Mesh>>,
-                       mut materials:   ResMut<Assets<StandardMaterial>>,
-                       planes:          Query<(Entity, &PlaneData), Changed<PlaneData>>){
-        for (entity, pd) in planes.iter(){
-            println!("Plane data changed: {:?}", pd);
-            pd.respawn(entity, &mut commands, &mut meshes, &mut materials);
-        }
+  pub fn update_planes(mut commands:     Commands, 
+                       mut meshes:       ResMut<Assets<Mesh>>,
+                       mut planes:       Query<(Entity, &PlaneData, &mut Transform), Changed<PlaneData>>){
+    for (entity, pd, mut tr) in planes.iter_mut(){
+        info!("DEBUG updating plane {:?}", entity);
+        pd.remesh(entity, &mut commands, &mut meshes);
+        *tr = Transform::from_translation(pd.loc.into());
+    }
   }
 
 
@@ -134,6 +124,9 @@ impl PlaneData {
                      active: true};
     }
 
+
+
+
     pub fn spawn(&self,
                  commands:           &mut Commands, 
                  meshes:             &mut ResMut<Assets<Mesh>>,
@@ -163,13 +156,16 @@ impl PlaneData {
         }
     }
 
-    pub fn respawn(&self,  
+    pub fn remesh(&self,  
                    entity:             Entity,               
                    commands:           &mut Commands, 
-                   meshes:             &mut ResMut<Assets<Mesh>>,
-                   materials:          &mut ResMut<Assets<StandardMaterial>>) -> Option<Entity> {
-        commands.entity(entity).despawn_recursive();
-        return self.spawn(commands, meshes, materials);
+                   meshes:             &mut ResMut<Assets<Mesh>>){
+
+        commands.entity(entity).remove::<Handle<Mesh>>();
+        let mut mesh = plane_mesh(&self.subdivisions, &self.dims);
+        mesh = self.apply(&mut mesh);
+        get_mesh_stats(&mesh);
+        commands.entity(entity).insert(meshes.add(mesh));
     }
 
     pub fn edit(&self, entity: Entity, commands: &mut Commands){
@@ -267,9 +263,8 @@ pub struct PlanesAsset(pub Handle<Planes>);
 
 #[derive(Component)]
 pub enum PlaneStatus {
-    Spawned,
-    Edited,
-    New
+    Set,
+    Edit
 }
 
 #[derive(Component)]

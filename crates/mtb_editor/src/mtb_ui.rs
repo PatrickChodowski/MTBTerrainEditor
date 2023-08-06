@@ -107,6 +107,7 @@ fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Styl
                     expandable.is_open = !expandable.is_open;
                     event_toggle_submenu.send(ToggleSubmenuEvent{button_entity: entity, height_diff, is_open: expandable.is_open});
                 } else {
+                  println!("Spawning new plane event");
                   spawn_new_plane.send(SpawnNewPlaneEvent);
                 }
             }

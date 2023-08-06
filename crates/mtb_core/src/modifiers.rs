@@ -45,7 +45,7 @@ impl ModifierData {
             ModifierData::Value(data)               => {return Modifier::Value(data.set())}
         }
     }
-
+/* 
     pub fn spawn_debug(&self, 
                        commands:    &mut Commands, 
                        meshes:      &mut ResMut<Assets<Mesh>>, 
@@ -88,7 +88,7 @@ impl ModifierData {
         //     .insert(vis);
         // }
     }
-
+*/
 }
 
 

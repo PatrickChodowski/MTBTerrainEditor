@@ -1,34 +1,30 @@
-use bevy::input::common_conditions::input_just_pressed;
+
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
+use mtb_core::planes::{TerrainPlane, Planes};
 
-use super::AppMode;
-use super::editmode::ManualEdits;
-use super::{TerrainPlane, Planes, planes_update};
+use crate::mtb_camera::MTBCamera;
+
 pub const TILE_DIM: f32 = 10.0;
 
-#[derive(Component)]
-pub struct MTBCamera;
 
-pub struct GridPlugin;
 
-impl Plugin for GridPlugin {
+pub struct MTBGridPlugin;
+
+impl Plugin for MTBGridPlugin {
   fn build(&self, app: &mut App) {
       app
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
-      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate).after(planes_update))
-
-      .add_system(click.run_if(in_state(AppMode::Edit).and_then(input_just_pressed(MouseButton::Left))).after(hover_check))
+      .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
       ;
   }
 }
 
 
 // Click on grid in edit mode
-fn click(hover_data:        Res<HoverData>,
-         mut manual_edits:  ResMut<ManualEdits>
+fn click(hover_data:        Res<HoverData>
 ){
     println!("clicked in edit mode");
 

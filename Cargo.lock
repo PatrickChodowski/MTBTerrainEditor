@@ -2096,6 +2096,7 @@ dependencies = [
  "bevy",
  "bevy_common_assets",
  "libm",
+ "mtb_core",
  "noise",
  "rand 0.8.5",
  "serde",

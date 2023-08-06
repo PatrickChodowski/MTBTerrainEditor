@@ -17,3 +17,4 @@ libm = "0.2.7"
 serde = "1.0"
 noise = "0.8.2"
 rand="0.8.5"
+mtb_core = { path = "../mtb_core", version = "0.3.7" }

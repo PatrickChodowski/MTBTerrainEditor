@@ -1,11 +1,6 @@
 use bevy::prelude::*;
 use bevy_common_assets::toml::TomlAssetPlugin;
-use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
-use bevy::ecs::event::{Events, ManualEventReader};
-use bevy::window::PrimaryWindow;
-use libm::atan2f; 
-
-use mtb_core::planes::{TerrainPlane, PlaneData, Planes, PlanesAsset, spawn_plane};
+use mtb_core::planes::{TerrainPlane, Planes, PlanesAsset, spawn_plane};
 use mtb_core::utils::{MTBConfigData, MTBConfigAsset};
 
 

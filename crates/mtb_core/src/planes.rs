@@ -15,6 +15,7 @@ pub struct PlanesPlugin;
 impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_startup_system(setup)
         .add_plugin(BellyPlugin)
         .add_event::<SpawnNewPlaneEvent>()
         .add_system(spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
@@ -22,6 +23,12 @@ impl Plugin for PlanesPlugin {
         ;
     }
   }
+
+
+fn setup(mut commands:     Commands){
+    commands.add(StyleSheet::load("stylesheet.ess"));
+}
+
   pub struct SpawnNewPlaneEvent;
 
   pub fn spawn_new_plane(mut commands:     Commands, 
@@ -169,24 +176,34 @@ impl PlaneData {
     }
 
     pub fn edit(&self, entity: Entity, commands: &mut Commands){
-        let label = commands.spawn_empty().id();
-        let slider = commands.spawn_empty().id();
+        let _slider  = commands.spawn_empty().id();
+        let name_input   = commands.spawn_empty().id();
         commands.add(eml! {
             <body>
-                <span s:width="500px" s:justify-content="center" s:position-type="absolute" s:position="400px 20px auto auto">
-                <label bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
-                <slider 
-                {slider}
-                       s:width="100px" 
-                       s:height="50px" 
-                       mode="horizontal" 
-                       minimum=-500.0
-                       maximum=500.0
-                       relative=1.0
-                       bind:value=to!(entity, PlaneData:loc[0])
-                       bind:value=to!(label, Label:value|fmt.v("Slider value: {v:0.2}"))/>
-                       <label {label}/>
-                </span>
+                <div c:planedata>
+                    <label      bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
+                    <textinput {name_input} bind:value=to!(entity, PlaneData:name | fmt.c("{c}"))/> 
+
+
+                    <label      bind:value=from!(entity, PlaneData:loc|fmt.l("Loc: {l:?}"))/>
+                    <label      bind:value=from!(entity, PlaneData:dims|fmt.d("Dims: {d:?}"))/>
+                    <label      bind:value=from!(entity, PlaneData:subdivisions|fmt.s("Subdivisions: {s:?}"))/>
+
+                </div>
+
+
+                // <span s:width="500px" s:justify-content="center" s:position-type="absolute" s:position="600px 20px auto auto">
+                // <label bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
+                // <slider 
+                // {slider}
+                //        s:width="100px" 
+                //        s:height="20px" 
+                //        mode="horizontal" 
+                //        value = 0.0
+                //        bind:value=to!(entity, PlaneData:loc[0])
+                //        bind:value=to!(label, Label:value|fmt.v("Slider value: {v:0.2}"))/>
+                //        <label {label}/>
+                // </span>
 
             </body>
         });

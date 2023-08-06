@@ -2,7 +2,7 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
-use mtb_core::planes::{TerrainPlane, Planes};
+use mtb_core::planes::TerrainPlane;
 use mtb_core::utils::AABB;
 
 use crate::mtb_camera::MTBCamera;
@@ -14,7 +14,6 @@ pub struct MTBGridPlugin;
 impl Plugin for MTBGridPlugin {
   fn build(&self, app: &mut App) {
       app
-      .add_event::<EditPlaneEvent>()
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
@@ -27,8 +26,7 @@ impl Plugin for MTBGridPlugin {
 pub struct EditPlaneEvent;
 
 // Click on grid in edit mode
-fn click(hover_data: Res<HoverData>, 
-         mut edit_plane: EventWriter<EditPlaneEvent>){
+fn click(hover_data: Res<HoverData>){
   if let Hoverables::Grid = hover_data.hoverable {
     // edit_plane.send(EditPlaneEvent);
   }

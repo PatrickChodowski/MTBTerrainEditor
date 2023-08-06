@@ -2290,6 +2290,7 @@ dependencies = [
 name = "mtb_core"
 version = "0.3.7"
 dependencies = [
+ "belly",
  "bevy",
  "bevy_common_assets",
  "libm",

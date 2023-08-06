@@ -1,35 +1,62 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
+use belly::widgets::range::RangeWidgetExtension;
 use belly::prelude::*;
+use belly::widgets::common::Label;
+use belly::build::BellyPlugin;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
 use crate::modifiers::{Modifier, ModifierData};
 use crate::utils::{AABB, get_mesh_stats};
 
-
-
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugin(BellyPlugin)
+        .add_event::<EditPlaneEvent>()
+        .add_event::<SpawnNewPlaneEvent>()
         .add_system(update_planes)
+        .add_system(spawn_new_plane)
+        .add_system(edit_planes)
         ;
     }
   }
+
+  pub struct EditPlaneEvent;
+  pub struct SpawnNewPlaneEvent;
+
+
+  pub fn spawn_new_plane(mut commands:    Commands, 
+                         mut meshes:      ResMut<Assets<Mesh>>,
+                         mut materials:   ResMut<Assets<StandardMaterial>>,
+                         mut spawn_plane: EventReader<SpawnNewPlaneEvent>){
+    for _ev in spawn_plane.iter(){
+        let pd = PlaneData::new();
+        if let Some(pd_entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
+            commands.entity(pd_entity).insert(PlaneStatus::New);
+            pd.edit(pd_entity, &mut commands);
+        }
+    }
+  }
+
+  pub fn edit_planes(){
+
+  }
+
+
 
   pub fn update_planes(mut commands:    Commands, 
                        mut meshes:      ResMut<Assets<Mesh>>,
                        mut materials:   ResMut<Assets<StandardMaterial>>,
                        planes:          Query<(Entity, &PlaneData), Changed<PlaneData>>){
-
         for (entity, pd) in planes.iter(){
             println!("Plane data changed: {:?}", pd);
             pd.respawn(entity, &mut commands, &mut meshes, &mut materials);
         }
-
   }
 
 
@@ -145,30 +172,30 @@ impl PlaneData {
         return self.spawn(commands, meshes, materials);
     }
 
-    pub fn edit(&self){
+    pub fn edit(&self, entity: Entity, commands: &mut Commands){
+        let label = commands.spawn_empty().id();
+        let slider = commands.spawn_empty().id();
+        commands.add(eml! {
+            <body>
+                <span s:width="500px" s:justify-content="center" s:position-type="absolute" s:position="400px 20px auto auto">
+                <label bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
+                <slider 
+                {slider}
+                       s:width="100px" 
+                       s:height="50px" 
+                       mode="horizontal" 
+                       minimum=-500.0
+                       maximum=500.0
+                       relative=1.0
+                       bind:value=to!(entity, PlaneData:loc[0])
+                       bind:value=to!(label, Label:value|fmt.v("Slider value: {v:0.2}"))/>
+                       <label {label}/>
+                </span>
 
-fn make_new_plane(mut commands:     Commands, 
-                  mut meshes:       ResMut<Assets<Mesh>>,
-                  mut materials:    ResMut<Assets<StandardMaterial>>,   
-                  mut edit_plane:   EventReader<EditPlaneEvent>){
+            </body>
+        });
 
-    for _ep in edit_plane.iter(){
-        info!(" Edit Plane triggered ");
-        let pd = PlaneData::new();
-        if let Some(pd_entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
-            commands.add(eml! {
-                <body s:padding="50px">
-                    <button on:press=run!(for pd_entity |pd: &mut PlaneData| pd.subdivisions.0 += 1 )>"+"</button>
-                        <span s:width="150px" s:justify-content="center">
-                            <label bind:value=from!(pd_entity, PlaneData:name|fmt.c("Value: {c}"))/>
-                        </span>
-                    <button on:press=run!(for pd_entity |pd: &mut PlaneData| pd.subdivisions.0 -= 1 )>"-"</button>
-                </body>
-            });
-        }
-    }
-}
-    }
+    }    
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -237,6 +264,13 @@ pub struct Planes {
 
 #[derive(Resource)]
 pub struct PlanesAsset(pub Handle<Planes>);
+
+#[derive(Component)]
+pub enum PlaneStatus {
+    Spawned,
+    Edited,
+    New
+}
 
 #[derive(Component)]
 pub struct TerrainPlane;

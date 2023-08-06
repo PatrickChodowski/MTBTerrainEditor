@@ -16,7 +16,6 @@ pub struct MTBEditorPlugin;
 impl Plugin for MTBEditorPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_plugin(BellyPlugin)
         .add_plugin(MTBCameraPlugin)
         .add_plugin(MTBGridPlugin)
         .add_plugin(MTBUIPlugin)

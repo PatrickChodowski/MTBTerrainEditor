@@ -1,6 +1,6 @@
 
 use bevy::prelude::*;
-use crate::mtb_grid::{GridData,HoverData};
+use crate::mtb_grid::{GridData, HoverData, EditPlaneEvent};
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -84,6 +84,7 @@ fn update_left_into_panel(mut commands:  Commands,
 fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Style, Option<&Children>, Option<&mut Expandable>),
                           (Changed<Interaction>, With<Button>)>, 
     mut event_toggle_submenu: EventWriter<ToggleSubmenuEvent>, 
+    mut edit_plane: EventWriter<EditPlaneEvent>
 ){
     for (entity, interaction, mut color, mut style, children, expandable) in &mut btn_q {
         match *interaction {
@@ -104,6 +105,8 @@ fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Styl
                     }
                     expandable.is_open = !expandable.is_open;
                     event_toggle_submenu.send(ToggleSubmenuEvent{button_entity: entity, height_diff, is_open: expandable.is_open});
+                } else {
+                    edit_plane.send(EditPlaneEvent);
                 }
             }
             Interaction::Hovered => {

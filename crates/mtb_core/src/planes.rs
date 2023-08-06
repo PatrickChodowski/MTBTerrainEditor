@@ -8,7 +8,32 @@ use crate::modifiers::{Modifier, ModifierData};
 use crate::utils::{AABB, get_mesh_stats};
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+
+pub struct PlanesPlugin;
+
+impl Plugin for PlanesPlugin {
+    fn build(&self, app: &mut App) {
+        app
+        .add_system(update_planes)
+        ;
+    }
+  }
+
+  pub fn update_planes(mut commands:    Commands, 
+                       mut meshes:      ResMut<Assets<Mesh>>,
+                       mut materials:   ResMut<Assets<StandardMaterial>>,
+                       planes:          Query<&PlaneData, Changed<PlaneData>>){
+
+        for pd in planes.iter(){
+            println!("Plane data changed: {:?}", pd);
+            pd.respawn(&mut commands, &mut meshes, &mut materials);
+        }
+
+  }
+
+
+
+#[derive(Serialize, Deserialize, Debug, Clone, Component)]
 pub struct PlaneData {
     pub name:         String,
     pub loc:          [f32; 3],
@@ -48,13 +73,10 @@ impl PlaneData {
             }
         }
 
-
         // Applying modifiers to local area
         for m in mods.iter_mut(){
             m.apply_area(&mut v_pos);
         }
-
-
 
         let mut v_clr: Vec<[f32; 4]> = Vec::new();
         for pos in v_pos.iter(){
@@ -64,7 +86,6 @@ impl PlaneData {
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr);
         return mesh.clone()
-
     }
 
   pub fn get_aabb(&self) -> AABB {
@@ -74,6 +95,55 @@ impl PlaneData {
     let max_z = self.dims.1/2.0;
     return AABB{min_x, max_x, min_z, max_z};
   }
+
+  pub fn new() -> PlaneData {
+    return PlaneData{name: "Default Plane".to_string(), 
+                     loc: [0.0, 0.0, 0.0], 
+                     dims: (20.0, 20.0), 
+                     subdivisions: (0,0), 
+                     color: Colors::new(), 
+                     modifiers: Vec::new(), 
+                     active: true};
+    }
+
+    pub fn spawn(&self,
+                 commands:           &mut Commands, 
+                 meshes:             &mut ResMut<Assets<Mesh>>,
+                 materials:          &mut ResMut<Assets<StandardMaterial>>) -> Option<Entity> {
+
+        if !self.active {
+            return None;
+        } else {
+
+            let mut mesh = plane_mesh(&self.subdivisions, &self.dims);
+            mesh = self.apply(&mut mesh);
+            
+            get_mesh_stats(&mesh);
+    
+            let entity = commands.spawn((PbrBundle {
+                material: materials.add(StandardMaterial{..default()}),
+                mesh: meshes.add(mesh),
+                transform: Transform::from_translation(self.loc.into()),
+                ..default()
+                },
+                TerrainPlane,
+                self.clone()
+            )).id();
+    
+            return Some(entity);
+
+        }
+    }
+
+    pub fn respawn(&self,                 
+                   commands:           &mut Commands, 
+                   meshes:             &mut ResMut<Assets<Mesh>>,
+                   materials:          &mut ResMut<Assets<StandardMaterial>>) -> Option<Entity> {
+
+
+        
+        return self.spawn(commands, meshes, materials);
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -125,6 +195,10 @@ impl Colors {
         }
         return [1.0, 1.0, 1.0, 1.0];
     }
+
+    pub fn new() -> Self {
+        Colors{data: Vec::new()}
+    }
 }
 
   
@@ -141,33 +215,6 @@ pub struct PlanesAsset(pub Handle<Planes>);
 
 #[derive(Component)]
 pub struct TerrainPlane;
-
-pub fn spawn_plane(commands:           &mut Commands, 
-                   meshes:             &mut ResMut<Assets<Mesh>>,
-                   materials:          &mut ResMut<Assets<StandardMaterial>>,   
-                   pd:                 &PlaneData){
-
-    let mut mesh = plane_mesh(&pd.subdivisions, &pd.dims);
-    mesh = pd.apply(&mut mesh);
-    
-    get_mesh_stats(&mesh);
-
-    let _entity = commands.spawn((PbrBundle {
-        material: materials.add(StandardMaterial{..default()}),
-        mesh: meshes.add(mesh),
-        transform: Transform::from_translation(pd.loc.into()),
-        ..default()
-        },
-        TerrainPlane,
-        Name::new(pd.name.clone())
-    )).id();
-
-    // // Spawn entities for debug modifiers
-    // for modifier in pd.modifiers.iter(){
-    //     modifier.spawn_debug(commands, meshes, materials, debug_mode);
-    // } 
-
-}
 
 fn plane_mesh(subdivisions: &(u32, u32), dims: &(f32, f32)) -> Mesh {
     let mesh = Mesh::from(RectPlane {

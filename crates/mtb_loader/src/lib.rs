@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_common_assets::toml::TomlAssetPlugin;
-use mtb_core::planes::{TerrainPlane, Planes, PlanesAsset, spawn_plane};
+use mtb_core::planes::{TerrainPlane, Planes, PlanesAsset};
 use mtb_core::utils::{MTBConfigData, MTBConfigAsset};
 
 
@@ -56,8 +56,6 @@ pub fn planes_update(mut commands:           Commands,
     // }
 
     for pd in planes_assets.get(&planes_handle.0).unwrap().planes.iter(){
-        if pd.active {
-            spawn_plane(&mut commands, &mut meshes, &mut materials, &pd); 
-        }
+        pd.spawn(&mut commands, &mut meshes, &mut materials);
     }
 }

@@ -14,6 +14,7 @@ pub struct MTBGridPlugin;
 impl Plugin for MTBGridPlugin {
   fn build(&self, app: &mut App) {
       app
+      .add_event::<EditPlaneEvent>()
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
@@ -23,15 +24,15 @@ impl Plugin for MTBGridPlugin {
   }
 }
 
+pub struct EditPlaneEvent;
 
 // Click on grid in edit mode
-fn click(hover_data:        Res<HoverData>){
+fn click(hover_data: Res<HoverData>, 
+         mut edit_plane: EventWriter<EditPlaneEvent>){
   if let Hoverables::Grid = hover_data.hoverable {
-    info!("just clicked in editor");
+    // edit_plane.send(EditPlaneEvent);
   }
 }
-
-
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
 fn update(mut grid: ResMut<GridData>, 

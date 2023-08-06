@@ -1,9 +1,6 @@
 
 use bevy::prelude::*;
 
-pub mod edit_planes;
-use edit_planes::PlaneEditorPlugin;
-
 pub mod mtb_camera;
 pub mod mtb_grid;
 pub mod mtb_ui;
@@ -19,7 +16,7 @@ pub struct MTBEditorPlugin;
 impl Plugin for MTBEditorPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_plugin(PlaneEditorPlugin)
+        .add_plugin(BellyPlugin)
         .add_plugin(MTBCameraPlugin)
         .add_plugin(MTBGridPlugin)
         .add_plugin(MTBUIPlugin)

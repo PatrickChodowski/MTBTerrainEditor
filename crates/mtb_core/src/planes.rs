@@ -1,6 +1,7 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
+use belly::prelude::*;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
@@ -22,11 +23,11 @@ impl Plugin for PlanesPlugin {
   pub fn update_planes(mut commands:    Commands, 
                        mut meshes:      ResMut<Assets<Mesh>>,
                        mut materials:   ResMut<Assets<StandardMaterial>>,
-                       planes:          Query<&PlaneData, Changed<PlaneData>>){
+                       planes:          Query<(Entity, &PlaneData), Changed<PlaneData>>){
 
-        for pd in planes.iter(){
+        for (entity, pd) in planes.iter(){
             println!("Plane data changed: {:?}", pd);
-            pd.respawn(&mut commands, &mut meshes, &mut materials);
+            pd.respawn(entity, &mut commands, &mut meshes, &mut materials);
         }
 
   }
@@ -135,14 +136,38 @@ impl PlaneData {
         }
     }
 
-    pub fn respawn(&self,                 
+    pub fn respawn(&self,  
+                   entity:             Entity,               
                    commands:           &mut Commands, 
                    meshes:             &mut ResMut<Assets<Mesh>>,
                    materials:          &mut ResMut<Assets<StandardMaterial>>) -> Option<Entity> {
-
-
-        
+        commands.entity(entity).despawn_recursive();
         return self.spawn(commands, meshes, materials);
+    }
+
+    pub fn edit(&self){
+
+fn make_new_plane(mut commands:     Commands, 
+                  mut meshes:       ResMut<Assets<Mesh>>,
+                  mut materials:    ResMut<Assets<StandardMaterial>>,   
+                  mut edit_plane:   EventReader<EditPlaneEvent>){
+
+    for _ep in edit_plane.iter(){
+        info!(" Edit Plane triggered ");
+        let pd = PlaneData::new();
+        if let Some(pd_entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
+            commands.add(eml! {
+                <body s:padding="50px">
+                    <button on:press=run!(for pd_entity |pd: &mut PlaneData| pd.subdivisions.0 += 1 )>"+"</button>
+                        <span s:width="150px" s:justify-content="center">
+                            <label bind:value=from!(pd_entity, PlaneData:name|fmt.c("Value: {c}"))/>
+                        </span>
+                    <button on:press=run!(for pd_entity |pd: &mut PlaneData| pd.subdivisions.0 -= 1 )>"-"</button>
+                </body>
+            });
+        }
+    }
+}
     }
 }
 

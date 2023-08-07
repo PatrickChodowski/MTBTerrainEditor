@@ -23,8 +23,6 @@ impl Plugin for MTBGridPlugin {
   }
 }
 
-pub struct EditPlaneEvent;
-
 // Click on grid in edit mode
 fn click(hover_data: Res<HoverData>){
   if let Hoverables::Grid = hover_data.hoverable {

@@ -15,13 +15,25 @@ impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_event::<SpawnNewPlaneEvent>()
+        .add_event::<EditPlaneEvent>()
         .add_system(spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
-        .add_system(update_planes.after(spawn_new_plane).in_base_set(CoreSet::PostUpdate))
+        .add_system(edit_planes.after(spawn_new_plane).run_if(on_event::<EditPlaneEvent>()))
+        .add_system(update_planes.after(edit_planes).in_base_set(CoreSet::PostUpdate))
         ;
     }
   }
 
-
+  pub struct EditPlaneEvent{
+    pub id:     u32,
+    pub loc:    Option<[f32;3]>,
+    pub dims:   Option<[f32;2]>,
+    pub subs:   Option<[u32;2]>,
+  }
+  impl EditPlaneEvent {
+    pub fn new() -> Self {
+        return EditPlaneEvent{id: 0, loc: None, dims: None, subs: None};
+    }
+  }
 
   pub struct SpawnNewPlaneEvent{
     pub pd: PlaneData
@@ -31,6 +43,28 @@ impl Plugin for PlanesPlugin {
         SpawnNewPlaneEvent{pd: PlaneData::new()}
     }
   }
+
+  pub fn edit_planes(mut planes:       Query<&mut PlaneData>,
+                     mut spawn_plane:  EventReader<EditPlaneEvent>,){
+
+    for ev in spawn_plane.iter(){
+        for mut plane in planes.iter_mut(){
+            if plane.id != ev.id {
+                continue; // wrong plane
+            }
+            if let Some(new_loc) = ev.loc{
+                plane.loc = new_loc;
+            }
+            if let Some(new_dims) = ev.dims{
+                plane.dims = new_dims;
+            }
+            if let Some(new_subs) = ev.subs{
+                plane.subdivisions = new_subs;
+            }
+        }
+    }
+  }
+
 
   pub fn spawn_new_plane(mut commands:     Commands, 
                          mut meshes:       ResMut<Assets<Mesh>>,
@@ -59,7 +93,6 @@ impl Plugin for PlanesPlugin {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Component)]
 pub struct PlaneData {
-    pub name:         String,
     pub id:           u32,
     pub loc:          [f32; 3],
     pub subdivisions: [u32; 2],
@@ -124,8 +157,7 @@ impl PlaneData {
   }
 
   pub fn new() -> PlaneData {
-    return PlaneData{name: "Default Plane".to_string(), 
-                     id: 0,
+    return PlaneData{id: 0,
                      loc: [0.0, 0.0, 0.0], 
                      dims: [20.0, 20.0], 
                      subdivisions: [0,0], 

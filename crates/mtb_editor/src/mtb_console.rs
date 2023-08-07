@@ -6,7 +6,8 @@ use strsim::levenshtein;
 use std::collections::HashSet;
 use std::fs::{self, File};
 
-use mtb_core::planes::SpawnNewPlaneEvent;
+use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent};
+
 
 pub struct MTBConsolePlugin;
 
@@ -304,8 +305,8 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
         let func_str = args[0];
         if let Ok(func) = Funcs::from_str(func_str){
             match func {
-                Funcs::NewPlaneData => {return Some(vec!["name", "id", "loc", "dims", "subs"])}
-                Funcs::PlaneData    => {return Some(vec!["name", "id", "loc", "dims", "subs", "mod", "active"])}
+                Funcs::NewPlaneData => {return Some(vec!["id", "loc", "dims", "subs"])}
+                Funcs::PlaneData    => {return Some(vec!["id", "loc", "dims", "subs", "mod", "active"])}
             }
         }
     } 
@@ -357,16 +358,11 @@ fn get_most_similar_alphabetically(target: &str, args: &mut Vec<&str>) -> String
     return args.last().unwrap().to_string();
 }
 
-
-
-
-
-// func_str arg1:val1 arg2:val2 
-
 fn send_command(console:             Res<ConsoleInput>,
                 mut trigger_command: EventReader<TriggerCommand>,
                 mut sent_commands:   ResMut<SentCommands>,
-                mut spawn_new_plane: EventWriter<SpawnNewPlaneEvent>
+                mut spawn_new_plane: EventWriter<SpawnNewPlaneEvent>,
+                mut edit_plane:      EventWriter<EditPlaneEvent>
             ){
 
     for _ev in trigger_command.iter() {
@@ -385,14 +381,17 @@ fn send_command(console:             Res<ConsoleInput>,
                     Funcs::NewPlaneData => {
                         let mut snpe = SpawnNewPlaneEvent::new();
 
-                        if let Some(name) = search_arg_value("name", &args){
-                            snpe.pd.name = name;
+                        let opt_id = search_arg_value("id", &args);
+                        if opt_id.is_none() {
+                            info!(" [CONSOLE] Need ID for new plane");
+                            return;
                         }
 
-                        if let Some(id_str) = search_arg_value("id", &args){
-                            if let Some(id) = unpack_u32(&id_str, "NewPlaneData", "id"){
-                                snpe.pd.id = id;
-                            }
+                        if let Some(id) = unpack_u32(&opt_id.unwrap(), "NewPlaneData", "id") {
+                            snpe.pd.id = id;
+                        } else {
+                            info!(" [CONSOLE] Need correct ID (u32) for new plane");
+                            return;
                         }
 
                         if let Some(loc_str) = search_arg_value("loc", &args){
@@ -413,13 +412,34 @@ fn send_command(console:             Res<ConsoleInput>,
                             }
                         }
 
-
-
-
                         spawn_new_plane.send(snpe);
                     }
                     Funcs::PlaneData => {
-                        println!("edit plane data");
+
+                        let mut epe = EditPlaneEvent::new();
+                        let opt_id = search_arg_value("id", &args);
+                        if opt_id.is_none() {
+                            info!(" [CONSOLE] Need ID for editing");
+                            return;
+                        }
+                        if let Some(id) = unpack_u32(&opt_id.unwrap(), "NewPlaneData", "id") {
+                            epe.id = id;
+                        } else {
+                            info!(" [CONSOLE] Need correct ID (u32) for new plane");
+                            return;
+                        }
+
+                        if let Some(loc_str) = search_arg_value("loc", &args){
+                            epe.loc = unpack_array3_f32(&loc_str, "NewPlaneData", "loc");
+                        }
+                        if let Some(dims_str) = search_arg_value("dims", &args){
+                            epe.dims = unpack_array2_f32(&dims_str, "NewPlaneData", "dims");
+                        }
+                        if let Some(subs_str) = search_arg_value("subs", &args){
+                            epe.subs = unpack_array2_u32(&subs_str, "NewPlaneData", "subs");
+                        }
+                        info!(" [CONSOLE] Editing plane id {:?}", epe.id);
+                        edit_plane.send(epe);
                     }
                 }
             } else {
@@ -432,7 +452,7 @@ fn send_command(console:             Res<ConsoleInput>,
     }
 
 }
-
+#[allow(dead_code)]
 fn unpack_u32<'a>(arg_str: &str, func_name: &str, par_name: &str) -> Option<u32>{
     if let Ok(_val) = arg_str.parse::<u32>(){
         return Some(_val);

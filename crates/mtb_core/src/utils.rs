@@ -8,7 +8,7 @@ pub enum Axis {
   X,Z
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
 pub struct AreaDims {
     pub x: f32,
     pub z: f32
@@ -19,7 +19,7 @@ impl AreaDims {
   }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
 pub struct ArcData {
   pub r: f32,
   pub a: f32

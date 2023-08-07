@@ -2,11 +2,13 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
-use libm::atan2f; 
+use libm::atan2f;
+
+use crate::mtb_console::ConsoleState; 
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
-const CAMERA_START_Y: f32 = 200.0;
+const CAMERA_START_Y: f32 = 800.0;
 const CAMERA_START_Z: f32 = 200.0; 
 const CAMERA_SPEED: f32 = 600.0;
 const CAMERA_SENSITIVITY: f32 = 0.0001; 
@@ -19,9 +21,8 @@ impl Plugin for MTBCameraPlugin {
       .init_resource::<InputState>()
       .add_startup_system(setup)
       .add_system(zoom_camera)
-      .add_system(move_camera)
+      .add_system(move_camera.run_if(in_state(ConsoleState::Off)))
       .add_system(pan_look)
-      .add_system(set_camera)
       ;
   }
 }
@@ -122,29 +123,6 @@ fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
         delta_state.pitch = delta_state.pitch.clamp(-1.54, 1.54);
         transform.rotation = Quat::from_axis_angle(Vec3::Y, delta_state.yaw)* Quat::from_axis_angle(Vec3::X, delta_state.pitch);
       }
-    }
-  }
-}
-
-
-
-fn set_camera(keys: Res<Input<KeyCode>>, 
-              mut query: Query<&mut Transform, With<MTBCamera>>,
-              mut state: ResMut<InputState>,
-            ){
-
-  if keys.any_just_pressed([KeyCode::Key1, KeyCode::Key2, KeyCode::Key3, KeyCode::Key4, KeyCode::Key5]){
-    let pressed_key = keys.get_just_pressed().next().unwrap();
-    let xyz: (f32, f32, f32);
-    match pressed_key {
-      KeyCode::Key1 => {xyz = (CENTER_X, CAMERA_START_Y, CAMERA_START_Z)}
-      _ => {xyz = (0.0, 0.0, 0.0)}
-    }
-    for mut transform in query.iter_mut() {
-      *transform = Transform::from_xyz(xyz.0, xyz.1, xyz.2).looking_at([CENTER_X, 0.0, CENTER_Z].into(), Vec3::Y);
-      state.yaw = get_yaw(transform.rotation);
-      state.pitch = get_pitch(transform.rotation);
-      state.pitch = state.pitch.clamp(-1.54, 1.54);
     }
   }
 }

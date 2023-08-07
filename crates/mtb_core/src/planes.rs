@@ -1,22 +1,19 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use belly::prelude::*;
-use belly::widgets::common::Label;
-use belly::build::BellyPlugin;
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
+
 use crate::modifiers::{Modifier, ModifierData};
 use crate::utils::{AABB, get_mesh_stats};
+
 
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_startup_system(setup)
-        .add_plugin(BellyPlugin)
         .add_event::<SpawnNewPlaneEvent>()
         .add_system(spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
         .add_system(update_planes.after(spawn_new_plane).in_base_set(CoreSet::PostUpdate))
@@ -25,21 +22,23 @@ impl Plugin for PlanesPlugin {
   }
 
 
-fn setup(mut commands:     Commands){
-    commands.add(StyleSheet::load("stylesheet.ess"));
-}
 
-  pub struct SpawnNewPlaneEvent;
+  pub struct SpawnNewPlaneEvent{
+    pub pd: PlaneData
+  }
+  impl SpawnNewPlaneEvent {
+    pub fn new() -> Self {
+        SpawnNewPlaneEvent{pd: PlaneData::new()}
+    }
+  }
 
   pub fn spawn_new_plane(mut commands:     Commands, 
                          mut meshes:       ResMut<Assets<Mesh>>,
                          mut materials:    ResMut<Assets<StandardMaterial>>,
                          mut spawn_plane:  EventReader<SpawnNewPlaneEvent>,
                         ){
-    for _ev in spawn_plane.iter(){
-        let pd = PlaneData::new();
-        if let Some(entity) = pd.spawn(&mut commands, &mut meshes, &mut materials){
-            pd.edit(entity, &mut commands);
+    for ev in spawn_plane.iter(){
+        if let Some(entity) = ev.pd.spawn(&mut commands, &mut meshes, &mut materials){
             info!("DEBUG spawn plane {:?}", entity);
             commands.entity(entity).insert(PlaneStatus::Edit);
         }
@@ -61,13 +60,16 @@ fn setup(mut commands:     Commands){
 #[derive(Serialize, Deserialize, Debug, Clone, Component)]
 pub struct PlaneData {
     pub name:         String,
+    pub id:           u32,
     pub loc:          [f32; 3],
-    pub subdivisions: (u32, u32),
-    pub dims:         (f32, f32),
+    pub subdivisions: [u32; 2],
+    pub dims:         [f32; 2],
     pub color:        Colors,
     pub modifiers:    Vec<ModifierData>,
     pub active:       bool
 }
+
+
 
 impl PlaneData {
 
@@ -114,18 +116,19 @@ impl PlaneData {
     }
 
   pub fn get_aabb(&self) -> AABB {
-    let min_x = -1.0*self.dims.0/2.0;
-    let max_x = self.dims.0/2.0;
-    let min_z = -1.0*self.dims.1/2.0;
-    let max_z = self.dims.1/2.0;
+    let min_x = -1.0*self.dims[0]/2.0;
+    let max_x = self.dims[0]/2.0;
+    let min_z = -1.0*self.dims[1]/2.0;
+    let max_z = self.dims[1]/2.0;
     return AABB{min_x, max_x, min_z, max_z};
   }
 
   pub fn new() -> PlaneData {
     return PlaneData{name: "Default Plane".to_string(), 
+                     id: 0,
                      loc: [0.0, 0.0, 0.0], 
-                     dims: (20.0, 20.0), 
-                     subdivisions: (0,0), 
+                     dims: [20.0, 20.0], 
+                     subdivisions: [0,0], 
                      color: Colors::new(), 
                      modifiers: Vec::new(), 
                      active: true};
@@ -174,41 +177,6 @@ impl PlaneData {
         get_mesh_stats(&mesh);
         commands.entity(entity).insert(meshes.add(mesh));
     }
-
-    pub fn edit(&self, entity: Entity, commands: &mut Commands){
-        let _slider  = commands.spawn_empty().id();
-        let name_input   = commands.spawn_empty().id();
-        commands.add(eml! {
-            <body>
-                <div c:planedata>
-                    <label      bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
-                    <textinput {name_input} bind:value=to!(entity, PlaneData:name | fmt.c("{c}"))/> 
-
-
-                    <label      bind:value=from!(entity, PlaneData:loc|fmt.l("Loc: {l:?}"))/>
-                    <label      bind:value=from!(entity, PlaneData:dims|fmt.d("Dims: {d:?}"))/>
-                    <label      bind:value=from!(entity, PlaneData:subdivisions|fmt.s("Subdivisions: {s:?}"))/>
-
-                </div>
-
-
-                // <span s:width="500px" s:justify-content="center" s:position-type="absolute" s:position="600px 20px auto auto">
-                // <label bind:value=from!(entity, PlaneData:name|fmt.c("{c}"))/>
-                // <slider 
-                // {slider}
-                //        s:width="100px" 
-                //        s:height="20px" 
-                //        mode="horizontal" 
-                //        value = 0.0
-                //        bind:value=to!(entity, PlaneData:loc[0])
-                //        bind:value=to!(label, Label:value|fmt.v("Slider value: {v:0.2}"))/>
-                //        <label {label}/>
-                // </span>
-
-            </body>
-        });
-
-    }    
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -234,7 +202,7 @@ impl PlaneColor {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct ColorGradient {
     pub low: [f32; 4],
     pub high: [f32; 4]
@@ -247,10 +215,14 @@ pub struct ColorRange {
     pub clr:  PlaneColor
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct Colors {
+    #[reflect(ignore)]
     pub data: Vec<ColorRange>
 }
+
+
+
 impl Colors {
     pub fn apply(&self, height: f32, _min_height: f32, _max_height: f32) -> [f32; 4] {
         for color_range in self.data.iter() {
@@ -287,12 +259,12 @@ pub enum PlaneStatus {
 #[derive(Component)]
 pub struct TerrainPlane;
 
-fn plane_mesh(subdivisions: &(u32, u32), dims: &(f32, f32)) -> Mesh {
+fn plane_mesh(subdivisions: &[u32; 2], dims: &[f32; 2]) -> Mesh {
     let mesh = Mesh::from(RectPlane {
-        width: dims.0,
-        length: dims.1,  
-        x_subdivisions: subdivisions.0,
-        z_subdivisions: subdivisions.1
+        width: dims[0],
+        length: dims[1],  
+        x_subdivisions: subdivisions[0],
+        z_subdivisions: subdivisions[1]
     });
     return mesh;
 }

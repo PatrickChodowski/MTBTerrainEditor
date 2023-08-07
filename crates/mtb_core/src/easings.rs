@@ -1,7 +1,8 @@
+use bevy::reflect::Reflect;
 use libm::powf;
 use serde::{Serialize, Deserialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Reflect)]
 pub enum Easings {
     None,
     SmoothStep,

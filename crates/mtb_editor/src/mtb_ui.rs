@@ -1,7 +1,7 @@
 
 use bevy::prelude::*;
 use crate::mtb_grid::{GridData, HoverData};
-use mtb_core::planes::SpawnNewPlaneEvent;
+use mtb_core::planes::{SpawnNewPlaneEvent, PlaneData};
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -107,8 +107,7 @@ fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Styl
                     expandable.is_open = !expandable.is_open;
                     event_toggle_submenu.send(ToggleSubmenuEvent{button_entity: entity, height_diff, is_open: expandable.is_open});
                 } else {
-                  println!("Spawning new plane event");
-                  spawn_new_plane.send(SpawnNewPlaneEvent);
+                  spawn_new_plane.send(SpawnNewPlaneEvent{pd: PlaneData::new()});
                 }
             }
             Interaction::Hovered => {

@@ -2,9 +2,11 @@
 use bevy::prelude::*;
 
 pub mod mtb_camera;
+pub mod mtb_console;
 pub mod mtb_grid;
 pub mod mtb_ui;
 
+use mtb_console::MTBConsolePlugin;
 use mtb_core::planes::PlanesPlugin;
 use mtb_camera::MTBCameraPlugin;
 use mtb_grid::MTBGridPlugin;
@@ -16,6 +18,7 @@ pub struct MTBEditorPlugin;
 impl Plugin for MTBEditorPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugin(MTBConsolePlugin)
         .add_plugin(MTBCameraPlugin)
         .add_plugin(MTBGridPlugin)
         .add_plugin(MTBUIPlugin)
@@ -23,5 +26,6 @@ impl Plugin for MTBEditorPlugin {
         ;
     }
   }
+
 
 

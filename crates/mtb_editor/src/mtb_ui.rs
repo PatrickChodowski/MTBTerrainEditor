@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use bevy::input::common_conditions::input_just_pressed;
 
+use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 
@@ -26,6 +27,7 @@ impl Plugin for MTBUIPlugin {
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .add_state::<ModalState>()
+        .insert_resource(ColorsLib::new())
         .add_startup_system(setup)
         .add_system(update_left_into_panel)
         .add_system(open.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
@@ -70,29 +72,29 @@ pub fn save_close(mut commands:          Commands,
                   modals:                Query<(Entity, &ModalType, &Children), With<ModalPanel>>,
                   color_picker:          Query<&ColorPickerData>,
                   text_inputs:           Query<&TextInputBox>,
+                  mut colors_lib:        ResMut<ColorsLib>,
                   modal_state:           Res<State<ModalState>>,
                   mut next_modal_state:  ResMut<NextState<ModalState>>,){
 
   for (entity, modal_type, children) in modals.iter(){
-      
     match modal_type {
       ModalType::Color => {
+        let mut id: Option<String> = None;
+        let mut clr: Option<[f32;4]> = None;
         for child in children.iter(){
           if let Ok(cpd) = color_picker.get(*child) {
-            info!(" [DEBUG] Saving color: {:?}", cpd);
+            clr = Some([cpd.r, cpd.g, cpd.b, cpd.a]);
           }
           if let Ok(text) = text_inputs.get(*child){
-            info!(" [DEBUG] Saving text input: {:?}", text);
+            id = Some(text.text.clone());
           }
+        }
+        if id.is_some() && clr.is_some(){
+          colors_lib.add(id.unwrap(), clr.unwrap());
         }
       }
       ModalType::ColorGradient => {}
-
     }
-      
-      
-      
-      
     commands.entity(entity).despawn_recursive();
   }
 

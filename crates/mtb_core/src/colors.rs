@@ -1,10 +1,27 @@
 use std::str::FromStr;
+use bevy::{utils::HashMap, prelude::Resource};
 use serde::{Serialize,Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Resource)]
+pub struct ColorsLib {
+    pub data: HashMap<String, [f32; 4]>
+}
+impl ColorsLib {
+    pub fn new() -> Self{
+        ColorsLib{data: HashMap::new()}
+    }
+    pub fn add(&mut self, id: String, color: [f32; 4]){
+        self.data.insert(id, color);
+    }
+}
+
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColorData {
-    pub id: u32,
-    pub clr: PlaneColor
+    pub id:  String,
+    pub clr: [f32; 4]
 }
 
 

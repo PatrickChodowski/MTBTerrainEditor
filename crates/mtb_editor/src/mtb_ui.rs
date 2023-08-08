@@ -5,7 +5,8 @@ use bevy::input::common_conditions::input_just_pressed;
 use mtb_core::planes::PlaneData;
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 
-use crate::widgets::color_picker::{ColorPickerPlugin, spawn_color_picker};
+use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
+use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -21,6 +22,7 @@ impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_plugin(ColorPickerPlugin)
+        .add_plugin(TextInputPlugin)
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .add_state::<ModalState>()
@@ -28,6 +30,7 @@ impl Plugin for MTBUIPlugin {
         .add_system(update_left_into_panel)
         .add_system(open.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
         .add_system(close.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Escape))))
+        .add_system(save_close.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Return))))
         ;
     }
 }
@@ -39,11 +42,12 @@ pub fn open(mut commands:          Commands,
             mut next_modal_state:  ResMut<NextState<ModalState>>,){
 
     for ev in open_modal.iter(){
-      let modal = spawn_modal(&mut commands);
+      let modal = spawn_modal(&mut commands, ev.modal_type);
       match ev.modal_type {
         ModalType::Color => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
-          commands.entity(modal).push_children(&[color_picker]);
+          let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
+          commands.entity(modal).push_children(&[color_picker, text_input]);
         }
         ModalType::ColorGradient => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
@@ -61,6 +65,45 @@ pub fn open(mut commands:          Commands,
     }
 }
 
+// Close with saving data
+pub fn save_close(mut commands:          Commands,
+                  modals:                Query<(Entity, &ModalType, &Children), With<ModalPanel>>,
+                  color_picker:          Query<&ColorPickerData>,
+                  text_inputs:           Query<&TextInputBox>,
+                  modal_state:           Res<State<ModalState>>,
+                  mut next_modal_state:  ResMut<NextState<ModalState>>,){
+
+  for (entity, modal_type, children) in modals.iter(){
+      
+    match modal_type {
+      ModalType::Color => {
+        for child in children.iter(){
+          if let Ok(cpd) = color_picker.get(*child) {
+            info!(" [DEBUG] Saving color: {:?}", cpd);
+          }
+          if let Ok(text) = text_inputs.get(*child){
+            info!(" [DEBUG] Saving text input: {:?}", text);
+          }
+        }
+      }
+      ModalType::ColorGradient => {}
+
+    }
+      
+      
+      
+      
+    commands.entity(entity).despawn_recursive();
+  }
+
+  match modal_state.0 {
+    ModalState::On => {next_modal_state.set(ModalState::Off);}
+    ModalState::Off => {next_modal_state.set(ModalState::On);}
+  }
+
+}
+
+
 pub fn close(mut commands:         Commands,
             modal:                 Query<Entity, With<ModalPanel>>,
             modal_state:           Res<State<ModalState>>,
@@ -70,20 +113,20 @@ pub fn close(mut commands:         Commands,
         commands.entity(entity).despawn_recursive();
     }
     match modal_state.0 {
-        ModalState::On => {
-          next_modal_state.set(ModalState::Off);
-        }
-        ModalState::Off => {
-          next_modal_state.set(ModalState::On);
-        }
-    }
+      ModalState::On => {next_modal_state.set(ModalState::Off);}
+      ModalState::Off => {next_modal_state.set(ModalState::On);}
+  }
 }
+
+
+
+
 
 pub struct OpenModalEvent {
   pub modal_type: ModalType
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum ModalType {
   #[default]
   Color,
@@ -364,7 +407,7 @@ pub fn make_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer>
 }
 
 
-pub fn spawn_modal(commands: &mut Commands) -> Entity {
+pub fn spawn_modal(commands: &mut Commands, modal_type: ModalType) -> Entity {
 
   let ent = commands.spawn(NodeBundle{
     style: Style {
@@ -384,6 +427,7 @@ pub fn spawn_modal(commands: &mut Commands) -> Entity {
   })
   .insert(GUIElement)
   .insert(ModalPanel)
+  .insert(modal_type)
   .insert(Name::new("Modal"))
   .id()
   ;

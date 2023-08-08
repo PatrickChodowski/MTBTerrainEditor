@@ -1,6 +1,5 @@
 
-#[allow(unused_imports)]
-use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}};
+use bevy::{prelude::*, input::common_conditions::input_pressed};
 use bevy::window::PrimaryWindow;
 
 pub struct SliderPlugin;
@@ -23,38 +22,41 @@ pub fn update_sliders(
     let Ok(primary) = window.get_single() else {return;};
     if let Some(pos) = primary.cursor_position(){
         for (n, v, gt, children, mut slider) in sliders.iter_mut(){
-            if v != Visibility::Hidden {
-                let x = gt.translation().x;
-                let y = primary.height() - gt.translation().y;
-                let slider_size = n.size();
-                let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
+            if v == Visibility::Hidden {
+                continue;
+            }
+            
+            let x = gt.translation().x;
+            let y = primary.height() - gt.translation().y;
+            let slider_size = n.size();
+            let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
 
-                if !(pos.x >= aabb[0] && pos.x <= aabb[1] && pos.y >= aabb[2] && pos.y <= aabb[3]){
-                    continue; // Mouse not over the slider
+            if !(pos.x >= aabb[0] && pos.x <= aabb[1] && pos.y >= aabb[2] && pos.y <= aabb[3]){
+                continue; // Mouse not over the slider
+            }
+
+            let pcrt: f32;
+            match slider.layout {
+                SliderLayout::Horizontal => {
+                    pcrt = ((pos.x - aabb[0])/((aabb[1]- aabb[0])*0.98)).clamp(0.0, 1.0);
                 }
-
-                let pcrt: f32;
-                match slider.layout {
-                    SliderLayout::Horizontal => {
-                        pcrt = ((pos.x - aabb[0])/((aabb[1]- aabb[0])*0.98)).clamp(0.0, 1.0);
-                    }
-                    SliderLayout::Vertical => {
-                        pcrt = ((pos.y - aabb[2])/((aabb[3]- aabb[2])*0.98)).clamp(0.0, 1.0);
-                    }
-                }
-                slider.map(pcrt);
-                for child_ent in children.iter() {
-                    if let Ok(mut style) = handles.get_mut(*child_ent) {
-                        let handle_dims = slider.get_handle_dims();
-                        style.size.width = Val::Px(handle_dims.0);
-                        style.size.height = Val::Px(handle_dims.1);
-                    }
-
-                    if let Ok(mut text) = labels.get_mut(*child_ent) {
-                        text.sections[0].value = slider.get_label();
-                    }
+                SliderLayout::Vertical => {
+                    pcrt = ((pos.y - aabb[2])/((aabb[3]- aabb[2])*0.98)).clamp(0.0, 1.0);
                 }
             }
+            slider.map(pcrt);
+            for child_ent in children.iter() {
+                if let Ok(mut style) = handles.get_mut(*child_ent) {
+                    let handle_dims = slider.get_handle_dims();
+                    style.size.width = Val::Px(handle_dims.0);
+                    style.size.height = Val::Px(handle_dims.1);
+                }
+
+                if let Ok(mut text) = labels.get_mut(*child_ent) {
+                    text.sections[0].value = slider.get_label();
+                }
+            }
+            
         }
     }
 }

@@ -5,6 +5,8 @@ use bevy::window::PrimaryWindow;
 use libm::atan2f;
 
 use crate::mtb_console::ConsoleState; 
+use crate::mtb_ui::ModalState;
+
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
@@ -21,7 +23,7 @@ impl Plugin for MTBCameraPlugin {
       .init_resource::<InputState>()
       .add_startup_system(setup)
       .add_system(zoom_camera)
-      .add_system(move_camera.run_if(in_state(ConsoleState::Off)))
+      .add_system(move_camera.run_if(in_state(ConsoleState::Off).and_then(in_state(ModalState::Off))))
       .add_system(pan_look)
       ;
   }

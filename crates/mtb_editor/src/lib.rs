@@ -19,7 +19,8 @@ use mtb_ui::MTBUIPlugin;
 
 use mtb_core::planes::TerrainPlane;
 
-// use bevy_inspector_egui::quick::WorldInspectorPlugin;
+#[allow(unused_imports)]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub struct MTBEditorPlugin;
 

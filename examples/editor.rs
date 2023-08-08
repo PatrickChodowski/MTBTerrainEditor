@@ -1,7 +1,6 @@
 
 use bevy::prelude::*;
 use bevy::window::{WindowMode, PresentMode, WindowPlugin, WindowResolution};
-use bevy::pbr::wireframe::WireframePlugin;
 use mtb_editor::MTBEditorPlugin;
 
 pub const HEIGHT: f32 = 900.0;
@@ -22,7 +21,6 @@ fn main() {
             }), ..default()})
             .set(AssetPlugin {watch_for_changes: true,..default()})
         )
-        .add_plugin(WireframePlugin)
         .add_plugin(MTBEditorPlugin)
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))

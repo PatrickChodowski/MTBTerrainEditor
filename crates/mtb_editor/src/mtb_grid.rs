@@ -2,7 +2,7 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
-use mtb_core::planes::TerrainPlane;
+use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
 
 use crate::mtb_camera::MTBCamera;
@@ -17,21 +17,35 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
+      // .add_system(hover_info.in_base_set(CoreSet::PreUpdate).after(hover_check))
       // .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
       .add_system(click.run_if(input_just_pressed(MouseButton::Left)))
       ;
   }
 }
 
+// fn hover_info(hover_data:   Res<HoverData>,
+//               planes:       Query<&PlaneData>){
+//   if let Hoverables::Entity(entity) = hover_data.hoverable {
+
+//     if let Ok(pd) = planes.get(entity){
+//       info!(" plane hovered: {:?}", pd);
+//     }
+//   }
+
+// }
+
+
+
 // Click on grid in edit mode
 fn click(hover_data: Res<HoverData>){
   if let Hoverables::Grid = hover_data.hoverable {
-    // edit_plane.send(EditPlaneEvent);
+    info!(" clicked on grid: ({},{})", hover_data.hovered_tile_xz.0, hover_data.hovered_tile_xz.1);
   }
 }
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
-fn update(mut grid: ResMut<GridData>, 
+fn _update(mut grid: ResMut<GridData>, 
           meshes:   Res<Assets<Mesh>>,
           planes:   Query<&Handle<Mesh>, With<TerrainPlane>>
         ){
@@ -62,11 +76,15 @@ fn update(mut grid: ResMut<GridData>,
 // check if mouse is hovering over grid, plane or gui
 fn hover_check(mut hover_data:      ResMut<HoverData>,
                gui:                 Query<(&Node, &Style, &Visibility), With<GUIElement>>,
+               planes:              Query<(Entity, &AABB), With<PlaneData>>,
                window:              Query<&Window, With<PrimaryWindow>>,
                camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                grid:                Res<GridData>){
 
     hover_data.reset();
+    let mut is_hovered_gui: bool = false;
+    let mut hovered_entity: Option<Entity> = None;
+
     let Ok(primary) = window.get_single() else {return;};
     let window_width = primary.width();
     let window_height = primary.height();
@@ -82,7 +100,7 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
                               max_z: window_height - s.position.top.evaluate(window_height).unwrap(),
                               min_z: window_height - ns.y};
             if aabb.has_point(&[pos.x, 0.0, pos.y]){
-              hover_data.is_hovered_gui = true;
+              is_hovered_gui = true;
               break;
             }
           }
@@ -94,16 +112,22 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
             if dist >= 0.0 {
                 let int_x: f32 = ray.origin.x + dist * ray.direction.x;
                 let int_z: f32 = ray.origin.z + dist * ray.direction.z;
-                let tile_xz: (i32, i32) = grid.get_tile(int_x, int_z);
-                hover_data.hovered_tile_xz = tile_xz;
+
+                for (entity, aabb) in planes.iter(){
+                  if aabb.has_point(&[int_x,0.0,int_z]){
+                    hovered_entity = Some(entity);
+                  }
+                }
+
+                hover_data.hovered_tile_xz = grid.get_tile(int_x, int_z);
                 hover_data.hovered_xz = (int_x, int_z);
             }
         }
 
-        if hover_data.is_hovered_gui {
+        if is_hovered_gui {
           hover_data.hoverable = Hoverables::Gui;
-        } else if hover_data.is_hovered_entity {
-          hover_data.hoverable = Hoverables::Entity;
+        } else if hovered_entity.is_some() {
+          hover_data.hoverable = Hoverables::Entity(hovered_entity.unwrap());
         } else {
           hover_data.hoverable = Hoverables::Grid;
         }
@@ -117,46 +141,32 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
 pub enum Hoverables {
   Grid,
   Gui,
-  Entity,
+  Entity(Entity),
   None
 }
 
 #[derive(Resource, Debug)]
 pub struct HoverData {
   pub cursor_position:      Option<(f32,f32)>,
-  pub hovered_entity:       Option<Entity>,
-  pub hovered_tile_xz:      (i32, i32),
   pub hovered_xz:           (f32, f32),
-  pub is_hovered_gui:       bool,
-  pub is_hovered_entity:    bool,
+  pub hovered_tile_xz:      (i32, i32),
   pub hoverable:            Hoverables,
   pub old_hoverable:        Hoverables,
-  pub old_hovered_tile_xz:  (i32, i32),
-  pub old_hovered_entity:   Option<Entity>
+
 }
 
 impl HoverData {
   pub fn new() -> HoverData {
         return HoverData{cursor_position: None,
-                         hovered_entity: None, 
-                         hovered_tile_xz: (0, 0),
                          hovered_xz: (0.0, 0.0),
-                         is_hovered_gui: false, 
-                         is_hovered_entity: false,
+                         hovered_tile_xz: (0, 0),
                          hoverable: Hoverables::None,
-                         old_hoverable: Hoverables::None,
-                         old_hovered_tile_xz: (0, 0),
-                         old_hovered_entity: None
-                        };
+                         old_hoverable: Hoverables::None};
   }
   pub fn reset(&mut self){
     self.cursor_position = None;
-    self.old_hovered_entity = self.hovered_entity;
-    self.hovered_entity = None;
-    self.old_hovered_tile_xz = self.hovered_tile_xz;
+    self.hovered_xz = (0.0, 0.0);
     self.hovered_tile_xz = (0, 0);
-    self.is_hovered_entity = false;
-    self.is_hovered_gui = false;
     self.old_hoverable = self.hoverable;
     self.hoverable = Hoverables::None;
   }

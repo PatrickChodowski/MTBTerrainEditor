@@ -6,8 +6,9 @@ use strsim::levenshtein;
 use std::collections::HashSet;
 use std::fs::{self, File};
 
-use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent};
-
+use super::ToggleWireframeEvent;
+use super::mtb_colors::OpenMTBColorEvent;
+use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
 
 pub struct MTBConsolePlugin;
 
@@ -17,6 +18,7 @@ impl Plugin for MTBConsolePlugin {
       .add_event::<TriggerCommand>()
       .insert_resource(ConsoleInput{text: "".to_string(), back_delay: Timer::from_seconds(0.4, TimerMode::Once)})
       .insert_resource(SentCommands{data: Vec::new(), index:0})
+      .insert_resource(PlaneSetID(DEFAULT_PLANE_ID))
       .add_state::<ConsoleState>()
       .add_startup_system(setup)
       .add_systems((console_toggle.run_if(input_just_pressed(KeyCode::Return)), 
@@ -27,6 +29,9 @@ impl Plugin for MTBConsolePlugin {
       ;
   }
 }
+
+#[derive(Resource)]
+pub struct PlaneSetID(u32);
 
 
 #[derive(Component)]
@@ -106,15 +111,21 @@ const ALLOWED_CHARS: [&str; 10] = ["_", ".", ",", "-", ":", ";", "|", "/", "\\",
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Funcs {
     NewPlaneData,
-    PlaneData
+    PlaneData,
+    SetID,
+    WireFrame,
+    ColorMod,
 }
 
 impl FromStr for Funcs {
     type Err = ();
     fn from_str(input: &str) -> Result<Funcs, Self::Err> {
         match input {
+            "set"  => Ok(Funcs::SetID),
             "npd"  => Ok(Funcs::NewPlaneData),
-            "pd"  => Ok(Funcs::PlaneData),
+            "pd"   => Ok(Funcs::PlaneData),
+            "wf"   => Ok(Funcs::WireFrame),
+            "clr"  => Ok(Funcs::ColorMod),
             _      => Err(()),
         }
     }
@@ -129,7 +140,7 @@ fn setup(mut commands: Commands,
         style: Style {
           position_type: PositionType::Absolute,
           position: UiRect {left: Val::Percent(5.0), 
-                            top: Val::Percent(95.0), 
+                            top: Val::Percent(93.0), 
                             ..default()},
           size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
           flex_wrap: FlexWrap::Wrap,
@@ -147,7 +158,7 @@ fn setup(mut commands: Commands,
 
       let txt_style = TextStyle {
         font: ass.load("fonts/lambda.ttf"),
-        font_size: 15.0,
+        font_size: 20.0,
         color: Color::BLACK,
       };
 
@@ -307,6 +318,9 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
             match func {
                 Funcs::NewPlaneData => {return Some(vec!["id", "loc", "dims", "subs"])}
                 Funcs::PlaneData    => {return Some(vec!["id", "loc", "dims", "subs", "mod", "active"])}
+                Funcs::SetID        => {return Some(vec!["id"])}
+                Funcs::WireFrame    => {return Some(vec![""])}
+                Funcs::ColorMod     => {return Some(vec![""])}
             }
         }
     } 
@@ -362,7 +376,10 @@ fn send_command(console:             Res<ConsoleInput>,
                 mut trigger_command: EventReader<TriggerCommand>,
                 mut sent_commands:   ResMut<SentCommands>,
                 mut spawn_new_plane: EventWriter<SpawnNewPlaneEvent>,
-                mut edit_plane:      EventWriter<EditPlaneEvent>
+                mut edit_plane:      EventWriter<EditPlaneEvent>,
+                mut toggle_wf:       EventWriter<ToggleWireframeEvent>,
+                mut open_color:      EventWriter<OpenMTBColorEvent>,
+                mut plane_set_id:    ResMut<PlaneSetID>,
             ){
 
     for _ev in trigger_command.iter() {
@@ -380,18 +397,15 @@ fn send_command(console:             Res<ConsoleInput>,
                 match func {
                     Funcs::NewPlaneData => {
                         let mut snpe = SpawnNewPlaneEvent::new();
-
                         let opt_id = search_arg_value("id", &args);
-                        if opt_id.is_none() {
-                            info!(" [CONSOLE] Need ID for new plane");
-                            return;
-                        }
-
-                        if let Some(id) = unpack_u32(&opt_id.unwrap(), "NewPlaneData", "id") {
-                            snpe.pd.id = id;
-                        } else {
-                            info!(" [CONSOLE] Need correct ID (u32) for new plane");
-                            return;
+                        match (plane_set_id.0, opt_id) {
+                            (DEFAULT_PLANE_ID, None) => {info!(" [CONSOLE] Need ID for new plane");  return;}
+                            (_, None) => {info!(" [CONSOLE] Setting the plane id from set ({})", plane_set_id.0);  snpe.pd.id = plane_set_id.0;}
+                            (_, Some(s)) => {
+                                if let Some(id) = unpack_u32(&s, "NewPlaneData", "id") {
+                                    snpe.pd.id = id;
+                                }
+                            }
                         }
 
                         if let Some(loc_str) = search_arg_value("loc", &args){
@@ -441,6 +455,25 @@ fn send_command(console:             Res<ConsoleInput>,
                         info!(" [CONSOLE] Editing plane id {:?}", epe.id);
                         edit_plane.send(epe);
                     }
+                    Funcs::SetID => {
+                        if let Some(id_str) = search_arg_value("id", &args){
+                            if let Some(id) =unpack_u32(&id_str, "SetID", "id"){
+                                plane_set_id.0 = id;
+                                info!("[CONSOLE] Setting ID to {}", id);
+                            } else {
+                                info!(" [CONSOLE] Need correct ID (u32) for new plane");
+                                return;
+                            }
+                        }
+                    }
+                    Funcs::WireFrame => {
+                        toggle_wf.send(ToggleWireframeEvent);
+                    }
+
+                    Funcs::ColorMod => {
+                        open_color.send(OpenMTBColorEvent);
+                    }
+
                 }
             } else {
                 info!(" [CONSOLE] Invalid function string");

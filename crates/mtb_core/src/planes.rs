@@ -4,11 +4,10 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
-
 use crate::modifiers::{Modifier, ModifierData};
 use crate::utils::{AABB, get_mesh_stats};
 
-
+pub const DEFAULT_PLANE_ID: u32 = 0;
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
@@ -31,7 +30,7 @@ impl Plugin for PlanesPlugin {
   }
   impl EditPlaneEvent {
     pub fn new() -> Self {
-        return EditPlaneEvent{id: 0, loc: None, dims: None, subs: None};
+        return EditPlaneEvent{id: DEFAULT_PLANE_ID, loc: None, dims: None, subs: None};
     }
   }
 
@@ -85,6 +84,7 @@ impl Plugin for PlanesPlugin {
     for (entity, pd, mut tr) in planes.iter_mut(){
         info!("DEBUG updating plane {:?}", entity);
         pd.remesh(entity, &mut commands, &mut meshes);
+        commands.entity(entity).insert(pd.get_aabb());
         *tr = Transform::from_translation(pd.loc.into());
     }
   }
@@ -101,6 +101,7 @@ pub struct PlaneData {
     pub modifiers:    Vec<ModifierData>,
     pub active:       bool
 }
+
 
 
 
@@ -149,15 +150,15 @@ impl PlaneData {
     }
 
   pub fn get_aabb(&self) -> AABB {
-    let min_x = -1.0*self.dims[0]/2.0;
-    let max_x = self.dims[0]/2.0;
-    let min_z = -1.0*self.dims[1]/2.0;
-    let max_z = self.dims[1]/2.0;
+    let min_x = self.loc[0] -1.0*self.dims[0]/2.0;
+    let max_x = self.loc[0] + self.dims[0]/2.0;
+    let min_z = self.loc[2] -1.0*self.dims[1]/2.0;
+    let max_z = self.loc[2] + self.dims[1]/2.0;
     return AABB{min_x, max_x, min_z, max_z};
   }
 
   pub fn new() -> PlaneData {
-    return PlaneData{id: 0,
+    return PlaneData{id: DEFAULT_PLANE_ID,
                      loc: [0.0, 0.0, 0.0], 
                      dims: [20.0, 20.0], 
                      subdivisions: [0,0], 
@@ -190,7 +191,8 @@ impl PlaneData {
                 ..default()
                 },
                 TerrainPlane,
-                self.clone()
+                self.clone(),
+                self.get_aabb()
             )).id();
     
             return Some(entity);

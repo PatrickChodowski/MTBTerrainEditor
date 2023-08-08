@@ -101,7 +101,7 @@ impl Area {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum Edge {X, NX, Z, NZ}  
 
-#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize, Component)]
 pub struct AABB {
   pub min_x:          f32,
   pub max_x:          f32,

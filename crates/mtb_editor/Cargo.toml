@@ -20,3 +20,4 @@ strsim = "0.10.0"
 noise = "0.8.2"
 rand="0.8.5"
 mtb_core = { path = "../mtb_core", version = "0.3.7" }
+belly={git="https://github.com/jkb0o/belly", branch="main"}

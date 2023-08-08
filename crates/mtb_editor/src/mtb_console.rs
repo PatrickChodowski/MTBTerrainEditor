@@ -7,8 +7,9 @@ use std::collections::HashSet;
 use std::fs::{self, File};
 
 use super::ToggleWireframeEvent;
-use super::mtb_colors::OpenMTBColorEvent;
+use super::mtb_ui::{OpenModalEvent, ModalType};
 use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
+
 
 pub struct MTBConsolePlugin;
 
@@ -114,18 +115,18 @@ pub enum Funcs {
     PlaneData,
     SetID,
     WireFrame,
-    ColorMod,
+    NewColor
 }
 
 impl FromStr for Funcs {
     type Err = ();
     fn from_str(input: &str) -> Result<Funcs, Self::Err> {
         match input {
-            "set"  => Ok(Funcs::SetID),
-            "npd"  => Ok(Funcs::NewPlaneData),
-            "pd"   => Ok(Funcs::PlaneData),
-            "wf"   => Ok(Funcs::WireFrame),
-            "clr"  => Ok(Funcs::ColorMod),
+            "set"   => Ok(Funcs::SetID),
+            "npd"   => Ok(Funcs::NewPlaneData),
+            "pd"    => Ok(Funcs::PlaneData),
+            "wf"    => Ok(Funcs::WireFrame),
+            "nc"    => Ok(Funcs::NewColor),
             _      => Err(()),
         }
     }
@@ -316,11 +317,11 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
         let func_str = args[0];
         if let Ok(func) = Funcs::from_str(func_str){
             match func {
-                Funcs::NewPlaneData => {return Some(vec!["id", "loc", "dims", "subs"])}
-                Funcs::PlaneData    => {return Some(vec!["id", "loc", "dims", "subs", "mod", "active"])}
-                Funcs::SetID        => {return Some(vec!["id"])}
-                Funcs::WireFrame    => {return Some(vec![""])}
-                Funcs::ColorMod     => {return Some(vec![""])}
+                Funcs::NewPlaneData             => {return Some(vec!["id", "loc", "dims", "subs"])}
+                Funcs::PlaneData                => {return Some(vec!["id", "loc", "dims", "subs", "mod", "active"])}
+                Funcs::SetID                    => {return Some(vec!["id"])}
+                Funcs::WireFrame                => {return Some(vec![""])}
+                Funcs::NewColor                 => {return Some(vec![""])}
             }
         }
     } 
@@ -378,7 +379,7 @@ fn send_command(console:             Res<ConsoleInput>,
                 mut spawn_new_plane: EventWriter<SpawnNewPlaneEvent>,
                 mut edit_plane:      EventWriter<EditPlaneEvent>,
                 mut toggle_wf:       EventWriter<ToggleWireframeEvent>,
-                mut open_color:      EventWriter<OpenMTBColorEvent>,
+                mut open_modal:      EventWriter<OpenModalEvent>,
                 mut plane_set_id:    ResMut<PlaneSetID>,
             ){
 
@@ -470,10 +471,9 @@ fn send_command(console:             Res<ConsoleInput>,
                         toggle_wf.send(ToggleWireframeEvent);
                     }
 
-                    Funcs::ColorMod => {
-                        open_color.send(OpenMTBColorEvent);
+                    Funcs::NewColor => {
+                        open_modal.send(OpenModalEvent {modal_type: ModalType::Color})
                     }
-
                 }
             } else {
                 info!(" [CONSOLE] Invalid function string");

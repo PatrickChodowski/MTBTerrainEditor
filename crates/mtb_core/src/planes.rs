@@ -4,6 +4,7 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::TypeUuid;
 use serde::{Serialize, Deserialize};
 
+use crate::colors::Colors;
 use crate::modifiers::{Modifier, ModifierData};
 use crate::utils::{AABB, get_mesh_stats};
 
@@ -212,68 +213,6 @@ impl PlaneData {
         commands.entity(entity).insert(meshes.add(mesh));
     }
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum PlaneColor {
-    Color([f32; 4]),        // Single Color
-    Gradient(ColorGradient) // Tuple of 2 color (low, high)
-}
-
-impl PlaneColor {
-    pub fn apply(&self, height: f32, min_height: f32, max_height: f32) -> [f32; 4] {
-        match self {
-            PlaneColor::Color(clr) => {return *clr;}
-            PlaneColor::Gradient(cgr) => {
-                let scale = (height - min_height)/(max_height - min_height);
-                return [cgr.low[0] + scale*(cgr.high[0] - cgr.low[0]), 
-                        cgr.low[1] + scale*(cgr.high[1] - cgr.low[1]),
-                        cgr.low[2] + scale*(cgr.high[2] - cgr.low[2]),
-                        cgr.low[3] + scale*(cgr.high[3] - cgr.low[3])];
-            } 
-        }
-
-    }
-}
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-pub struct ColorGradient {
-    pub low: [f32; 4],
-    pub high: [f32; 4]
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ColorRange {
-    pub from: f32,
-    pub to:   f32,
-    pub clr:  PlaneColor
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-pub struct Colors {
-    #[reflect(ignore)]
-    pub data: Vec<ColorRange>
-}
-
-
-
-impl Colors {
-    pub fn apply(&self, height: f32, _min_height: f32, _max_height: f32) -> [f32; 4] {
-        for color_range in self.data.iter() {
-            if height >= color_range.from && height < color_range.to {
-                return color_range.clr.apply(height, color_range.from, color_range.to);
-            }
-        }
-        return [1.0, 1.0, 1.0, 1.0];
-    }
-
-    pub fn new() -> Self {
-        Colors{data: Vec::new()}
-    }
-}
-
-  
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]

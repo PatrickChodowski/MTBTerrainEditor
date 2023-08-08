@@ -1,7 +1,11 @@
 
 use bevy::prelude::*;
+use bevy::input::common_conditions::input_just_pressed;
+
+use mtb_core::planes::PlaneData;
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
-use mtb_core::planes::{SpawnNewPlaneEvent, PlaneData};
+
+use crate::widgets::color_picker::{ColorPickerPlugin, spawn_color_picker};
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -16,13 +20,84 @@ pub struct MTBUIPlugin;
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugin(ColorPickerPlugin)
         .add_event::<ToggleSubmenuEvent>()
+        .add_event::<OpenModalEvent>()
+        .add_state::<ModalState>()
         .add_startup_system(setup)
         .add_system(update_left_into_panel)
-        // .add_system(click)
+        .add_system(open.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
+        .add_system(close.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Escape))))
         ;
     }
 }
+
+pub fn open(mut commands:          Commands,
+            mut open_modal:        EventReader<OpenModalEvent>,
+            ass:                   Res<AssetServer>,
+            modal_state:           Res<State<ModalState>>,
+            mut next_modal_state:  ResMut<NextState<ModalState>>,){
+
+    for ev in open_modal.iter(){
+      let modal = spawn_modal(&mut commands);
+      match ev.modal_type {
+        ModalType::Color => {
+          let color_picker = spawn_color_picker(&mut commands, &ass);
+          commands.entity(modal).push_children(&[color_picker]);
+        }
+        ModalType::ColorGradient => {
+          let color_picker = spawn_color_picker(&mut commands, &ass);
+          commands.entity(modal).push_children(&[color_picker]);
+        }
+      }
+      match modal_state.0 {
+        ModalState::On => {
+          next_modal_state.set(ModalState::Off);
+        }
+        ModalState::Off => {
+          next_modal_state.set(ModalState::On);
+        }
+      }
+    }
+}
+
+pub fn close(mut commands:         Commands,
+            modal:                 Query<Entity, With<ModalPanel>>,
+            modal_state:           Res<State<ModalState>>,
+            mut next_modal_state:  ResMut<NextState<ModalState>>,){
+
+    for entity in modal.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
+    match modal_state.0 {
+        ModalState::On => {
+          next_modal_state.set(ModalState::Off);
+        }
+        ModalState::Off => {
+          next_modal_state.set(ModalState::On);
+        }
+    }
+}
+
+pub struct OpenModalEvent {
+  pub modal_type: ModalType
+}
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum ModalType {
+  #[default]
+  Color,
+  ColorGradient
+}
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum ModalState {
+    #[default]
+    Off,
+    On
+}
+
 
 pub struct ToggleSubmenuEvent {
   pub button_entity: Entity,
@@ -37,8 +112,12 @@ pub struct TopLeftInfoPanel;
 pub struct Menu;
 
 #[derive(Component)]
+pub struct ModalPanel;
+
+#[derive(Component)]
 pub struct GUIElement;
 
+#[allow(dead_code)]
 struct ButtonData {
   label: String,
   children: Option<Vec<ButtonData>> 
@@ -54,7 +133,7 @@ pub struct ButtonLabel;
 
 
 
-fn setup(mut commands:  Commands,  ass: Res<AssetServer>,) {
+fn setup(mut commands:  Commands,  _ass: Res<AssetServer>,) {
   let _info_panel_entity = spawn_info_panel(&mut commands);
   // let menu = spawn_menu(&mut commands);
   // let menu_buttons = spawn_menu_buttons(&mut commands, &ass);
@@ -83,9 +162,9 @@ fn update_left_into_panel(mut commands:  Commands,
   if let Hoverables::Entity(entity) = hover_data.hoverable {
     if let Ok(pd) = planes.get(entity) {
       v.push(make_text_node(&format!("    Plane ID: {:?}", pd.id), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Loc: {:?}", pd.loc), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Dims: {:?}", pd.dims), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Subs: {:?}", pd.subdivisions), &mut commands, &ass));  
+      v.push(make_text_node(&format!("    Loc: {:?}",      pd.loc), &mut commands, &ass));  
+      v.push(make_text_node(&format!("    Dims: {:?}",     pd.dims), &mut commands, &ass));  
+      v.push(make_text_node(&format!("    Subs: {:?}",     pd.subdivisions), &mut commands, &ass));  
     }
   }
 
@@ -282,4 +361,31 @@ pub fn make_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer>
 
   return node_txt;
 
+}
+
+
+pub fn spawn_modal(commands: &mut Commands) -> Entity {
+
+  let ent = commands.spawn(NodeBundle{
+    style: Style {
+      position_type: PositionType::Absolute,
+      position: UiRect {left: Val::Percent(25.0), 
+                        top: Val::Percent(25.0), 
+                        ..default()},
+      size: Size::new(Val::Percent(50.0), Val::Percent(50.0)),
+      flex_wrap: FlexWrap::Wrap,
+      flex_direction: FlexDirection::Row,
+      align_items: AlignItems::FlexStart,
+      justify_content: JustifyContent::FlexStart,
+      ..default()
+    },
+    background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),
+    ..default()
+  })
+  .insert(GUIElement)
+  .insert(ModalPanel)
+  .insert(Name::new("Modal"))
+  .id()
+  ;
+  return ent;
 }

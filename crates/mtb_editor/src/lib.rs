@@ -8,6 +8,8 @@ pub mod mtb_console;
 pub mod mtb_grid;
 pub mod mtb_ui;
 
+pub mod widgets;
+
 use mtb_console::MTBConsolePlugin;
 use mtb_core::planes::PlanesPlugin;
 use mtb_colors::MTBColorsPlugin;
@@ -16,6 +18,8 @@ use mtb_grid::MTBGridPlugin;
 use mtb_ui::MTBUIPlugin;
 
 use mtb_core::planes::TerrainPlane;
+
+// use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub struct MTBEditorPlugin;
 
@@ -31,6 +35,7 @@ impl Plugin for MTBEditorPlugin {
         .add_plugin(MTBGridPlugin)
         .add_plugin(MTBUIPlugin)
         .add_plugin(PlanesPlugin)
+        // .add_plugin(WorldInspectorPlugin::new())
         .add_system(toggle_wireframe.run_if(on_event::<ToggleWireframeEvent>()))
         ;
     }

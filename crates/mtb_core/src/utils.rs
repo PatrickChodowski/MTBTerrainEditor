@@ -111,6 +111,15 @@ pub struct AABB {
 
 impl AABB {
 
+  pub fn from_gui(n: &Node, s: &Style, window_width: f32, window_height: f32) -> Self {
+    let ns = n.size();
+    let aabb = AABB{min_x: s.position.left.evaluate(window_width).unwrap(), 
+                    max_x: ns.x, 
+                    max_z: window_height - s.position.top.evaluate(window_height).unwrap(),
+                    min_z: window_height - ns.y};
+      return aabb;
+    }
+  
   // abomination of mathematics, radius in aabb
   pub fn get_radius(&self) -> f32 {
     let x_r = (self.max_x - self.min_x)/2.0;

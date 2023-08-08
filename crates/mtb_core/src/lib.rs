@@ -1,4 +1,5 @@
 
+pub mod colors;
 pub mod easings;
 pub mod modifiers;
 pub mod noises;

@@ -94,11 +94,7 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
 
         for (n, s, v) in gui.iter(){
           if v != Visibility::Hidden {
-            let ns = n.size();
-            let aabb = AABB{min_x: s.position.left.evaluate(window_width).unwrap(), 
-                              max_x: ns.x, 
-                              max_z: window_height - s.position.top.evaluate(window_height).unwrap(),
-                              min_z: window_height - ns.y};
+            let aabb = AABB::from_gui(n, s, window_width, window_height);
             if aabb.has_point(&[pos.x, 0.0, pos.y]){
               is_hovered_gui = true;
               break;

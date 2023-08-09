@@ -15,15 +15,11 @@ impl ColorsLib {
     }
 }
 
-
-
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColorData {
     pub id:  String,
     pub clr: [f32; 4]
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PlaneColor {
@@ -49,7 +45,6 @@ impl PlaneColor {
     }
 }
 
-
 impl FromStr for PlaneColor {
     type Err = ();
     fn from_str(input: &str) -> Result<PlaneColor, Self::Err> {
@@ -73,7 +68,6 @@ impl ColorGradient {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ColorRange {
     pub from: f32,
@@ -85,8 +79,6 @@ pub struct ColorRange {
 pub struct Colors {
     pub data: Vec<ColorRange>
 }
-
-
 
 impl Colors {
     pub fn apply(&self, height: f32, _min_height: f32, _max_height: f32) -> [f32; 4] {
@@ -102,5 +94,3 @@ impl Colors {
         Colors{data: Vec::new()}
     }
 }
-
-  

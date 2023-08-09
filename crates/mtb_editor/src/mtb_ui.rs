@@ -1,13 +1,16 @@
 
 use bevy::prelude::*;
-use bevy::input::common_conditions::input_just_pressed;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 
+use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
+use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
+use crate::widgets::button_group::spawn_button_group;
 use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
 use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
+use crate::widgets::text_node::spawn_text_node;
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -22,61 +25,105 @@ pub struct MTBUIPlugin;
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_state::<AppState>()
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
+        .add_plugin(ModalPlugin)
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
-        .add_state::<ModalState>()
         .insert_resource(ColorsLib::new())
         .add_startup_system(setup)
         .add_system(update_left_into_panel)
-        .add_system(open.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
-        .add_system(close.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Escape))))
-        .add_system(save_close.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Return))))
+        .add_system(open_modal.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
+        .add_system(save_modal.run_if(in_state(ModalState::On)))
+
+        .add_system(open_editor.in_schedule(OnEnter(AppState::Editor)))
+        .add_system(close_editor.in_schedule(OnExit(AppState::Editor)))
+        .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
     }
 }
 
-pub fn open(mut commands:          Commands,
-            mut open_modal:        EventReader<OpenModalEvent>,
-            ass:                   Res<AssetServer>,
-            modal_state:           Res<State<ModalState>>,
-            mut next_modal_state:  ResMut<NextState<ModalState>>,){
+pub enum AreaOption {
+  AABB,
+  Ellipse,
+  Mark
+}
+
+
+pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
+  let _ent_sidepanel = spawn_side_panel(&mut commands, &ass);
+
+  let area_buttons: [&str; 3] = ["aabb", "ellipse", "mark"];
+
+  for ab in area_buttons.iter(){
+    
+  }
+
+
+}
+pub fn close_editor(mut commands: Commands, sidepanel: Query<Entity, With<SidePanel>>){
+  for entity in sidepanel.iter(){
+    commands.entity(entity).despawn_recursive();
+  }
+}
+
+
+pub fn apply(){
+
+}
+
+
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum AppState {
+    #[default]
+    View,
+    Editor
+}
+
+
+
+pub fn open_modal(mut commands:          Commands,
+                  mut open_modal:        EventReader<OpenModalEvent>,
+                  ass:                   Res<AssetServer>,
+                  mut next_modal_state:  ResMut<NextState<ModalState>>,
+                  colors_lib:            Res<ColorsLib>){
 
     for ev in open_modal.iter(){
-      let modal = spawn_modal(&mut commands, ev.modal_type);
+      let modal = spawn_modal(&mut commands, &mut next_modal_state);
+      commands.entity(modal).insert(ev.modal_type).insert(GUIElement);
+
       match ev.modal_type {
         ModalType::Color => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
           let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
-          commands.entity(modal).push_children(&[color_picker, text_input]);
+          let button_group = spawn_button_group(&mut commands, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
+          commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
         }
+        ModalType::PlaneColor => {
+          let color_picker = spawn_color_picker(&mut commands, &ass);
+          let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
+          let button_group = spawn_button_group(&mut commands, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
+          commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
+        }
+
         ModalType::ColorGradient => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
           commands.entity(modal).push_children(&[color_picker]);
-        }
-      }
-      match modal_state.0 {
-        ModalState::On => {
-          next_modal_state.set(ModalState::Off);
-        }
-        ModalState::Off => {
-          next_modal_state.set(ModalState::On);
         }
       }
     }
 }
 
 // Close with saving data
-pub fn save_close(mut commands:          Commands,
-                  modals:                Query<(Entity, &ModalType, &Children), With<ModalPanel>>,
+pub fn save_modal(modals:                Query<(&ModalType, &Children), With<ModalPanel>>,
                   color_picker:          Query<&ColorPickerData>,
                   text_inputs:           Query<&TextInputBox>,
-                  mut colors_lib:        ResMut<ColorsLib>,
-                  modal_state:           Res<State<ModalState>>,
-                  mut next_modal_state:  ResMut<NextState<ModalState>>,){
+                  mut colors_lib:        ResMut<ColorsLib>){
 
-  for (entity, modal_type, children) in modals.iter(){
+  for (modal_type, children) in modals.iter(){
     match modal_type {
       ModalType::Color => {
         let mut id: Option<String> = None;
@@ -94,34 +141,10 @@ pub fn save_close(mut commands:          Commands,
         }
       }
       ModalType::ColorGradient => {}
+      ModalType::PlaneColor => {}
     }
-    commands.entity(entity).despawn_recursive();
-  }
-
-  match modal_state.0 {
-    ModalState::On => {next_modal_state.set(ModalState::Off);}
-    ModalState::Off => {next_modal_state.set(ModalState::On);}
-  }
-
-}
-
-
-pub fn close(mut commands:         Commands,
-            modal:                 Query<Entity, With<ModalPanel>>,
-            modal_state:           Res<State<ModalState>>,
-            mut next_modal_state:  ResMut<NextState<ModalState>>,){
-
-    for entity in modal.iter(){
-        commands.entity(entity).despawn_recursive();
-    }
-    match modal_state.0 {
-      ModalState::On => {next_modal_state.set(ModalState::Off);}
-      ModalState::Off => {next_modal_state.set(ModalState::On);}
   }
 }
-
-
-
 
 
 pub struct OpenModalEvent {
@@ -131,18 +154,10 @@ pub struct OpenModalEvent {
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum ModalType {
   #[default]
+  PlaneColor,
   Color,
   ColorGradient
 }
-
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum ModalState {
-    #[default]
-    Off,
-    On
-}
-
 
 pub struct ToggleSubmenuEvent {
   pub button_entity: Entity,
@@ -155,9 +170,6 @@ pub struct TopLeftInfoPanel;
 
 #[derive(Component)]
 pub struct Menu;
-
-#[derive(Component)]
-pub struct ModalPanel;
 
 #[derive(Component)]
 pub struct GUIElement;
@@ -180,15 +192,13 @@ pub struct ButtonLabel;
 
 fn setup(mut commands:  Commands,  _ass: Res<AssetServer>,) {
   let _info_panel_entity = spawn_info_panel(&mut commands);
-  // let menu = spawn_menu(&mut commands);
-  // let menu_buttons = spawn_menu_buttons(&mut commands, &ass);
-  // commands.entity(menu).push_children(&menu_buttons);
 }
 
 fn update_left_into_panel(mut commands:  Commands,
                           grid:          Res<GridData>,
                           hover_data:    Res<HoverData>,
                           ass:           Res<AssetServer>,
+                          app_state:     Res<State<AppState>>,
                           planes:        Query<&PlaneData>,
                           top_left:      Query<Entity, With<TopLeftInfoPanel>>){
 
@@ -196,27 +206,52 @@ fn update_left_into_panel(mut commands:  Commands,
   commands.entity(ent).despawn_descendants();
 
   let mut v: Vec<Entity> = Vec::new();
-  v.push(make_text_node(&format!("    Planes Count: {:?}", planes.iter().len()), &mut commands, &ass));  
-  v.push(make_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
-  v.push(make_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
+  v.push(spawn_text_node(&format!("    App State: {:?}", app_state.0), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    Planes Count: {:?}", planes.iter().len()), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
 
   if let Some(height) = grid.data.get(&hover_data.hovered_tile_xz) {
-    v.push(make_text_node(&format!("    Height: {}",  height), &mut commands, &ass)); 
+    v.push(spawn_text_node(&format!("    Height: {}",  height), &mut commands, &ass)); 
   }
 
   if let Hoverables::Entity(entity) = hover_data.hoverable {
     if let Ok(pd) = planes.get(entity) {
-      v.push(make_text_node(&format!("    Plane ID: {:?}", pd.id), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Loc: {:?}",      pd.loc), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Dims: {:?}",     pd.dims), &mut commands, &ass));  
-      v.push(make_text_node(&format!("    Subs: {:?}",     pd.subdivisions), &mut commands, &ass));  
+      v.push(spawn_text_node(&format!("    Plane ID: {:?}", pd.id), &mut commands, &ass));  
+      v.push(spawn_text_node(&format!("    Loc: {:?}",      pd.loc), &mut commands, &ass));  
+      v.push(spawn_text_node(&format!("    Dims: {:?}",     pd.dims), &mut commands, &ass));  
+      v.push(spawn_text_node(&format!("    Subs: {:?}",     pd.subdivisions), &mut commands, &ass));  
     }
   }
-
-
-
   commands.entity(ent).push_children(&v);
 }
+
+
+fn spawn_info_panel(commands: &mut Commands) -> Entity {
+
+  let ent = commands.spawn(NodeBundle{
+    style: Style {
+      position_type: PositionType::Absolute,
+      position: UiRect {left: Val::Percent(0.0), 
+                        top: Val::Percent(0.0), 
+                        ..default()},
+      size: Size::new(Val::Percent(100.0), Val::Px(25.0)),
+      flex_wrap: FlexWrap::Wrap,
+      flex_direction: FlexDirection::Row,
+      align_items: AlignItems::FlexStart,
+      justify_content: JustifyContent::FlexStart,
+      ..default()
+    },
+    ..default()
+  })
+  .insert(GUIElement)
+  .insert(TopLeftInfoPanel)
+  .id()
+  ;
+  return ent;
+}
+
+
 
 // // Click on button
 // fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Style, Option<&Children>, Option<&mut Expandable>),
@@ -256,34 +291,6 @@ fn update_left_into_panel(mut commands:  Commands,
 //         }
 //     }
 // }
-
-
-
-fn spawn_info_panel(commands: &mut Commands) -> Entity {
-
-    let ent = commands.spawn(NodeBundle{
-      style: Style {
-        position_type: PositionType::Absolute,
-        position: UiRect {left: Val::Percent(0.0), 
-                          top: Val::Percent(0.0), 
-                          ..default()},
-        size: Size::new(Val::Percent(100.0), Val::Px(25.0)),
-        flex_wrap: FlexWrap::Wrap,
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::FlexStart,
-        justify_content: JustifyContent::FlexStart,
-        ..default()
-      },
-      ..default()
-    })
-    .insert(GUIElement)
-    .insert(TopLeftInfoPanel)
-    .id()
-    ;
-    return ent;
-}
-  
-
 // fn spawn_menu(commands:  &mut Commands) -> Entity {
 //     let ent = commands.spawn(NodeBundle{
 //         style: Style {
@@ -379,59 +386,3 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
   
 //     return btn_id;
 //   }
-
-pub fn make_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer>,) -> Entity {
-
-  let txt_style = TextStyle {
-    font_size: 20.0,
-    color: Color::WHITE,
-    font: ass.load("fonts/lambda.ttf")
-  };
-
-  let txt = commands.spawn(TextBundle::from_section(txt, txt_style)).id();
-  let node_txt = commands.spawn(NodeBundle{
-    style: Style {
-      position_type: PositionType::Relative,
-      margin: UiRect::all(Val::Px(0.0)),
-      padding: UiRect::all(Val::Px(0.0)),
-      align_items: AlignItems::Center,
-      flex_direction: FlexDirection::Row,
-      align_content: AlignContent::Center,
-      position: UiRect {left: Val::Px(0.0),top: Val::Px(0.0),..default()},
-      ..default()
-    },
-    ..default()}).id();
-
-  commands.entity(node_txt).push_children(&[txt]);
-
-  return node_txt;
-
-}
-
-
-pub fn spawn_modal(commands: &mut Commands, modal_type: ModalType) -> Entity {
-
-  let ent = commands.spawn(NodeBundle{
-    style: Style {
-      position_type: PositionType::Absolute,
-      position: UiRect {left: Val::Percent(25.0), 
-                        top: Val::Percent(25.0), 
-                        ..default()},
-      size: Size::new(Val::Percent(50.0), Val::Percent(50.0)),
-      flex_wrap: FlexWrap::Wrap,
-      flex_direction: FlexDirection::Row,
-      align_items: AlignItems::FlexStart,
-      justify_content: JustifyContent::FlexStart,
-      ..default()
-    },
-    background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),
-    ..default()
-  })
-  .insert(GUIElement)
-  .insert(ModalPanel)
-  .insert(modal_type)
-  .insert(Name::new("Modal"))
-  .id()
-  ;
-  return ent;
-}

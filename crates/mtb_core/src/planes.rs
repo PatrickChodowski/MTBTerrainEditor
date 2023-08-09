@@ -161,8 +161,8 @@ impl PlaneData {
   pub fn new() -> PlaneData {
     return PlaneData{id: DEFAULT_PLANE_ID,
                      loc: [0.0, 0.0, 0.0], 
-                     dims: [20.0, 20.0], 
-                     subdivisions: [0,0], 
+                     dims: [200.0, 200.0], 
+                     subdivisions: [1,1], 
                      color: Colors::new(), 
                      modifiers: Vec::new(), 
                      active: true};

@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::fs::{self, File};
 
 use super::ToggleWireframeEvent;
-use super::mtb_ui::{OpenModalEvent, ModalType};
+use super::mtb_ui::{OpenModalEvent, ModalType, AppState};
 use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
 
 
@@ -115,7 +115,9 @@ pub enum Funcs {
     PlaneData,
     SetID,
     WireFrame,
-    NewColor
+    NewColor,
+    Editor,
+    View
 }
 
 impl FromStr for Funcs {
@@ -127,6 +129,8 @@ impl FromStr for Funcs {
             "pd"    => Ok(Funcs::PlaneData),
             "wf"    => Ok(Funcs::WireFrame),
             "nc"    => Ok(Funcs::NewColor),
+            "e"     => Ok(Funcs::Editor),
+            "v"     => Ok(Funcs::View),
             _      => Err(()),
         }
     }
@@ -318,10 +322,12 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
         if let Ok(func) = Funcs::from_str(func_str){
             match func {
                 Funcs::NewPlaneData             => {return Some(vec!["id", "loc", "dims", "subs"])}
-                Funcs::PlaneData                => {return Some(vec!["id", "loc", "dims", "subs", "mod", "active"])}
+                Funcs::PlaneData                => {return Some(vec!["id", "loc", "dims", "subs", "mod", "clr", "active"])}
                 Funcs::SetID                    => {return Some(vec!["id"])}
                 Funcs::WireFrame                => {return Some(vec![""])}
                 Funcs::NewColor                 => {return Some(vec![""])}
+                Funcs::Editor                   => {return Some(vec![""])}
+                Funcs::View                     => {return Some(vec![""])}
             }
         }
     } 
@@ -373,14 +379,15 @@ fn get_most_similar_alphabetically(target: &str, args: &mut Vec<&str>) -> String
     return args.last().unwrap().to_string();
 }
 
-fn send_command(console:             Res<ConsoleInput>,
-                mut trigger_command: EventReader<TriggerCommand>,
-                mut sent_commands:   ResMut<SentCommands>,
-                mut spawn_new_plane: EventWriter<SpawnNewPlaneEvent>,
-                mut edit_plane:      EventWriter<EditPlaneEvent>,
-                mut toggle_wf:       EventWriter<ToggleWireframeEvent>,
-                mut open_modal:      EventWriter<OpenModalEvent>,
-                mut plane_set_id:    ResMut<PlaneSetID>,
+fn send_command(console:              Res<ConsoleInput>,
+                mut trigger_command:  EventReader<TriggerCommand>,
+                mut sent_commands:    ResMut<SentCommands>,
+                mut spawn_new_plane:  EventWriter<SpawnNewPlaneEvent>,
+                mut edit_plane:       EventWriter<EditPlaneEvent>,
+                mut toggle_wf:        EventWriter<ToggleWireframeEvent>,
+                mut open_modal:       EventWriter<OpenModalEvent>,
+                mut plane_set_id:     ResMut<PlaneSetID>,
+                mut next_app_state:   ResMut<NextState<AppState>>
             ){
 
     for _ev in trigger_command.iter() {
@@ -433,26 +440,29 @@ fn send_command(console:             Res<ConsoleInput>,
 
                         let mut epe = EditPlaneEvent::new();
                         let opt_id = search_arg_value("id", &args);
-                        if opt_id.is_none() {
-                            info!(" [CONSOLE] Need ID for editing");
-                            return;
-                        }
-                        if let Some(id) = unpack_u32(&opt_id.unwrap(), "NewPlaneData", "id") {
-                            epe.id = id;
-                        } else {
-                            info!(" [CONSOLE] Need correct ID (u32) for new plane");
-                            return;
+                        match (plane_set_id.0, opt_id) {
+                            (DEFAULT_PLANE_ID, None) => {info!(" [CONSOLE] Need ID for new plane");  return;}
+                            (_, None) => {info!(" [CONSOLE] Setting the plane id from set ({})", plane_set_id.0);  epe.id = plane_set_id.0;}
+                            (_, Some(s)) => {
+                                if let Some(id) = unpack_u32(&s, "PlaneData", "id") {
+                                    epe.id = id;
+                                }
+                            }
                         }
 
                         if let Some(loc_str) = search_arg_value("loc", &args){
-                            epe.loc = unpack_array3_f32(&loc_str, "NewPlaneData", "loc");
+                            epe.loc = unpack_array3_f32(&loc_str, "PlaneData", "loc");
                         }
                         if let Some(dims_str) = search_arg_value("dims", &args){
-                            epe.dims = unpack_array2_f32(&dims_str, "NewPlaneData", "dims");
+                            epe.dims = unpack_array2_f32(&dims_str, "PlaneData", "dims");
                         }
                         if let Some(subs_str) = search_arg_value("subs", &args){
-                            epe.subs = unpack_array2_u32(&subs_str, "NewPlaneData", "subs");
+                            epe.subs = unpack_array2_u32(&subs_str, "PlaneData", "subs");
                         }
+                        if let Some(clr_str) = search_arg_value("clr", &args){
+                            open_modal.send(OpenModalEvent {modal_type: ModalType::PlaneColor})
+                        }
+
                         info!(" [CONSOLE] Editing plane id {:?}", epe.id);
                         edit_plane.send(epe);
                     }
@@ -467,13 +477,11 @@ fn send_command(console:             Res<ConsoleInput>,
                             }
                         }
                     }
-                    Funcs::WireFrame => {
-                        toggle_wf.send(ToggleWireframeEvent);
-                    }
-
-                    Funcs::NewColor => {
-                        open_modal.send(OpenModalEvent {modal_type: ModalType::Color})
-                    }
+                    Funcs::WireFrame => {toggle_wf.send(ToggleWireframeEvent);}
+                    Funcs::NewColor => {open_modal.send(OpenModalEvent {modal_type: ModalType::Color})}
+                    Funcs::Editor => {next_app_state.set(AppState::Editor)}
+                    Funcs::View => {next_app_state.set(AppState::View)}
+                    
                 }
             } else {
                 info!(" [CONSOLE] Invalid function string");

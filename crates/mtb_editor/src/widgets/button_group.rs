@@ -1,0 +1,60 @@
+
+use bevy::prelude::*;
+use bevy::input::common_conditions::input_just_pressed;
+
+use mtb_core::colors::ColorsLib;
+
+use crate::widgets::buttons::{spawn_button, ButtonValue};
+
+pub struct ButtonGroupPlugin;
+
+impl Plugin for ButtonGroupPlugin {
+    fn build(&self, app: &mut App) {
+        app
+        // .add_system(update.run_if(resource_changed::<ColorsLib>()))
+        .add_system(click.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
+        ;
+    }
+}
+
+// pub fn update(){
+
+// }
+
+#[derive(Component)]
+pub struct ButtonGroup;
+
+pub fn click(){
+
+}
+
+pub fn spawn_button_group(commands:  &mut Commands,
+                          colorslib: &Res<ColorsLib>,
+                          xy:        &(f32, f32), 
+                          dims:      &(f32, f32),) -> Entity {
+
+    let ent_bg = commands.spawn((NodeBundle{
+      style: Style {
+        position_type: PositionType::Absolute,
+        position: UiRect {left: Val::Percent(xy.0), 
+                          top: Val::Percent(xy.1), 
+                          ..default()},
+        size: Size::new(Val::Px(dims.0), Val::Px(dims.1)),
+        flex_wrap: FlexWrap::Wrap,
+        flex_direction: FlexDirection::Row,
+        align_items: AlignItems::FlexStart,
+        justify_content: JustifyContent::FlexStart,
+        ..default()
+      },
+      background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),
+      ..default()
+    }, ButtonGroup, Name::new(format!("ButtonGroup")))).id();
+
+    let mut v: Vec<Entity> = Vec::new();
+    for (_key, value) in colorslib.data.iter(){
+        let new_button = spawn_button_color(commands, *value);
+        v.push(new_button);
+    }
+    commands.entity(ent_bg).push_children(&v);
+    return ent_bg;
+}

@@ -5,7 +5,7 @@ use bevy::window::PrimaryWindow;
 use libm::atan2f;
 
 use crate::mtb_console::ConsoleState; 
-use crate::mtb_ui::ModalState;
+use crate::widgets::modal::ModalState;
 
 
 const CENTER_X: f32 = 0.0;

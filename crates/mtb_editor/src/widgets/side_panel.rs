@@ -1,14 +1,5 @@
 use bevy::prelude::*;
 
-pub struct SidePanelPlugin;
-
-impl Plugin for SidePanelPlugin {
-    fn build(&self, app: &mut App) {
-        app
-        ;
-    }
-}
-
 #[derive(Component)]
 pub struct SidePanel;
 

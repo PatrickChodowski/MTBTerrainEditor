@@ -459,7 +459,7 @@ fn send_command(console:              Res<ConsoleInput>,
                         if let Some(subs_str) = search_arg_value("subs", &args){
                             epe.subs = unpack_array2_u32(&subs_str, "PlaneData", "subs");
                         }
-                        if let Some(clr_str) = search_arg_value("clr", &args){
+                        if let Some(_clr_str) = search_arg_value("clr", &args){
                             open_modal.send(OpenModalEvent {modal_type: ModalType::PlaneColor})
                         }
 

@@ -1,4 +1,5 @@
 
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use std::slice::Iter;
 
@@ -41,10 +42,27 @@ impl Plugin for MTBUIPlugin {
 
         .add_system(open_editor.in_schedule(OnEnter(AppState::Editor)))
         .add_system(close_editor.in_schedule(OnExit(AppState::Editor)))
+        .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
         // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
     }
 }
+
+pub fn click_button(mut buttons: Query<(&Interaction, &ButtonValue), (Changed<Interaction>, With<Button>)>){
+
+  for (interaction, value) in buttons.iter_mut() {
+    match *interaction {
+      Interaction::Clicked => {
+        // *color = MENU_BTN_COLOR_PRESSED.into();
+        info!("Clicked {:?}", value);
+      }
+      _ => {}
+    }
+  }
+}
+
+
+
 
 pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
   let ent_sidepanel = spawn_side_panel(&mut commands);
@@ -265,139 +283,3 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
   ;
   return ent;
 }
-
-
-
-// // Click on button
-// fn click(mut btn_q: Query<(Entity, &Interaction, &mut BackgroundColor, &mut Style, Option<&Children>, Option<&mut Expandable>),
-//                           (Changed<Interaction>, With<Button>)>, 
-//     mut event_toggle_submenu: EventWriter<ToggleSubmenuEvent>, 
-//     mut spawn_new_plane:      EventWriter<SpawnNewPlaneEvent>
-// ){
-//     for (entity, interaction, mut color, mut style, children, expandable) in &mut btn_q {
-//         match *interaction {
-//             Interaction::Clicked => {
-//                 *color = MENU_BTN_COLOR_PRESSED.into();
-//                 if let Some(mut expandable) = expandable {
-//                     let mut height_diff: f32 = 0.0;
-//                     if expandable.is_open {
-//                         let new_height = MENU_BTN_HEIGHT;
-//                         height_diff = new_height.evaluate(1.0).ok().unwrap() - style.size.height.evaluate(1.0).ok().unwrap();
-//                         style.size.height = new_height;
-//                     } else {
-//                         if children.is_some(){
-//                             let new_height = Val::Px((children.unwrap().len() as f32)*30.0);
-//                             height_diff = new_height.evaluate(1.0).ok().unwrap() - style.size.height.evaluate(1.0).ok().unwrap();
-//                             style.size.height = new_height;
-//                         }
-//                     }
-//                     expandable.is_open = !expandable.is_open;
-//                     event_toggle_submenu.send(ToggleSubmenuEvent{button_entity: entity, height_diff, is_open: expandable.is_open});
-//                 } else {
-//                   spawn_new_plane.send(SpawnNewPlaneEvent{pd: PlaneData::new()});
-//                 }
-//             }
-//             Interaction::Hovered => {
-//             *color = MENU_BTN_COLOR_HOVER.into();
-//             }
-//             Interaction::None => {
-//             *color = MENU_BTN_COLOR.into();
-//             }
-//         }
-//     }
-// }
-// fn spawn_menu(commands:  &mut Commands) -> Entity {
-//     let ent = commands.spawn(NodeBundle{
-//         style: Style {
-//           position_type: PositionType::Absolute,
-//           position: UiRect {left: Val::Percent(0.0), 
-//                             top: Val::Px(25.0), 
-//                             ..default()},
-//           size: Size::new(Val::Px(110.0), Val::Px(200.0)),
-//           flex_wrap: FlexWrap::Wrap,
-//           flex_direction: FlexDirection::Column,
-//           align_content: AlignContent::FlexStart,
-//           ..default()
-//         },
-//         // background_color: BackgroundColor([0.5, 0.5, 0.5, 0.5].into()),
-//         ..default()
-//       })
-//       .insert(GUIElement)
-//       .insert(Menu)
-//       .id()
-//       ;
-//     return ent;
-// }
-  
-  
-// fn spawn_menu_buttons(commands:  &mut Commands,  ass: &Res<AssetServer>) -> Vec<Entity> {
-//   let mut v = Vec::new();
-//   let buttons_data: [ButtonData; 2] = [ButtonData{label: "Add Plane".to_string(), children: None}, 
-//                                        ButtonData{label: "Add Modifier".to_string(), children: None}];
-//   let button_style = Style {
-//       size: Size::new(MENU_BTN_WIDTH, MENU_BTN_HEIGHT),
-//       position_type: PositionType::Relative,
-//       margin: UiRect::all(Val::Px(3.0)),
-//       padding: UiRect::all(Val::Px(0.0)),
-//       align_items: AlignItems::Center,
-//       flex_direction: FlexDirection::Column,
-//       align_content: AlignContent::Center,
-//       position: UiRect {left: Val::Px(0.0),top: Val::Px(1.0),..default()},
-//       ..default()
-//     };
-  
-//   let child_button_style = Style {
-//     size: Size::new(MENU_CHILD_BTN_WIDTH, MENU_BTN_HEIGHT),
-//     position_type: PositionType::Relative,
-//     margin: UiRect::all(Val::Px(0.0)),
-//     padding: UiRect::all(Val::Px(0.0)),
-//     align_items: AlignItems::Center,
-//     flex_direction: FlexDirection::Column,
-//     align_content: AlignContent::Center,
-//     position: UiRect {left: Val::Px(0.0),top: Val::Px(10.0),..default()},
-//     ..default()
-//   };
-
-//   let text_style = TextStyle {
-//     font: ass.load("fonts/lambda.ttf"),
-//     font_size: 20.0,
-//     color: MENU_TEXT_COLOR
-//   };
-
-
-//   for btn in buttons_data {
-//     let btn_id = spawn_button(commands, &btn, &button_style, &text_style, true);
-//     if let Some(children) = btn.children{
-//       for cbtn in children {
-//         if cbtn.children.is_some(){
-//           panic!(" [GUI] Child button not allowed to have children (Button label: {})", cbtn.label);
-//         }
-//         let cbtn_id = spawn_button(commands, &cbtn, &child_button_style, &text_style, false);
-//         commands.entity(btn_id).push_children(&[cbtn_id]);
-//       }
-//       commands.entity(btn_id).insert(Expandable{is_open: false});
-//     }
-//     v.push(btn_id);
-//   }
-
-//   return v;
-// }
-
-// fn spawn_button(commands: &mut Commands, btn: &ButtonData, btn_style: &Style, txt_style: &TextStyle, visible: bool) -> Entity {
-
-//     let mut btn_style_vis = btn_style.clone();
-//     if !visible {
-//       btn_style_vis.display = Display::None;
-//     }
-  
-//     let btn_id = commands.spawn(ButtonBundle{style: btn_style_vis,
-//                                              background_color: MENU_BTN_COLOR.into(),
-//                                              ..default()})
-//                          .insert(Name::new(format!("{} Button", btn.label)))
-//                          .id();
-    
-//     let btn_label = commands.spawn(TextBundle::from_section(&btn.label, txt_style.clone())).insert(ButtonLabel).id();
-//     commands.entity(btn_id).push_children(&[btn_label]);
-  
-//     return btn_id;
-//   }

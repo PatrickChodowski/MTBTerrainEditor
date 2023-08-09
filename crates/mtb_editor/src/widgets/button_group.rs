@@ -29,6 +29,7 @@ pub fn click(){
 }
 
 pub fn spawn_button_group(commands:  &mut Commands,
+                          ass:       &Res<AssetServer>,
                           colorslib: &Res<ColorsLib>,
                           xy:        &(f32, f32), 
                           dims:      &(f32, f32),) -> Entity {
@@ -52,7 +53,12 @@ pub fn spawn_button_group(commands:  &mut Commands,
 
     let mut v: Vec<Entity> = Vec::new();
     for (_key, value) in colorslib.data.iter(){
-        let new_button = spawn_button_color(commands, *value);
+        let new_button = spawn_button(commands, 
+                                      ass,
+                                      ButtonValue::Color(*value),
+                                      (Val::Px(0.0), Val::Px(1.0)),
+                                      (Val::Px(40.0), Val::Px(40.0)),
+                                      PositionType::Relative);
         v.push(new_button);
     }
     commands.entity(ent_bg).push_children(&v);

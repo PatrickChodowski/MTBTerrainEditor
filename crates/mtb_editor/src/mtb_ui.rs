@@ -1,10 +1,12 @@
 
 use bevy::prelude::*;
+use std::slice::Iter;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 
+use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
 use crate::widgets::button_group::spawn_button_group;
@@ -39,41 +41,33 @@ impl Plugin for MTBUIPlugin {
 
         .add_system(open_editor.in_schedule(OnEnter(AppState::Editor)))
         .add_system(close_editor.in_schedule(OnExit(AppState::Editor)))
-        .add_system(apply.run_if(in_state(AppState::Editor)))
+        // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
     }
 }
 
-pub enum AreaOption {
-  AABB,
-  Ellipse,
-  Mark
-}
-
-
 pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
-  let _ent_sidepanel = spawn_side_panel(&mut commands, &ass);
-
-  let area_buttons: [&str; 3] = ["aabb", "ellipse", "mark"];
-
-  for ab in area_buttons.iter(){
-    
+  let ent_sidepanel = spawn_side_panel(&mut commands);
+  commands.entity(ent_sidepanel).insert(GUIElement);
+  let mut v: Vec<Entity> = Vec::new();
+  for area_option in AreaOption::iterator(){
+      let new_button = spawn_button(&mut commands, 
+                                    &ass,
+                                    ButtonValue::String(area_option.to_str().to_string()),
+                                    (Val::Percent(10.0), Val::Percent(1.0)),
+                                    (Val::Percent(80.0), Val::Px(20.0)),
+                                    PositionType::Relative);
+      commands.entity(new_button).insert(*area_option);
+      v.push(new_button);
   }
-
-
+  commands.entity(ent_sidepanel).push_children(&v);
 }
+
 pub fn close_editor(mut commands: Commands, sidepanel: Query<Entity, With<SidePanel>>){
   for entity in sidepanel.iter(){
     commands.entity(entity).despawn_recursive();
   }
 }
-
-
-pub fn apply(){
-
-}
-
-
 
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -99,13 +93,13 @@ pub fn open_modal(mut commands:          Commands,
         ModalType::Color => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
           let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
-          let button_group = spawn_button_group(&mut commands, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
+          let button_group = spawn_button_group(&mut commands, &ass, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
           commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
         }
         ModalType::PlaneColor => {
           let color_picker = spawn_color_picker(&mut commands, &ass);
           let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
-          let button_group = spawn_button_group(&mut commands, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
+          let button_group = spawn_button_group(&mut commands, &ass, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
           commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
         }
 
@@ -159,6 +153,29 @@ pub enum ModalType {
   ColorGradient
 }
 
+#[derive(Component, Debug, Clone, Copy)]
+pub enum AreaOption {
+  AABB,
+  Ellipse,
+  Mark
+} 
+
+impl<'a> AreaOption {
+  fn to_str(&self) -> &'a str {
+    match self {
+      AreaOption::AABB => {"aabb"}
+      AreaOption::Ellipse => {"ellipse"}
+      AreaOption::Mark => {"mark"}
+    }
+  }
+  pub fn iterator() -> Iter<'static, AreaOption> {
+    static AREA_OPTIONS: [AreaOption; 3] = [AreaOption::AABB, AreaOption::Ellipse, AreaOption::Mark];
+    AREA_OPTIONS.iter()
+  }
+}
+
+
+
 pub struct ToggleSubmenuEvent {
   pub button_entity: Entity,
   pub height_diff: f32,
@@ -168,8 +185,6 @@ pub struct ToggleSubmenuEvent {
 #[derive(Component)]
 pub struct TopLeftInfoPanel;
 
-#[derive(Component)]
-pub struct Menu;
 
 #[derive(Component)]
 pub struct GUIElement;

@@ -2,6 +2,8 @@
 use bevy::{prelude::*, input::common_conditions::input_pressed};
 use bevy::window::PrimaryWindow;
 
+use super::utils::{get_aabb, has_point};
+
 pub struct SliderPlugin;
 
 impl Plugin for SliderPlugin {
@@ -31,7 +33,7 @@ pub fn update_sliders(
             let slider_size = n.size();
             let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
 
-            if !(pos.x >= aabb[0] && pos.x <= aabb[1] && pos.y >= aabb[2] && pos.y <= aabb[3]){
+            if !has_point(&aabb, &(pos.x, pos.y)){
                 continue; // Mouse not over the slider
             }
 
@@ -186,9 +188,4 @@ pub fn spawn_slider(commands: &mut Commands, ass: &Res<AssetServer>, xy: &(f32, 
     
     commands.entity(ent_slider).push_children(&[ent_handler, label_ent]);
     return ent_slider;
-}
-
-// minimal node aabb [min_x, max_x, min_y, max_y]
-fn get_aabb(xy: &(f32, f32), dims: &(f32, f32)) -> [f32; 4] {
-    [xy.0 - dims.0/2.0, xy.0 + dims.0/2.0, xy.1 - dims.1/2.0, xy.1 + dims.1/2.0]
 }

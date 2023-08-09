@@ -4,6 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
+use crate::widgets::utils::{has_point, get_aabb};
 
 use crate::mtb_camera::MTBCamera;
 use crate::mtb_ui::GUIElement;
@@ -17,25 +18,10 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
-      // .add_system(hover_info.in_base_set(CoreSet::PreUpdate).after(hover_check))
-      // .add_system(update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
       .add_system(click.run_if(input_just_pressed(MouseButton::Left)))
       ;
   }
 }
-
-// fn hover_info(hover_data:   Res<HoverData>,
-//               planes:       Query<&PlaneData>){
-//   if let Hoverables::Entity(entity) = hover_data.hoverable {
-
-//     if let Ok(pd) = planes.get(entity){
-//       info!(" plane hovered: {:?}", pd);
-//     }
-//   }
-
-// }
-
-
 
 // Click on grid in edit mode
 fn click(hover_data: Res<HoverData>){
@@ -72,10 +58,9 @@ fn _update(mut grid: ResMut<GridData>,
   // println!("DEBUG: updating grid heights");
 }
 
-
 // check if mouse is hovering over grid, plane or gui
 fn hover_check(mut hover_data:      ResMut<HoverData>,
-               gui:                 Query<(&Node, &Style, &Visibility), With<GUIElement>>,
+               gui:                 Query<(&Node, &GlobalTransform, &Visibility), With<GUIElement>>,
                planes:              Query<(Entity, &AABB), With<PlaneData>>,
                window:              Query<&Window, With<PrimaryWindow>>,
                camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
@@ -86,16 +71,17 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
     let mut hovered_entity: Option<Entity> = None;
 
     let Ok(primary) = window.get_single() else {return;};
-    let window_width = primary.width();
-    let window_height = primary.height();
 
     if let Some(pos) = primary.cursor_position(){
         hover_data.cursor_position = Some((pos.x, pos.y));
 
-        for (n, s, v) in gui.iter(){
+        for (n, gt, v) in gui.iter(){
           if v != Visibility::Hidden {
-            let aabb = AABB::from_gui(n, s, window_width, window_height);
-            if aabb.has_point(&[pos.x, 0.0, pos.y]){
+            let x = gt.translation().x;
+            let y = primary.height() - gt.translation().y;
+            let slider_size = n.size();
+            let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
+            if has_point(&aabb, &(pos.x, pos.y)){
               is_hovered_gui = true;
               break;
             }

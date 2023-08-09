@@ -14,8 +14,6 @@ impl Plugin for MTBColorsPlugin {
     }
 }
 
-
-
 #[derive(Resource)]
 pub struct Colors {
     pub data: Vec<ColorData>

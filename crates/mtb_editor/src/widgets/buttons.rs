@@ -1,36 +1,50 @@
 
 use bevy::prelude::*;
 
-#[derive(Component)]
+use super::text_node::spawn_text_node;
+
+#[derive(Component, Debug, Clone)]
 pub enum ButtonValue {
     Color([f32;4]),
-    String(String),
-    NumberI32(i32),
-    NumberU32(u32),
-    NumberF32(f32)
+    String(String)
 }
 
 
 pub fn spawn_button(commands: &mut Commands, 
-                value:    ButtonValue,
-                dims:     (Val, Val),
-                pos_type: PositionType) -> Entity {
+                    ass:      &Res<AssetServer>,
+                    value:    ButtonValue,
+                    pos:      (Val, Val),
+                    dims:     (Val, Val),
+                    position_type: PositionType) -> Entity {
 
     let button_style = Style {
+
         size: Size::new(dims.0, dims.1),
-        position_type: PositionType::Relative,
+        position_type,
         margin: UiRect::all(Val::Px(3.0)),
         padding: UiRect::all(Val::Px(0.0)),
         align_items: AlignItems::Center,
         flex_direction: FlexDirection::Column,
         align_content: AlignContent::Center,
-        position: UiRect {left: Val::Px(0.0), top: Val::Px(1.0),..default()},
+        position: UiRect {left: pos.0, top: pos.1,..default()},
         ..default()
+
       };
-    
-      let btn_id = commands.spawn(ButtonBundle{style: button_style,
-                                               background_color: BackgroundColor(color.into()),
-                                               ..default()}).id();
+
+      let mut bkgc = BackgroundColor([0.3, 0.3, 0.3, 1.0].into());
+
+      if let ButtonValue::Color(clr) = value {
+        bkgc = BackgroundColor(clr.into());
+      }
+
+      let btn_id = commands.spawn((ButtonBundle{style: button_style,
+        background_color: bkgc,
+        ..default()}, value.clone())).id();
+      
+      if let ButtonValue::String(strval) = value {
+        let label_ent = spawn_text_node(&strval, commands, ass);
+        commands.entity(btn_id).push_children(&[label_ent]);
+      }
       
       return btn_id;
     }

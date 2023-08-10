@@ -64,8 +64,7 @@ impl Plugin for PlanesPlugin {
         }
     }
   }
-
-
+  
   pub fn spawn_new_plane(mut commands:     Commands, 
                          mut meshes:       ResMut<Assets<Mesh>>,
                          mut materials:    ResMut<Assets<StandardMaterial>>,

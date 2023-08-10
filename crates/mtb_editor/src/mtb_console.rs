@@ -6,8 +6,7 @@ use strsim::levenshtein;
 use std::collections::HashSet;
 use std::fs::{self, File};
 
-use super::ToggleWireframeEvent;
-use super::mtb_ui::{OpenModalEvent, ModalType, AppState};
+use super::mtb_ui::{OpenModalEvent, ModalType};
 use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
 
 
@@ -114,10 +113,7 @@ pub enum Funcs {
     NewPlaneData,
     PlaneData,
     SetID,
-    WireFrame,
-    NewColor,
-    Editor,
-    View
+    NewColor
 }
 
 impl FromStr for Funcs {
@@ -127,10 +123,7 @@ impl FromStr for Funcs {
             "set"   => Ok(Funcs::SetID),
             "npd"   => Ok(Funcs::NewPlaneData),
             "pd"    => Ok(Funcs::PlaneData),
-            "wf"    => Ok(Funcs::WireFrame),
             "nc"    => Ok(Funcs::NewColor),
-            "e"     => Ok(Funcs::Editor),
-            "v"     => Ok(Funcs::View),
             _      => Err(()),
         }
     }
@@ -324,10 +317,7 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
                 Funcs::NewPlaneData             => {return Some(vec!["id", "loc", "dims", "subs"])}
                 Funcs::PlaneData                => {return Some(vec!["id", "loc", "dims", "subs", "mod", "clr", "active"])}
                 Funcs::SetID                    => {return Some(vec!["id"])}
-                Funcs::WireFrame                => {return Some(vec![""])}
                 Funcs::NewColor                 => {return Some(vec![""])}
-                Funcs::Editor                   => {return Some(vec![""])}
-                Funcs::View                     => {return Some(vec![""])}
             }
         }
     } 
@@ -384,10 +374,8 @@ fn send_command(console:              Res<ConsoleInput>,
                 mut sent_commands:    ResMut<SentCommands>,
                 mut spawn_new_plane:  EventWriter<SpawnNewPlaneEvent>,
                 mut edit_plane:       EventWriter<EditPlaneEvent>,
-                mut toggle_wf:        EventWriter<ToggleWireframeEvent>,
                 mut open_modal:       EventWriter<OpenModalEvent>,
-                mut plane_set_id:     ResMut<PlaneSetID>,
-                mut next_app_state:   ResMut<NextState<AppState>>
+                mut plane_set_id:     ResMut<PlaneSetID>
             ){
 
     for _ev in trigger_command.iter() {
@@ -477,11 +465,7 @@ fn send_command(console:              Res<ConsoleInput>,
                             }
                         }
                     }
-                    Funcs::WireFrame => {toggle_wf.send(ToggleWireframeEvent);}
                     Funcs::NewColor => {open_modal.send(OpenModalEvent {modal_type: ModalType::Color})}
-                    Funcs::Editor => {next_app_state.set(AppState::Editor)}
-                    Funcs::View => {next_app_state.set(AppState::View)}
-                    
                 }
             } else {
                 info!(" [CONSOLE] Invalid function string");

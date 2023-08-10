@@ -5,7 +5,9 @@ use std::slice::Iter;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
+
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
+use crate::AppState;
 
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
@@ -14,6 +16,8 @@ use crate::widgets::button_group::spawn_button_group;
 use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
 use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
 use crate::widgets::text_node::spawn_text_node;
+
+
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -28,7 +32,6 @@ pub struct MTBUIPlugin;
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_state::<AppState>()
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
         .add_plugin(ModalPlugin)
@@ -40,8 +43,8 @@ impl Plugin for MTBUIPlugin {
         .add_system(open_modal.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
         .add_system(save_modal.run_if(in_state(ModalState::On)))
 
-        .add_system(open_editor.in_schedule(OnEnter(AppState::Editor)))
-        .add_system(close_editor.in_schedule(OnExit(AppState::Editor)))
+        .add_system(open_editor.in_schedule(OnEnter(AppState::Edit)))
+        .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
         .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
         // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
@@ -86,15 +89,6 @@ pub fn close_editor(mut commands: Commands, sidepanel: Query<Entity, With<SidePa
     commands.entity(entity).despawn_recursive();
   }
 }
-
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum AppState {
-    #[default]
-    View,
-    Editor
-}
-
 
 
 pub fn open_modal(mut commands:          Commands,

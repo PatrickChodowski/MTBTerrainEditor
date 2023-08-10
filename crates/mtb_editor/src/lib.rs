@@ -23,7 +23,7 @@ use mtb_core::planes::TerrainPlane;
 
 #[allow(unused_imports)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use vertex::spawn_vertex;
+use vertex::{spawn_vertex, RefVertex, Vertex};
 
 pub struct MTBEditorPlugin;
 
@@ -66,7 +66,18 @@ pub fn show_vertex(mut commands:     Commands,
 
 }
 
-pub fn hide_vertex(mut commands: Commands, planes: Query<Entity, With<TerrainPlane>>){
+pub fn hide_vertex(mut commands: Commands,
+                   vertex:       Query<Entity, With<Vertex>>,
+                   vertex_ref:   Query<Entity, With<RefVertex>>
+                ){
+
+    for entity in vertex.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
+
+    for entity in vertex_ref.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
 
 }
 

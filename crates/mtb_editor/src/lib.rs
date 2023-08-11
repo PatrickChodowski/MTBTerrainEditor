@@ -2,6 +2,7 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::pbr::wireframe::{WireframePlugin,Wireframe};
+use bevy_mod_picking::DefaultPickingPlugins;
 
 pub mod boxselect;
 pub mod mtb_camera;
@@ -34,7 +35,7 @@ impl Plugin for MTBEditorPlugin {
         app
         .add_state::<AppState>()
         .add_state::<DisplayState>()
-
+        .add_plugins(DefaultPickingPlugins)
         .add_plugin(WireframePlugin)
         .add_plugin(MTBColorsPlugin)
         .add_plugin(MTBConsolePlugin)

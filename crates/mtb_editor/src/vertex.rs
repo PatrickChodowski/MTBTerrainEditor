@@ -1,4 +1,6 @@
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::*;
+use bevy::math::vec4;
 //use bevy::render::mesh::{Indices, PrimitiveTopology};
 
 pub struct VertexPlugin;
@@ -6,9 +8,28 @@ pub struct VertexPlugin;
 impl Plugin for VertexPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_event::<PickVertex>()
         .add_startup_system(setup)
+        .add_system(pick_vertex.run_if(on_event::<PickVertex>()))
         .add_system(highlight_picked.in_base_set(CoreSet::PostUpdate))
         ;
+    }
+}
+
+
+
+pub struct PickVertex {
+    pub entity: Entity
+}
+impl From<ListenedEvent<Down>> for PickVertex {
+    fn from(event: ListenedEvent<Down>) -> Self {
+        PickVertex{entity: event.target}
+    }
+}
+
+impl From<ListenedEvent<Out>> for PickVertex {
+    fn from(event: ListenedEvent<Out>) -> Self {
+        PickVertex{entity: event.target}
     }
 }
 
@@ -26,6 +47,8 @@ pub fn setup(mut commands:     Commands,
 ){
     
     let ref_loc: [f32;3] = [-5000.0, -5000.0, -5000.0]; // basically hell
+
+    // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
     let default_vertex_material = materials.add(Color::BLACK.into());
     let red_vertex_material = materials.add(Color::ORANGE_RED.into());
     let default_vertex_mesh = meshes.add(shape::UVSphere::default().into());
@@ -47,19 +70,29 @@ pub fn setup(mut commands:     Commands,
 
 }
 
-
-pub fn highlight_picked(mut vertex: Query<(&mut Handle<StandardMaterial>, Option<&PickedVertex>), With<Vertex>>, 
-                        refs:       Res<VertexRefs>
-                    ){
-
-    for (mut mat, picked) in vertex.iter_mut(){
-
-        // if picked.is_some(){
-        //    mat = *refs.picked_mat.clone_weak();
-        // }
+pub fn pick_vertex(mut commands:          Commands,
+                   mut pick_vertex_event: EventReader<PickVertex>){
+    for ev in pick_vertex_event.iter(){
+        info!("clicked vertex: {:?}", ev.entity);
+        commands.entity(ev.entity).insert(PickedVertex);
 
     }
 
+}
+
+pub fn highlight_picked(
+    mut commands:          Commands,
+    mut vertex:            Query<(Entity, Option<&PickedVertex>), With<Vertex>>, 
+    refs:       Res<VertexRefs>){
+
+    
+
+    for (entity, picked) in vertex.iter_mut(){
+        if picked.is_some(){
+            info!("picked vertex: {:?}", entity);
+            commands.entity(entity).insert(refs.picked_mat.clone_weak());
+        }
+    }
 }
 
 
@@ -100,8 +133,14 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                         material: refs.mat.clone_weak(),
                                         mesh: refs.mesh.clone_weak(),
                                     transform: Transform::from_translation(pos.clone().into()),
-                                    ..default()}, Vertex::from_loc(pos)
-        )).id();
+                                    ..default()}, 
+                                    Vertex::from_loc(pos),
+                                    PickableBundle::default(),
+                                    RaycastPickTarget::default(),
+                                    OnPointer::<Down>::send_event::<PickVertex>(),
+                                    OnPointer::<Out>::send_event::<PickVertex>(),  // Finish Hover
+                                    //OnPointer::<Over>::send_event::<PickVertex>(),  // Hover
+                                    HIGHLIGHT_TINT)).id();
 
         vertices.push(entity);
 
@@ -110,3 +149,20 @@ pub fn spawn_vertex(plane_entity: &Entity,
     commands.entity(*plane_entity).push_children(&vertices);
 
 }
+
+
+
+pub const HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
+    hovered: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl.base_color + vec4(-0.2, -0.2, 0.4, 0.0),
+        ..matl.to_owned()
+    })),
+    pressed: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl.base_color + vec4(-0.3, -0.3, 0.5, 0.0),
+        ..matl.to_owned()
+    })),
+    selected: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl.base_color + vec4(-0.3, 0.2, -0.3, 0.0),
+        ..matl.to_owned()
+    })),
+  };

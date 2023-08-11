@@ -84,7 +84,9 @@ pub fn pick(mut commands:       Commands,
 
     }
     SelectOption::Ellipse => {}
-    SelectOption::Point   => {}
+    SelectOption::Point   => {
+      
+    }
     SelectOption::Brush   => {}
   }
 

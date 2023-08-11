@@ -395,7 +395,7 @@ fn send_command(console:              Res<ConsoleInput>,
                         let mut snpe = SpawnNewPlaneEvent::new();
                         let opt_id = search_arg_value("id", &args);
                         match (plane_set_id.0, opt_id) {
-                            (DEFAULT_PLANE_ID, None) => {info!(" [CONSOLE] Need ID for new plane");  return;}
+                            //(DEFAULT_PLANE_ID, None) => {info!(" [CONSOLE] Need ID for new plane");  return;}
                             (_, None) => {info!(" [CONSOLE] Setting the plane id from set ({})", plane_set_id.0);  snpe.pd.id = plane_set_id.0;}
                             (_, Some(s)) => {
                                 if let Some(id) = unpack_u32(&s, "NewPlaneData", "id") {

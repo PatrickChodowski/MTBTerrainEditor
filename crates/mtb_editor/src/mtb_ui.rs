@@ -7,8 +7,8 @@ use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
-use crate::AppState;
-use crate::boxselect::{box_select,BoxSelectPlugin};
+use crate::{AppState, boxselect};
+use crate::boxselect::{box_select,BoxSelectPlugin, BoxSelect};
 use crate::vertex::Vertex;
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
@@ -33,6 +33,7 @@ pub struct MTBUIPlugin;
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_plugin(BoxSelectPlugin)
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
         .add_plugin(ModalPlugin)
@@ -49,7 +50,7 @@ impl Plugin for MTBUIPlugin {
         .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
         .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
 
-        .add_system(pick_vertex.run_if(in_state(AppState::Edit)))
+        .add_system(pick.run_if(in_state(AppState::Edit)))
 
         // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
@@ -58,26 +59,33 @@ impl Plugin for MTBUIPlugin {
 
 #[derive(Resource)]
 pub struct Picker {
-  pub area: AreaOption
+  pub select: SelectOption
 } 
 impl Picker {
   pub fn new() -> Picker {
-    Picker { area: AreaOption::Point }
+    Picker { select: SelectOption::Point }
+  }
+  pub fn reset(&mut self) {
+    self.select = SelectOption::Point
   }
 }
  
 pub fn pick(mut commands:       Commands, 
             picker:             Res<Picker>, 
+            hoverdata:          Res<HoverData>,
+            mut meshes:         ResMut<Assets<Mesh>>,
+            mut materials:      ResMut<Assets<StandardMaterial>>,
+            mut boxselect:      Query<(&mut Transform, &mut BoxSelect)>,
             vertex:             Query<(Entity, &GlobalTransform), With<Vertex>>){
 
-  match picker.area {
-    AreaOption::AABB    => {
-      box_select(&mut commands, &mut selectbox, &mut meshes, &mut materials, &hoverdata);
+  match picker.select {
+    SelectOption::Box    => {
+      box_select(&mut commands, &mut boxselect, &mut meshes, &mut materials, &hoverdata);
 
     }
-    AreaOption::Ellipse => {}
-    AreaOption::Point   => {}
-    AreaOption::Paint   => {}
+    SelectOption::Ellipse => {}
+    SelectOption::Point   => {}
+    SelectOption::Brush   => {}
   }
 
 }
@@ -85,13 +93,13 @@ pub fn pick(mut commands:       Commands,
 
 
 pub fn click_button(mut picker:  ResMut<Picker>,
-                    mut buttons: Query<(&Interaction, &ButtonValue, Option<&AreaOption>), (Changed<Interaction>, With<Button>)>){
+                    mut buttons: Query<(&Interaction, &ButtonValue, Option<&SelectOption>), (Changed<Interaction>, With<Button>)>){
 
   for (interaction, value, area) in buttons.iter_mut() {
     match *interaction {
       Interaction::Clicked => {
         if let Some(area) = area {
-          picker.area = *area;
+          picker.select = *area;
           info!(" [DEBUG] Changed Picker area to {}", area.to_str());
         }
       }
@@ -105,7 +113,7 @@ pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
   let ent_sidepanel = spawn_side_panel(&mut commands);
   commands.entity(ent_sidepanel).insert(GUIElement);
   let mut v: Vec<Entity> = Vec::new();
-  for area_option in AreaOption::iterator(){
+  for area_option in SelectOption::iterator(){
       let new_button = spawn_button(&mut commands, 
                                     &ass,
                                     ButtonValue::String(area_option.to_str().to_string()),
@@ -199,24 +207,27 @@ pub enum ModalType {
 }
 
 #[derive(Component, Debug, Clone, Copy)]
-pub enum AreaOption {
-  AABB,
+pub enum SelectOption {
+  Box,
   Ellipse,
   Point,
-  Paint
+  Brush
 } 
 
-impl<'a> AreaOption {
+impl<'a> SelectOption {
   fn to_str(&self) -> &'a str {
     match self {
-      AreaOption::AABB => {"aabb"}
-      AreaOption::Ellipse => {"ellipse"}
-      AreaOption::Point => {"point"}
-      AreaOption::Paint => {"paint"}
+      SelectOption::Box => {"box"}
+      SelectOption::Ellipse => {"ellipse"}
+      SelectOption::Point => {"point"}
+      SelectOption::Brush => {"brush"}
     }
   }
-  pub fn iterator() -> Iter<'static, AreaOption> {
-    static AREA_OPTIONS: [AreaOption; 4] = [AreaOption::AABB, AreaOption::Ellipse, AreaOption::Point, AreaOption::Paint];
+  pub fn iterator() -> Iter<'static, SelectOption> {
+    static AREA_OPTIONS: [SelectOption; 4] = [SelectOption::Box, 
+                                              SelectOption::Ellipse, 
+                                              SelectOption::Point, 
+                                              SelectOption::Brush];
     AREA_OPTIONS.iter()
   }
 }

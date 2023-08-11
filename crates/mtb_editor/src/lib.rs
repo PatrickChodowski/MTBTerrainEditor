@@ -3,6 +3,7 @@ use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::pbr::wireframe::{WireframePlugin,Wireframe};
 
+pub mod boxselect;
 pub mod mtb_camera;
 pub mod mtb_colors;
 pub mod mtb_console;
@@ -12,6 +13,7 @@ pub mod vertex;
 
 pub mod widgets;
 
+use boxselect::box_select;
 use mtb_console::MTBConsolePlugin;
 use mtb_core::planes::PlanesPlugin;
 use mtb_colors::MTBColorsPlugin;
@@ -23,7 +25,7 @@ use mtb_core::planes::TerrainPlane;
 
 #[allow(unused_imports)]
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use vertex::{spawn_vertex, RefVertex, Vertex};
+use vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
 
 pub struct MTBEditorPlugin;
 
@@ -40,6 +42,7 @@ impl Plugin for MTBEditorPlugin {
         .add_plugin(MTBGridPlugin)
         .add_plugin(MTBUIPlugin)
         .add_plugin(PlanesPlugin)
+        .add_plugin(VertexPlugin)
         // .add_plugin(WorldInspectorPlugin::new())
         .add_system(toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
         .add_system(toggle_displaystate.run_if(input_just_pressed(KeyCode::Space)))
@@ -56,26 +59,19 @@ impl Plugin for MTBEditorPlugin {
 pub fn show_vertex(mut commands:     Commands, 
                    planes:           Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,
                    mut meshes:       ResMut<Assets<Mesh>>,
-                   mut materials:    ResMut<Assets<StandardMaterial>>
+                   refs:             Res<VertexRefs>
                 ){
 
     for (entity, handle_mesh) in planes.iter(){
-        spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &mut materials);
+        spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
     }
-
-
 }
 
 pub fn hide_vertex(mut commands: Commands,
-                   vertex:       Query<Entity, With<Vertex>>,
-                   vertex_ref:   Query<Entity, With<RefVertex>>
+                   vertex:       Query<Entity, With<Vertex>>
                 ){
 
     for entity in vertex.iter(){
-        commands.entity(entity).despawn_recursive();
-    }
-
-    for entity in vertex_ref.iter(){
         commands.entity(entity).despawn_recursive();
     }
 

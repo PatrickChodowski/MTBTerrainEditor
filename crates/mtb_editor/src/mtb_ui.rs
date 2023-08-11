@@ -8,7 +8,8 @@ use mtb_core::planes::PlaneData;
 
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 use crate::AppState;
-
+use crate::boxselect::{box_select,BoxSelectPlugin};
+use crate::vertex::Vertex;
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
@@ -38,33 +39,66 @@ impl Plugin for MTBUIPlugin {
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .insert_resource(ColorsLib::new())
+        .insert_resource(Picker::new())
         .add_startup_system(setup)
         .add_system(update_left_into_panel)
         .add_system(open_modal.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
-        .add_system(save_modal.run_if(in_state(ModalState::On)))
+        .add_system(save_modal.in_schedule(OnExit(ModalState::On)))
 
         .add_system(open_editor.in_schedule(OnEnter(AppState::Edit)))
         .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
         .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
+
+        .add_system(pick_vertex.run_if(in_state(AppState::Edit)))
+
         // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
     }
 }
 
-pub fn click_button(mut buttons: Query<(&Interaction, &ButtonValue), (Changed<Interaction>, With<Button>)>){
+#[derive(Resource)]
+pub struct Picker {
+  pub area: AreaOption
+} 
+impl Picker {
+  pub fn new() -> Picker {
+    Picker { area: AreaOption::Point }
+  }
+}
+ 
+pub fn pick(mut commands:       Commands, 
+            picker:             Res<Picker>, 
+            vertex:             Query<(Entity, &GlobalTransform), With<Vertex>>){
 
-  for (interaction, value) in buttons.iter_mut() {
+  match picker.area {
+    AreaOption::AABB    => {
+      box_select(&mut commands, &mut selectbox, &mut meshes, &mut materials, &hoverdata);
+
+    }
+    AreaOption::Ellipse => {}
+    AreaOption::Point   => {}
+    AreaOption::Paint   => {}
+  }
+
+}
+
+
+
+pub fn click_button(mut picker:  ResMut<Picker>,
+                    mut buttons: Query<(&Interaction, &ButtonValue, Option<&AreaOption>), (Changed<Interaction>, With<Button>)>){
+
+  for (interaction, value, area) in buttons.iter_mut() {
     match *interaction {
       Interaction::Clicked => {
-        // *color = MENU_BTN_COLOR_PRESSED.into();
-        info!("Clicked {:?}", value);
+        if let Some(area) = area {
+          picker.area = *area;
+          info!(" [DEBUG] Changed Picker area to {}", area.to_str());
+        }
       }
       _ => {}
     }
   }
 }
-
-
 
 
 pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
@@ -89,7 +123,6 @@ pub fn close_editor(mut commands: Commands, sidepanel: Query<Entity, With<SidePa
     commands.entity(entity).despawn_recursive();
   }
 }
-
 
 pub fn open_modal(mut commands:          Commands,
                   mut open_modal:        EventReader<OpenModalEvent>,
@@ -169,7 +202,8 @@ pub enum ModalType {
 pub enum AreaOption {
   AABB,
   Ellipse,
-  Mark
+  Point,
+  Paint
 } 
 
 impl<'a> AreaOption {
@@ -177,11 +211,12 @@ impl<'a> AreaOption {
     match self {
       AreaOption::AABB => {"aabb"}
       AreaOption::Ellipse => {"ellipse"}
-      AreaOption::Mark => {"mark"}
+      AreaOption::Point => {"point"}
+      AreaOption::Paint => {"paint"}
     }
   }
   pub fn iterator() -> Iter<'static, AreaOption> {
-    static AREA_OPTIONS: [AreaOption; 3] = [AreaOption::AABB, AreaOption::Ellipse, AreaOption::Mark];
+    static AREA_OPTIONS: [AreaOption; 4] = [AreaOption::AABB, AreaOption::Ellipse, AreaOption::Point, AreaOption::Paint];
     AREA_OPTIONS.iter()
   }
 }

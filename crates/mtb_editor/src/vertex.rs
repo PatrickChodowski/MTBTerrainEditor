@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-//use bevy::render::mesh::{Indices, PrimitiveTopology};
+// use bevy::math::vec4;
+// use bevy::render::mesh::{Indices, PrimitiveTopology};
 
 pub struct VertexPlugin;
 
@@ -69,7 +70,7 @@ pub fn setup(mut commands:     Commands,
 
 pub fn pick_vertex(mut commands:          Commands,
                    mut pick_vertex_event: EventReader<PickVertex>,
-                   picked_vertex:     Query<&PickedVertex>
+                   picked_vertex:         Query<&PickedVertex>
                 ){
 
     for ev in pick_vertex_event.iter(){
@@ -80,6 +81,7 @@ pub fn pick_vertex(mut commands:          Commands,
         }
     }
 }
+
 
 pub fn highlight_picked(
     mut commands:          Commands,
@@ -94,6 +96,7 @@ pub fn highlight_picked(
         }
     }
 }
+
 
 
 
@@ -137,7 +140,13 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                     Vertex::from_loc(pos),
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
-                                    OnPointer::<Down>::send_event::<PickVertex>())).id();
+                                    OnPointer::<Down>::send_event::<PickVertex>(),
+                                    OnPointer::<DragStart>::target_remove::<Pickable>(), // Disable picking
+                                    OnPointer::<DragEnd>::target_insert(Pickable), // Re-enable picking
+                                    OnPointer::<Drag>::target_component_mut::<Transform>(|drag, transform| {
+                                        transform.translation += drag.delta.extend(0.0) // Make the square follow the mouse
+                                    }),
+                                )).id();
 
         vertices.push(entity);
 
@@ -147,19 +156,18 @@ pub fn spawn_vertex(plane_entity: &Entity,
 
 }
 
-
-/* 
-pub const HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
+/*
+pub const VERTEX_HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
     hovered: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color + vec4(-0.2, -0.2, 0.4, 0.0),
+        base_color: matl.base_color,
         ..matl.to_owned()
     })),
     pressed: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color + vec4(-0.3, -0.3, 0.5, 0.0),
+        base_color: matl.base_color,
         ..matl.to_owned()
     })),
     selected: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color + vec4(-0.3, 0.2, -0.3, 0.0),
+        base_color: matl.base_color,
         ..matl.to_owned()
     })),
   };

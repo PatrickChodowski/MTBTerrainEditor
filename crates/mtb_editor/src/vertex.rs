@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use bevy::math::vec4;
 //use bevy::render::mesh::{Indices, PrimitiveTopology};
 
 pub struct VertexPlugin;
@@ -11,7 +10,9 @@ impl Plugin for VertexPlugin {
         .add_event::<PickVertex>()
         .add_startup_system(setup)
         .add_system(pick_vertex.run_if(on_event::<PickVertex>()))
-        .add_system(highlight_picked.in_base_set(CoreSet::PostUpdate))
+        .add_system(highlight_picked.run_if(on_event::<PickVertex>())
+                                    .after(pick_vertex)
+                                    .in_base_set(CoreSet::PostUpdate))
         ;
     }
 }
@@ -23,12 +24,6 @@ pub struct PickVertex {
 }
 impl From<ListenedEvent<Down>> for PickVertex {
     fn from(event: ListenedEvent<Down>) -> Self {
-        PickVertex{entity: event.target}
-    }
-}
-
-impl From<ListenedEvent<Out>> for PickVertex {
-    fn from(event: ListenedEvent<Out>) -> Self {
         PickVertex{entity: event.target}
     }
 }
@@ -51,7 +46,9 @@ pub fn setup(mut commands:     Commands,
     // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
     let default_vertex_material = materials.add(Color::BLACK.into());
     let red_vertex_material = materials.add(Color::ORANGE_RED.into());
-    let default_vertex_mesh = meshes.add(shape::UVSphere::default().into());
+    //let default_vertex_mesh = meshes.add(shape::UVSphere::default().into());
+
+    let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());
 
     commands.spawn((PbrBundle {
         material: default_vertex_material.clone(),
@@ -71,26 +68,29 @@ pub fn setup(mut commands:     Commands,
 }
 
 pub fn pick_vertex(mut commands:          Commands,
-                   mut pick_vertex_event: EventReader<PickVertex>){
+                   mut pick_vertex_event: EventReader<PickVertex>,
+                   picked_vertex:     Query<&PickedVertex>
+                ){
+
     for ev in pick_vertex_event.iter(){
-        info!("clicked vertex: {:?}", ev.entity);
-        commands.entity(ev.entity).insert(PickedVertex);
-
+        if let Ok(_ent) = picked_vertex.get(ev.entity) {
+            commands.entity(ev.entity).remove::<PickedVertex>();
+        } else {
+            commands.entity(ev.entity).insert(PickedVertex);
+        }
     }
-
 }
 
 pub fn highlight_picked(
     mut commands:          Commands,
     mut vertex:            Query<(Entity, Option<&PickedVertex>), With<Vertex>>, 
-    refs:       Res<VertexRefs>){
-
-    
+    refs:                  Res<VertexRefs>){
 
     for (entity, picked) in vertex.iter_mut(){
         if picked.is_some(){
-            info!("picked vertex: {:?}", entity);
             commands.entity(entity).insert(refs.picked_mat.clone_weak());
+        } else {
+            commands.entity(entity).insert(refs.mat.clone_weak());
         }
     }
 }
@@ -137,10 +137,7 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                     Vertex::from_loc(pos),
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
-                                    OnPointer::<Down>::send_event::<PickVertex>(),
-                                    OnPointer::<Out>::send_event::<PickVertex>(),  // Finish Hover
-                                    //OnPointer::<Over>::send_event::<PickVertex>(),  // Hover
-                                    HIGHLIGHT_TINT)).id();
+                                    OnPointer::<Down>::send_event::<PickVertex>())).id();
 
         vertices.push(entity);
 
@@ -151,7 +148,7 @@ pub fn spawn_vertex(plane_entity: &Entity,
 }
 
 
-
+/* 
 pub const HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
     hovered: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
         base_color: matl.base_color + vec4(-0.2, -0.2, 0.4, 0.0),
@@ -166,3 +163,4 @@ pub const HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
         ..matl.to_owned()
     })),
   };
+  */

@@ -14,10 +14,14 @@ impl Plugin for VertexPlugin {
         .add_system(highlight_picked.run_if(on_event::<PickVertex>())
                                     .after(pick_vertex)
                                     .in_base_set(CoreSet::PostUpdate))
+        .add_system(vertex_update)
         ;
     }
 }
 
+pub fn vertex_update(mut vertex: Query<(&mut Transform, &GlobalTransform, &mut Vertex), Changed<Transform>>){
+
+}
 
 
 pub struct PickVertex {

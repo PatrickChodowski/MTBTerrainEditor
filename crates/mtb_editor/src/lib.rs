@@ -14,7 +14,6 @@ pub mod vertex;
 
 pub mod widgets;
 
-use boxselect::box_select;
 use mtb_console::MTBConsolePlugin;
 use mtb_core::planes::PlanesPlugin;
 use mtb_colors::MTBColorsPlugin;
@@ -47,14 +46,42 @@ impl Plugin for MTBEditorPlugin {
         // .add_plugin(WorldInspectorPlugin::new())
         .add_system(toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
         .add_system(toggle_displaystate.run_if(input_just_pressed(KeyCode::Space)))
+
         .add_system(show_wireframe.in_schedule(OnEnter(DisplayState::Wireframe)))
         .add_system(hide_wireframe.in_schedule(OnExit(DisplayState::Wireframe)))
 
         .add_system(show_vertex.in_schedule(OnEnter(DisplayState::Vertex)))
         .add_system(hide_vertex.in_schedule(OnExit(DisplayState::Vertex)))
+
+        .add_system(show_vertex_wire.in_schedule(OnEnter(DisplayState::VertexWireframe)))
+        .add_system(hide_vertex_wire.in_schedule(OnExit(DisplayState::VertexWireframe)))
         ;
     }
  }
+
+ pub fn show_vertex_wire(mut commands:     Commands, 
+                         planes:           Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,                    
+                         mut meshes:       ResMut<Assets<Mesh>>,
+                         refs:             Res<VertexRefs>){
+
+    for (entity, handle_mesh) in planes.iter(){
+        commands.entity(entity).insert(Wireframe);
+        spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
+    }
+    
+}
+
+pub fn hide_vertex_wire(mut commands: Commands, 
+                        planes:       Query<Entity, With<Wireframe>>,
+                        vertex:       Query<Entity, With<Vertex>>){
+    for plane in planes.iter(){
+        commands.entity(plane).remove::<Wireframe>();
+    }
+    for entity in vertex.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 
 
 pub fn show_vertex(mut commands:     Commands, 

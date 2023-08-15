@@ -4,6 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
+use crate::vertex::PickedVertex;
 use crate::widgets::utils::{has_point, get_aabb};
 
 use crate::mtb_camera::MTBCamera;
@@ -18,17 +19,10 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
-      .add_system(click.run_if(input_just_pressed(MouseButton::Left)))
       ;
   }
 }
 
-// Click on grid in edit mode
-fn click(hover_data: Res<HoverData>){
-  if let Hoverables::Grid = hover_data.hoverable {
-    info!(" clicked on grid: ({},{})", hover_data.hovered_tile_xz.0, hover_data.hovered_tile_xz.1);
-  }
-}
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
 fn _update(mut grid: ResMut<GridData>, 
@@ -59,12 +53,12 @@ fn _update(mut grid: ResMut<GridData>,
 }
 
 // check if mouse is hovering over grid, plane or gui
-fn hover_check(mut hover_data:      ResMut<HoverData>,
-               gui:                 Query<(&Node, &GlobalTransform, &Visibility), With<GUIElement>>,
-               planes:              Query<(Entity, &AABB), With<PlaneData>>,
-               window:              Query<&Window, With<PrimaryWindow>>,
-               camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
-               grid:                Res<GridData>){
+pub fn hover_check(mut hover_data:      ResMut<HoverData>,
+                   gui:                 Query<(&Node, &GlobalTransform, &Visibility), With<GUIElement>>,
+                   planes:              Query<(Entity, &AABB), With<PlaneData>>,
+                   window:              Query<&Window, With<PrimaryWindow>>,
+                   camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
+                   grid:                Res<GridData>){
 
     hover_data.reset();
     let mut is_hovered_gui: bool = false;
@@ -114,8 +108,6 @@ fn hover_check(mut hover_data:      ResMut<HoverData>,
           hover_data.hoverable = Hoverables::Grid;
         }
     }
-
-
 }
 
 
@@ -131,6 +123,7 @@ pub enum Hoverables {
 pub struct HoverData {
   pub cursor_position:      Option<(f32,f32)>,
   pub hovered_xz:           (f32, f32),
+  pub old_hovered_xz:       (f32, f32),
   pub hovered_tile_xz:      (i32, i32),
   pub hoverable:            Hoverables,
   pub old_hoverable:        Hoverables,
@@ -141,12 +134,14 @@ impl HoverData {
   pub fn new() -> HoverData {
         return HoverData{cursor_position: None,
                          hovered_xz: (0.0, 0.0),
+                         old_hovered_xz: (0.0, 0.0),
                          hovered_tile_xz: (0, 0),
                          hoverable: Hoverables::None,
                          old_hoverable: Hoverables::None};
   }
   pub fn reset(&mut self){
     self.cursor_position = None;
+    self.old_hovered_xz = self.hovered_xz;
     self.hovered_xz = (0.0, 0.0);
     self.hovered_tile_xz = (0, 0);
     self.old_hoverable = self.hoverable;

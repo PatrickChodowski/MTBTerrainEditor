@@ -1,14 +1,14 @@
 
-use bevy::input::common_conditions::input_just_pressed;
+use bevy::input::common_conditions::{input_just_pressed, input_pressed};
 use bevy::prelude::*;
 use std::slice::Iter;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 
-use crate::mtb_grid::{GridData, HoverData, Hoverables};
-use crate::{AppState, boxselect};
-use crate::boxselect::{box_select,BoxSelectPlugin, BoxSelect};
+use crate::mtb_grid::{GridData, HoverData, Hoverables, hover_check};
+use crate::AppState;
+use crate::boxselect::{BoxSelectPlugin, BoxSelect};
 use crate::vertex::Vertex;
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
@@ -50,7 +50,11 @@ impl Plugin for MTBUIPlugin {
         .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
         .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
 
-        .add_system(pick.run_if(in_state(AppState::Edit)))
+        .add_system(pick.run_if(in_state(AppState::Edit)
+                        .or_else(input_just_pressed(MouseButton::Left))
+                        .or_else(input_pressed(MouseButton::Left)))
+                        .after(hover_check)
+                      )
 
         // .add_system(apply.run_if(in_state(AppState::Editor)))
         ;
@@ -65,9 +69,6 @@ impl Picker {
   pub fn new() -> Picker {
     Picker { select: SelectOption::Point }
   }
-  pub fn reset(&mut self) {
-    self.select = SelectOption::Point
-  }
 }
  
 pub fn pick(mut commands:       Commands, 
@@ -80,14 +81,9 @@ pub fn pick(mut commands:       Commands,
 
   match picker.select {
     SelectOption::Box    => {
-      box_select(&mut commands, &mut boxselect, &mut meshes, &mut materials, &hoverdata);
-
-    }
-    SelectOption::Ellipse => {}
-    SelectOption::Point   => {
       
     }
-    SelectOption::Brush   => {}
+    _ => {}
   }
 
 }

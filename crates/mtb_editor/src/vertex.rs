@@ -1,7 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}};
 use bevy_mod_picking::prelude::*;
-// use bevy::math::vec4;
-// use bevy::render::mesh::{Indices, PrimitiveTopology};
+use mtb_core::planes::TerrainPlane;
+
+use crate::boxselect::BoxSelect;
+use crate::{mtb_grid::{HoverData, hover_check}, mtb_ui::{Picker, SelectOption}};
+
 
 pub struct VertexPlugin;
 
@@ -11,16 +14,84 @@ impl Plugin for VertexPlugin {
         .add_event::<PickVertex>()
         .add_startup_system(setup)
         .add_system(pick_vertex.run_if(on_event::<PickVertex>()))
-        .add_system(highlight_picked.run_if(on_event::<PickVertex>())
-                                    .after(pick_vertex)
+        .add_system(clear.run_if(input_just_pressed(MouseButton::Right)).in_base_set(CoreSet::PreUpdate))
+        .add_system(pick_box.run_if(input_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
+        .add_system(highlight_picked.after(pick_vertex)
                                     .in_base_set(CoreSet::PostUpdate))
-        .add_system(vertex_update)
+        .add_system(drag.run_if(input_pressed(MouseButton::Left))
+                        .after(hover_check)
+                        .after(highlight_picked)
+                        .in_base_set(CoreSet::PostUpdate))
+        .add_system(vertex_update.after(drag).in_base_set(CoreSet::PostUpdate))
         ;
     }
 }
 
-pub fn vertex_update(mut vertex: Query<(&mut Transform, &GlobalTransform, &mut Vertex), Changed<Transform>>){
 
+fn pick_box(mut commands:      Commands,
+            box_select:        Query<&Transform, With<BoxSelect>>,
+            vertex:            Query<(Entity, &Transform), With<Vertex>>
+){
+    if let Ok(t) = box_select.get_single(){
+        let x = t.translation.x;
+        let z = t.translation.z;
+        let w = t.scale.x/2.0;
+        let h = t.scale.z/2.0;
+        let aabb: [f32; 4] = [x-w, x+w, z-h, z+h];
+
+        for (entity, tr) in vertex.iter() {
+            let px = tr.translation.x;
+            let py = tr.translation.z;
+            if px >= aabb[0] && px <= aabb[1] && py >= aabb[2] && py <= aabb[3] {
+                commands.entity(entity).insert(PickedVertex);
+            } else {
+                commands.entity(entity).remove::<PickedVertex>();
+            }
+        }
+    }
+
+}
+
+// Click on grid in edit mode
+fn clear(mut commands: Commands,
+         picked_vertex: Query<Entity, With<PickedVertex>>){
+    for v in picked_vertex.iter(){
+      commands.entity(v).remove::<PickedVertex>();
+    }
+}
+
+
+pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>, 
+            picker:            Res<Picker>,
+            hover_data:        Res<HoverData>){
+
+    if let SelectOption::Point = picker.select {
+        let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
+        let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
+    
+        for mut tr in picked_vertex.iter_mut(){
+            tr.translation.x += delta_x;
+            tr.translation.z += delta_y;
+        }
+    }
+}
+
+
+pub fn vertex_update(mut vertex: Query<(&Transform, &mut Vertex, &Parent), Changed<Transform>>,
+                     planes: Query<&Handle<Mesh>, With<TerrainPlane>>,
+                     mut meshes: ResMut<Assets<Mesh>>
+){
+    for (transform, mut vertex, parent) in vertex.iter_mut(){
+
+        if let Ok(plane_mesh_handle) = planes.get(**parent) {
+            if let Some(plane_mesh) = meshes.get_mut(plane_mesh_handle) {
+                let mut v_pos: Vec<[f32; 3]> = plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
+                v_pos[vertex.index] = transform.translation.into();
+                plane_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
+            }
+        }
+        vertex.loc = transform.translation.into();
+    }
 }
 
 
@@ -51,9 +122,9 @@ pub fn setup(mut commands:     Commands,
     // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
     let default_vertex_material = materials.add(Color::BLACK.into());
     let red_vertex_material = materials.add(Color::ORANGE_RED.into());
-    //let default_vertex_mesh = meshes.add(shape::UVSphere::default().into());
+    let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 5.0, ..default()}.into());
 
-    let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());
+    // let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());
 
     commands.spawn((PbrBundle {
         material: default_vertex_material.clone(),
@@ -113,12 +184,13 @@ pub struct PickedVertex;
 
 #[derive(Component)]
 pub struct Vertex {
+    pub index: usize,
     pub loc: [f32;3],
     pub clr: [f32;4]
 }
 impl Vertex {
-    pub fn from_loc(loc: &[f32;3]) -> Self{
-        Vertex {loc: *loc, clr: [0.5, 0.5, 0.5, 1.0]}
+    pub fn from_loc(loc: &[f32;3], index: usize) -> Self{
+        Vertex {loc: *loc, clr: [0.5, 0.5, 0.5, 1.0], index}
     }
 }
 
@@ -134,22 +206,22 @@ pub fn spawn_vertex(plane_entity: &Entity,
     let v_pos: Vec<[f32; 3]> = plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
     // let mut v_clr: Vec<[f32; 4]> = Vec::new();
     let mut vertices: Vec<Entity> = Vec::new();
-    for pos in v_pos.iter(){
+    for (index, pos) in v_pos.iter().enumerate(){
 
         let entity = commands.spawn((PbrBundle {
                                         material: refs.mat.clone_weak(),
                                         mesh: refs.mesh.clone_weak(),
                                     transform: Transform::from_translation(pos.clone().into()),
                                     ..default()}, 
-                                    Vertex::from_loc(pos),
+                                    Vertex::from_loc(pos, index),
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     OnPointer::<Down>::send_event::<PickVertex>(),
-                                    OnPointer::<DragStart>::target_remove::<Pickable>(), // Disable picking
-                                    OnPointer::<DragEnd>::target_insert(Pickable), // Re-enable picking
-                                    OnPointer::<Drag>::target_component_mut::<Transform>(|drag, transform| {
-                                        transform.translation += drag.delta.extend(0.0) // Make the square follow the mouse
-                                    }),
+                                    // OnPointer::<DragStart>::target_remove::<Pickable>(), // Disable picking
+                                    // OnPointer::<DragEnd>::target_insert(Pickable), // Re-enable picking
+                                    // OnPointer::<Drag>::target_component_mut::<Transform>(|drag, transform| {
+                                    //     transform.translation += drag.delta.extend(0.0) // Make the square follow the mouse
+                                    // }),
                                 )).id();
 
         vertices.push(entity);
@@ -159,20 +231,3 @@ pub fn spawn_vertex(plane_entity: &Entity,
     commands.entity(*plane_entity).push_children(&vertices);
 
 }
-
-/*
-pub const VERTEX_HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
-    hovered: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color,
-        ..matl.to_owned()
-    })),
-    pressed: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color,
-        ..matl.to_owned()
-    })),
-    selected: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
-        base_color: matl.base_color,
-        ..matl.to_owned()
-    })),
-  };
-  */

@@ -1,15 +1,16 @@
 
-use bevy::input::common_conditions::{input_just_pressed, input_pressed};
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use std::slice::Iter;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 
-use crate::mtb_grid::{GridData, HoverData, Hoverables, hover_check};
+use crate::mtb_grid::{GridData, HoverData, Hoverables};
 use crate::AppState;
-use crate::boxselect::{BoxSelectPlugin, BoxSelect};
-use crate::vertex::Vertex;
+use crate::brush::BrushPlugin;
+use crate::boxselect::BoxSelectPlugin;
+
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
@@ -17,8 +18,6 @@ use crate::widgets::button_group::spawn_button_group;
 use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
 use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
 use crate::widgets::text_node::spawn_text_node;
-
-
 
 pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
 pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
@@ -33,6 +32,7 @@ pub struct MTBUIPlugin;
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_state::<PickerState>()
         .add_plugin(BoxSelectPlugin)
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
@@ -40,7 +40,7 @@ impl Plugin for MTBUIPlugin {
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .insert_resource(ColorsLib::new())
-        .insert_resource(Picker::new())
+        .add_plugin(BrushPlugin)
         .add_startup_system(setup)
         .add_system(update_left_into_panel)
         .add_system(open_modal.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
@@ -48,57 +48,29 @@ impl Plugin for MTBUIPlugin {
 
         .add_system(open_editor.in_schedule(OnEnter(AppState::Edit)))
         .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
-        .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)))
-
-        .add_system(pick.run_if(in_state(AppState::Edit)
-                        .or_else(input_just_pressed(MouseButton::Left))
-                        .or_else(input_pressed(MouseButton::Left)))
-                        .after(hover_check)
-                      )
-
-        // .add_system(apply.run_if(in_state(AppState::Editor)))
+        .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
         ;
     }
 }
 
-#[derive(Resource)]
-pub struct Picker {
-  pub select: SelectOption
-} 
-impl Picker {
-  pub fn new() -> Picker {
-    Picker { select: SelectOption::Point }
-  }
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
+pub enum PickerState {
+    #[default]
+    Point,
+    Brush,
+    Box
 }
+
  
-pub fn pick(mut commands:       Commands, 
-            picker:             Res<Picker>, 
-            hoverdata:          Res<HoverData>,
-            mut meshes:         ResMut<Assets<Mesh>>,
-            mut materials:      ResMut<Assets<StandardMaterial>>,
-            mut boxselect:      Query<(&mut Transform, &mut BoxSelect)>,
-            vertex:             Query<(Entity, &GlobalTransform), With<Vertex>>){
+pub fn click_button(mut next_picker_state:   ResMut<NextState<PickerState>>,
+                    mut buttons:             Query<(&Interaction, &ButtonValue, Option<&PickerState>), (Changed<Interaction>, With<Button>)>){
 
-  match picker.select {
-    SelectOption::Box    => {
-      
-    }
-    _ => {}
-  }
-
-}
-
-
-
-pub fn click_button(mut picker:  ResMut<Picker>,
-                    mut buttons: Query<(&Interaction, &ButtonValue, Option<&SelectOption>), (Changed<Interaction>, With<Button>)>){
-
-  for (interaction, value, area) in buttons.iter_mut() {
+  for (interaction, _value, picker) in buttons.iter_mut() {
     match *interaction {
       Interaction::Clicked => {
-        if let Some(area) = area {
-          picker.select = *area;
-          info!(" [DEBUG] Changed Picker area to {}", area.to_str());
+        if let Some(picker) = picker {
+          next_picker_state.set(*picker);
+          info!(" [DEBUG] Changed Picker type to {}",picker.to_str());
         }
       }
       _ => {}
@@ -111,14 +83,14 @@ pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
   let ent_sidepanel = spawn_side_panel(&mut commands);
   commands.entity(ent_sidepanel).insert(GUIElement);
   let mut v: Vec<Entity> = Vec::new();
-  for area_option in SelectOption::iterator(){
+  for picker_option in PickerState::iterator(){
       let new_button = spawn_button(&mut commands, 
                                     &ass,
-                                    ButtonValue::String(area_option.to_str().to_string()),
+                                    ButtonValue::String(picker_option.to_str().to_string()),
                                     (Val::Percent(10.0), Val::Percent(1.0)),
                                     (Val::Percent(80.0), Val::Px(20.0)),
                                     PositionType::Relative);
-      commands.entity(new_button).insert(*area_option);
+      commands.entity(new_button).insert(*picker_option);
       v.push(new_button);
   }
   commands.entity(ent_sidepanel).push_children(&v);
@@ -204,29 +176,18 @@ pub enum ModalType {
   ColorGradient
 }
 
-#[derive(Component, Debug, Clone, Copy)]
-pub enum SelectOption {
-  Box,
-  Ellipse,
-  Point,
-  Brush
-} 
 
-impl<'a> SelectOption {
+impl<'a> PickerState {
   fn to_str(&self) -> &'a str {
     match self {
-      SelectOption::Box => {"box"}
-      SelectOption::Ellipse => {"ellipse"}
-      SelectOption::Point => {"point"}
-      SelectOption::Brush => {"brush"}
+      PickerState::Box => {"box"}
+      PickerState::Point => {"point"}
+      PickerState::Brush => {"brush"}
     }
   }
-  pub fn iterator() -> Iter<'static, SelectOption> {
-    static AREA_OPTIONS: [SelectOption; 4] = [SelectOption::Box, 
-                                              SelectOption::Ellipse, 
-                                              SelectOption::Point, 
-                                              SelectOption::Brush];
-    AREA_OPTIONS.iter()
+  pub fn iterator() -> Iter<'static, PickerState> {
+    static PICKER_OPTIONS: [PickerState; 3] = [PickerState::Box, PickerState::Point, PickerState::Brush];
+    PICKER_OPTIONS.iter()
   }
 }
 

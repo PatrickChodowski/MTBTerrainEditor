@@ -1,10 +1,8 @@
 
-use bevy::input::common_conditions::input_just_pressed;
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
-use crate::vertex::PickedVertex;
 use crate::widgets::utils::{has_point, get_aabb};
 
 use crate::mtb_camera::MTBCamera;

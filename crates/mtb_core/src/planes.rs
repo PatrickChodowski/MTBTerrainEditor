@@ -161,7 +161,7 @@ impl PlaneData {
     return PlaneData{id: DEFAULT_PLANE_ID,
                      loc: [0.0, 0.0, 0.0], 
                      dims: [200.0, 200.0], 
-                     subdivisions: [1,1], 
+                     subdivisions: [10,10], 
                      color: Colors::new(), 
                      modifiers: Vec::new(), 
                      active: true};

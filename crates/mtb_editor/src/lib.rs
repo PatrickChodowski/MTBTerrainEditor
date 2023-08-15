@@ -5,6 +5,7 @@ use bevy::pbr::wireframe::{WireframePlugin,Wireframe};
 use bevy_mod_picking::DefaultPickingPlugins;
 
 pub mod boxselect;
+pub mod brush;
 pub mod mtb_camera;
 pub mod mtb_colors;
 pub mod mtb_console;
@@ -14,7 +15,7 @@ pub mod vertex;
 
 pub mod widgets;
 
-use mtb_console::MTBConsolePlugin;
+use mtb_console::{MTBConsolePlugin, ConsoleState};
 use mtb_core::planes::PlanesPlugin;
 use mtb_colors::MTBColorsPlugin;
 use mtb_camera::MTBCameraPlugin;
@@ -45,7 +46,7 @@ impl Plugin for MTBEditorPlugin {
         .add_plugin(VertexPlugin)
         // .add_plugin(WorldInspectorPlugin::new())
         .add_system(toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
-        .add_system(toggle_displaystate.run_if(input_just_pressed(KeyCode::Space)))
+        .add_system(toggle_displaystate.run_if(input_just_pressed(KeyCode::Space).and_then(in_state(ConsoleState::Off))))
 
         .add_system(show_wireframe.in_schedule(OnEnter(DisplayState::Wireframe)))
         .add_system(hide_wireframe.in_schedule(OnExit(DisplayState::Wireframe)))

@@ -3,7 +3,8 @@ use bevy::input::common_conditions::{input_just_pressed, input_pressed, input_ju
 use bevy::prelude::*;
 use libm::fabsf;
 
-use crate::mtb_ui::{Picker, SelectOption};
+use crate::vertex::{Vertex, PickedVertex};
+use crate::mtb_ui::PickerState;
 use crate::mtb_grid::{HoverData, Hoverables};
 pub struct BoxSelectPlugin;
 
@@ -12,16 +13,44 @@ impl Plugin for BoxSelectPlugin {
         app
         .add_system(despawn_box_select
                         .run_if(input_just_pressed(MouseButton::Right)
-                        .or_else(input_just_released(MouseButton::Left))))
+                        .or_else(input_just_released(MouseButton::Left)))
+                        .in_set(OnUpdate(PickerState::Box)))
         .add_system(spawn_box_select
                         .run_if(input_just_pressed(MouseButton::Left))
-                        .in_base_set(CoreSet::PreUpdate))
+                        .in_set(OnUpdate(PickerState::Box)))
         .add_system(update_box_select
                         .run_if(input_pressed(MouseButton::Left))
-                        .in_base_set(CoreSet::PreUpdate))
-        ;
+                        .in_set(OnUpdate(PickerState::Box)))
+        .add_system(select.in_set(OnUpdate(PickerState::Box)).after(update_box_select))
+      ;                      
+    }
+  }
+        
+
+          
+fn select(mut commands:      Commands,
+            box_select:      Query<&Transform, With<BoxSelect>>,
+            vertex:          Query<(Entity, &Transform), With<Vertex>>
+){
+    if let Ok(t) = box_select.get_single(){
+        let x = t.translation.x;
+        let z = t.translation.z;
+        let w = t.scale.x/2.0;
+        let h = t.scale.z/2.0;
+        let aabb: [f32; 4] = [x-w, x+w, z-h, z+h];
+
+        for (entity, tr) in vertex.iter() {
+            let px = tr.translation.x;
+            let py = tr.translation.z;
+            if px >= aabb[0] && px <= aabb[1] && py >= aabb[2] && py <= aabb[3] {
+                commands.entity(entity).insert(PickedVertex);
+            } else {
+                commands.entity(entity).remove::<PickedVertex>();
+            }
+        }
     }
 }
+
 
 #[derive(Component)]
 pub struct BoxSelect {
@@ -51,10 +80,8 @@ pub fn spawn_box_select(mut commands:      Commands,
                         mut materials:     ResMut<Assets<StandardMaterial>>,
                         mut meshes:        ResMut<Assets<Mesh>>, 
                         box_select:        Query<&Transform, With<BoxSelect>>,
-                        hover_data:        Res<HoverData>,
-                        picker:            Res<Picker>){
+                        hover_data:        Res<HoverData>){
 
-    if let SelectOption::Box = picker.select {
         match hover_data.hoverable {
             Hoverables::Entity(_) | Hoverables::Grid => {
                 let loc = hover_data.hovered_xz;
@@ -69,7 +96,6 @@ pub fn spawn_box_select(mut commands:      Commands,
             }
             _ => {}
         }
-    }
 }
 
 // Deselects all selectable on mouse right click or button change

@@ -3,7 +3,7 @@ use bevy_mod_picking::prelude::*;
 use mtb_core::planes::TerrainPlane;
 
 use crate::boxselect::BoxSelect;
-use crate::{mtb_grid::{HoverData, hover_check}, mtb_ui::{Picker, SelectOption}};
+use crate::{mtb_grid::{HoverData, hover_check}, mtb_ui::PickerState};
 
 
 pub struct VertexPlugin;
@@ -15,42 +15,16 @@ impl Plugin for VertexPlugin {
         .add_startup_system(setup)
         .add_system(pick_vertex.run_if(on_event::<PickVertex>()))
         .add_system(clear.run_if(input_just_pressed(MouseButton::Right)).in_base_set(CoreSet::PreUpdate))
-        .add_system(pick_box.run_if(input_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
         .add_system(highlight_picked.after(pick_vertex)
                                     .in_base_set(CoreSet::PostUpdate))
         .add_system(drag.run_if(input_pressed(MouseButton::Left))
                         .after(hover_check)
-                        .after(highlight_picked)
-                        .in_base_set(CoreSet::PostUpdate))
+                        .in_set(OnUpdate(PickerState::Point)))
         .add_system(vertex_update.after(drag).in_base_set(CoreSet::PostUpdate))
         ;
     }
 }
 
-
-fn pick_box(mut commands:      Commands,
-            box_select:        Query<&Transform, With<BoxSelect>>,
-            vertex:            Query<(Entity, &Transform), With<Vertex>>
-){
-    if let Ok(t) = box_select.get_single(){
-        let x = t.translation.x;
-        let z = t.translation.z;
-        let w = t.scale.x/2.0;
-        let h = t.scale.z/2.0;
-        let aabb: [f32; 4] = [x-w, x+w, z-h, z+h];
-
-        for (entity, tr) in vertex.iter() {
-            let px = tr.translation.x;
-            let py = tr.translation.z;
-            if px >= aabb[0] && px <= aabb[1] && py >= aabb[2] && py <= aabb[3] {
-                commands.entity(entity).insert(PickedVertex);
-            } else {
-                commands.entity(entity).remove::<PickedVertex>();
-            }
-        }
-    }
-
-}
 
 // Click on grid in edit mode
 fn clear(mut commands: Commands,
@@ -62,18 +36,16 @@ fn clear(mut commands: Commands,
 
 
 pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>, 
-            picker:            Res<Picker>,
             hover_data:        Res<HoverData>){
 
-    if let SelectOption::Point = picker.select {
-        let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
-        let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
-    
-        for mut tr in picked_vertex.iter_mut(){
-            tr.translation.x += delta_x;
-            tr.translation.z += delta_y;
-        }
+    let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
+    let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
+
+    for mut tr in picked_vertex.iter_mut(){
+        tr.translation.x += delta_x;
+        tr.translation.z += delta_y;
     }
+
 }
 
 
@@ -120,8 +92,8 @@ pub fn setup(mut commands:     Commands,
     let ref_loc: [f32;3] = [-5000.0, -5000.0, -5000.0]; // basically hell
 
     // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
-    let default_vertex_material = materials.add(Color::BLACK.into());
-    let red_vertex_material = materials.add(Color::ORANGE_RED.into());
+    let default_vertex_material = materials.add(Color::BLACK.with_a(0.75).into());
+    let red_vertex_material = materials.add(Color::ORANGE_RED.with_a(0.75).into());
     let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 5.0, ..default()}.into());
 
     // let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());

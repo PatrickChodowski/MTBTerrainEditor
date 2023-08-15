@@ -2414,6 +2414,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strsim",
+ "triangulate",
 ]
 
 [[package]]
@@ -2785,6 +2786,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "221d488cd70617f1bd599ed8ceb659df2147d9393717954d82a0f5e8032a6ab1"
 dependencies = [
  "redox_syscall 0.3.5",
+]
+
+[[package]]
+name = "ordered-float"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7940cf2ca942593318d07fcf2596cdca60a85c9e7fab408a5e21a4f9dcd40d87"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -3517,6 +3527,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "triangulate"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f737ed9bcc496b67fd1e24f63c14eace0cb9216d14bca000fd5934fddc6af7f6"
+dependencies = [
+ "backtrace",
+ "num-traits",
+ "ordered-float",
+ "rand 0.8.5",
+ "smallvec",
+ "zot",
+]
+
+[[package]]
 name = "ttf-parser"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4154,3 +4178,9 @@ name = "xml-rs"
 version = "0.8.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47430998a7b5d499ccee752b41567bc3afc57e1327dc855b1a2aa44ce29b5fa1"
+
+[[package]]
+name = "zot"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12a5c04eac01d1f630aa1b7375984fbbc6c3b28b0975fc90bfa3e2c58caaa727"

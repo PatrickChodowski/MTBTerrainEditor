@@ -82,12 +82,14 @@ impl DropDown {
 
         let mut v: Vec<Entity> = Vec::new();
         let txt_style = TextStyle {font_size: 15.0, color: Color::BLACK,font: ass.load("fonts/lambda.ttf")};
-        let label_entity = commands.spawn(TextBundle::from_section(self.label.clone(), txt_style)).id();
+        let label_entity = commands.spawn(TextBundle::from_section(self.label.clone(), txt_style.clone())).id();
         v.push(label_entity);
 
         let mut option_style = styles.option_style;
         option_style.position_type = PositionType::Relative;
-        option_style.position = UiRect{left: Val::Px(0.0), top: Val::Px(10.0), ..default()};
+        // option_style.position = UiRect{left: Val::Px(5.0), top: Val::Px(25.0), ..default()};
+        option_style.position = UiRect{left: Val::Percent(0.0), top: Val::Percent(70.0), ..default()};
+        option_style.margin = UiRect{left: Val::Px(0.0), top: Val::Px(5.0), right: Val::Px(0.0), bottom: Val::Px(0.0)};
         option_style.size = Size::new(Val::Px(self.display.option_dims.0), Val::Px(self.display.option_dims.1));
 
         for ddopt in self.options.iter(){
@@ -100,6 +102,10 @@ impl DropDown {
             ddopt.clone(), 
             Name::new(format!("Dropdown Option {}", ddopt.label.clone()))))
             .id();
+
+            let label_option_entity = commands.spawn(TextBundle::from_section(ddopt.label.clone(), txt_style.clone())).id();
+            commands.entity(dropdown_option_entity).push_children(&[label_option_entity]);
+
             v.push(dropdown_option_entity);
         }
 
@@ -128,7 +134,7 @@ impl Default for DropDownDisplay {
     fn default() -> Self {
         DropDownDisplay {
             dims: (110.0, 40.0),
-            option_dims: (70.0, 45.0),
+            option_dims: (100.0, 40.0),
             label_color:  None, 
             option_color: None, 
         }
@@ -152,11 +158,11 @@ impl Default for DefaultDropDownStyles {
                 display:         Display::Flex,
                 position_type:   PositionType::Relative,
                 direction:       Direction::Inherit,
-                flex_direction:  FlexDirection::Row,
-                flex_wrap:       FlexWrap::Wrap,
-                align_items:     AlignItems::FlexStart,
+                flex_direction:  FlexDirection::Column,
+                flex_wrap:       FlexWrap::NoWrap,
+                align_items:     AlignItems::Center,
                 align_self:      AlignSelf::Auto,
-                align_content:   AlignContent::Stretch,
+                align_content:   AlignContent::Center,
                 justify_content: JustifyContent::FlexStart,
                 ..default()
             },
@@ -165,12 +171,12 @@ impl Default for DefaultDropDownStyles {
                 display:         Display::None,
                 position_type:   PositionType::Absolute,
                 direction:       Direction::Inherit,
-                flex_direction:  FlexDirection::Row,
+                flex_direction:  FlexDirection::Column,
                 flex_wrap:       FlexWrap::Wrap,
-                align_items:     AlignItems::FlexStart,
+                align_items:     AlignItems::Center,
                 align_self:      AlignSelf::Auto,
                 align_content:   AlignContent::Stretch,
-                justify_content: JustifyContent::FlexStart,
+                justify_content: JustifyContent::Center,
                 ..default()
             },
 

@@ -1,8 +1,6 @@
 use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}};
 use bevy_mod_picking::prelude::*;
 use mtb_core::planes::TerrainPlane;
-
-use crate::boxselect::BoxSelect;
 use crate::{mtb_grid::{HoverData, hover_check}, mtb_ui::PickerState};
 
 
@@ -92,9 +90,9 @@ pub fn setup(mut commands:     Commands,
     let ref_loc: [f32;3] = [-5000.0, -5000.0, -5000.0]; // basically hell
 
     // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
-    let default_vertex_material = materials.add(Color::BLACK.with_a(0.75).into());
-    let red_vertex_material = materials.add(Color::ORANGE_RED.with_a(0.75).into());
-    let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 5.0, ..default()}.into());
+    let default_vertex_material = materials.add(Color::BLACK.with_a(0.85).into());
+    let red_vertex_material = materials.add(Color::ORANGE_RED.with_a(0.85).into());
+    let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 3.0, ..default()}.into());
 
     // let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());
 

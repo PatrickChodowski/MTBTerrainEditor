@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "mtb_editor"
-version = "0.3.7"
+version = "0.3.9"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",

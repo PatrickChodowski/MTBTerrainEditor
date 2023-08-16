@@ -14,6 +14,7 @@ use crate::boxselect::BoxSelectPlugin;
 use crate::widgets::buttons::{spawn_button, ButtonValue};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
+use crate::widgets::slider::SliderPlugin;
 use crate::widgets::button_group::spawn_button_group;
 use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
 use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
@@ -37,6 +38,7 @@ impl Plugin for MTBUIPlugin {
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
         .add_plugin(ModalPlugin)
+        .add_plugin(SliderPlugin)
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .insert_resource(ColorsLib::new())
@@ -61,7 +63,6 @@ pub enum PickerState {
     Box
 }
 
- 
 pub fn click_button(mut next_picker_state:   ResMut<NextState<PickerState>>,
                     mut buttons:             Query<(&Interaction, &ButtonValue, Option<&PickerState>), (Changed<Interaction>, With<Button>)>){
 

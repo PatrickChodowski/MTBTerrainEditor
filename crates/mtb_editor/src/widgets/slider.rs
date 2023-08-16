@@ -3,7 +3,6 @@ use bevy::{prelude::*, input::common_conditions::input_pressed};
 use bevy::window::PrimaryWindow;
 
 use super::utils::{get_aabb, has_point};
-
 pub struct SliderPlugin;
 
 impl Plugin for SliderPlugin {
@@ -38,7 +37,7 @@ pub fn update_sliders(
             }
 
             let pcrt: f32;
-            match slider.layout {
+            match slider.display.layout {
                 SliderLayout::Horizontal => {
                     pcrt = ((pos.x - aabb[0])/((aabb[1]- aabb[0])*0.98)).clamp(0.0, 1.0);
                 }
@@ -69,6 +68,27 @@ pub enum SliderLayout {
     Horizontal
 }
 
+#[derive(Debug, Clone)]
+pub struct SliderDisplay {
+    pub layout: SliderLayout,
+    pub dims:   (f32, f32), // put dims here as they are used for value calculation 
+    pub bclr:   Option<[f32; 4]>,
+    pub clr:    Option<[f32; 4]>
+} 
+impl Default for SliderDisplay {
+    fn default() -> Self {
+        SliderDisplay {
+            layout: SliderLayout::Horizontal, 
+            dims: (200.0, 20.0),
+            clr:  None, 
+            bclr: None, 
+        }
+    }
+}
+
+
+
+
 #[derive(Component, Debug, Clone)]
 pub struct Slider {
     pub label:  String,
@@ -77,17 +97,73 @@ pub struct Slider {
     pub value:  f32,
     pub step:   f32,
 
-    pub layout: SliderLayout,
-    pub dims:   (f32, f32)
+    // Display settings
+    pub display: SliderDisplay
 } 
 
+impl Default for Slider {
+    fn default() -> Self {
+        Slider {label: "".to_string(), min:0.0, max: 1.0, value: 0.5, step: 0.001, display: SliderDisplay{..default()}}
+    }
+}
+
 impl Slider {
-    pub fn new(label: String) -> Self {
-        Slider {label, min:0.0, max: 1.0, value: 0.5, step: 0.001, layout: SliderLayout::Horizontal, dims: (200.0, 20.0)}
+
+    pub fn spawn(&self, 
+                 commands:      &mut Commands, 
+                 ass:           &Res<AssetServer>,
+                 position_type: PositionType,
+                 pos:           &(Val, Val)
+                ) -> Entity {
+
+        let mut styles = Slider::styles();
+        if let Some(clr) = self.display.clr {
+            styles.handle_color = clr;
+        }
+        if let Some(bclr) = self.display.bclr {
+            styles.box_color = bclr;
+        }
+
+
+        let mut box_style = styles.box_style;
+        box_style.position_type = position_type;
+        box_style.position = UiRect{left: pos.0, top: pos.1, ..default()};
+        box_style.size = Size::new(Val::Px(self.display.dims.0), Val::Px(self.display.dims.1));
+
+        let slider_entity = commands.spawn((NodeBundle{
+            style: box_style,
+            background_color: BackgroundColor(styles.box_color.into()),
+            ..default()
+          }, 
+          SliderBox, 
+          self.clone(), 
+          Name::new(format!("Slider {}", self.label.clone()))))
+          .id();
+
+        let handle_dims = self.get_handle_dims();
+        let handle_pos = self.get_handle_pos();
+
+        let mut handle_style = styles.handle_style;
+        handle_style.position = UiRect{left: Val::Percent(handle_pos.0), top: Val::Percent(handle_pos.1), ..default()};
+        handle_style.size = Size::new(Val::Px(handle_dims.0), Val::Px(handle_dims.1));
+      
+        let handler_entity = commands.spawn((NodeBundle{
+            style: handle_style,
+            background_color: BackgroundColor(styles.handle_color.into()),
+            ..default()
+          }, SliderHandle, Name::new(format!("Slider Handle {}", self.label.clone())))).id();
+
+        let txt_style = TextStyle {font_size: 15.0, color: Color::WHITE,font: ass.load("fonts/lambda.ttf")};
+        let label_entity = commands.spawn((TextBundle::from_section(self.get_label(), txt_style), SliderLabel)).id();
+        
+        commands.entity(slider_entity).push_children(&[handler_entity, label_entity]);
+
+        return slider_entity;
+
     }
 
-    pub fn from_dims(label: String, dims: (f32, f32)) -> Self {
-        Slider {label, min:0.0, max: 1.0, value: 0.5, step: 0.001, layout: SliderLayout::Horizontal, dims}
+    pub fn styles() -> DefaultSliderStyles {
+        DefaultSliderStyles::default()
     }
 
     pub fn map(&mut self, pcrt: f32) {
@@ -107,17 +183,17 @@ impl Slider {
     }
 
     pub fn get_handle_dims(&self) -> (f32, f32) {
-        match self.layout {
+        match self.display.layout {
             SliderLayout::Horizontal => {
-                (self.prct()*self.dims.0*0.99, self.dims.1*0.9)
+                (self.prct()*self.display.dims.0*0.99, self.display.dims.1*0.9)
             }
             SliderLayout::Vertical => {
-                (self.dims.0*0.9, self.prct()*self.dims.1*0.99)
+                (self.display.dims.0*0.9, self.prct()*self.display.dims.1*0.99)
             }
         }
     }
     pub fn get_handle_pos(&self) -> (f32, f32) {
-        match self.layout {
+        match self.display.layout {
             SliderLayout::Horizontal => {
                 (0.5, 5.0)
             }
@@ -133,6 +209,11 @@ impl Slider {
 }
 
 
+
+
+
+
+
 #[derive(Component)]
 pub struct SliderBox;
 
@@ -142,50 +223,52 @@ pub struct SliderHandle;
 #[derive(Component)]
 pub struct SliderLabel;
 
-pub fn spawn_slider(commands: &mut Commands, ass: &Res<AssetServer>, xy: &(f32, f32), dims: &(f32, f32), clr: [f32; 4], label: String) -> Entity {
 
-    let slider = Slider::from_dims(label.clone(), *dims);
-    let ent_slider = commands.spawn((NodeBundle{
-        style: Style {
-          position_type: PositionType::Absolute,
-          position: UiRect {left: Val::Percent(xy.0), 
-                            top: Val::Percent(xy.1), 
-                            ..default()},
-          size: Size::new(Val::Px(slider.dims.0), Val::Px(slider.dims.1)),
-          flex_wrap: FlexWrap::Wrap,
-          flex_direction: FlexDirection::Row,
-          align_items: AlignItems::FlexStart,
-          justify_content: JustifyContent::FlexStart,
-          ..default()
-        },
-        background_color: BackgroundColor([0.7, 0.7, 0.7, 1.0].into()),
-        ..default()
-      }, SliderBox, slider.clone(), Name::new(format!("Slider {}", label.clone())))).id();
 
-    let handle_dims = slider.get_handle_dims();
-    let handle_pos = slider.get_handle_pos();
 
-    let ent_handler = commands.spawn((NodeBundle{
-        style: Style {
-          position_type: PositionType::Absolute,
-          position: UiRect {left: Val::Percent(handle_pos.0), 
-                            top: Val::Percent(handle_pos.1), 
-                            ..default()},
-          size: Size::new(Val::Px(handle_dims.0), Val::Px(handle_dims.1)),
-          flex_wrap: FlexWrap::Wrap,
-          flex_direction: FlexDirection::Row,
-          align_items: AlignItems::FlexStart,
-          justify_content: JustifyContent::FlexStart,
-          ..default()
-        },
-        background_color: BackgroundColor(clr.into()),
-        ..default()
-      }, SliderHandle, Name::new(format!("Slider Handle {}", label.clone())))).id();
 
-    // label:
-    let txt_style = TextStyle {font_size: 15.0, color: Color::WHITE,font: ass.load("fonts/lambda.ttf")};
-    let label_ent = commands.spawn((TextBundle::from_section(slider.get_label(), txt_style), SliderLabel)).id();
+// Default styles for slider box and slider handle 
+
+pub struct DefaultSliderStyles {
+    pub box_style: Style,
+    pub handle_style: Style,
+    pub box_color:      [f32; 4],
+    pub handle_color:   [f32; 4]
+}
+
+impl Default for DefaultSliderStyles {
+    fn default() -> Self {
+
+        Self{
+            box_style: Style {
+                display:         Display::Flex,
+                position_type:   PositionType::Relative,
+                direction:       Direction::Inherit,
+                flex_direction:  FlexDirection::Row,
+                flex_wrap:       FlexWrap::Wrap,
+                align_items:     AlignItems::FlexStart,
+                align_self:      AlignSelf::Auto,
+                align_content:   AlignContent::Stretch,
+                justify_content: JustifyContent::FlexStart,
+                ..default()
+            },
+
+            handle_style: Style {
+                display:         Display::Flex,
+                position_type:   PositionType::Absolute,
+                direction:       Direction::Inherit,
+                flex_direction:  FlexDirection::Row,
+                flex_wrap:       FlexWrap::Wrap,
+                align_items:     AlignItems::FlexStart,
+                align_self:      AlignSelf::Auto,
+                align_content:   AlignContent::Stretch,
+                justify_content: JustifyContent::FlexStart,
+                ..default()
+            },
+
+            box_color:    [0.7, 0.7, 0.7, 1.0],
+            handle_color: [0.9, 0.9, 0.9, 1.0]
     
-    commands.entity(ent_slider).push_children(&[ent_handler, label_ent]);
-    return ent_slider;
+        }
+    }
 }

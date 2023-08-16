@@ -1,12 +1,11 @@
 
 use bevy::prelude::*;
-use super::slider::{spawn_slider, SliderPlugin, Slider};
+use super::slider::{Slider, SliderDisplay};
 pub struct ColorPickerPlugin;
 
 impl Plugin for ColorPickerPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_plugin(SliderPlugin)
         .add_system(update_color_picker)
         ;
     }
@@ -85,10 +84,22 @@ pub fn spawn_color_picker(commands: &mut Commands, ass: &Res<AssetServer>) -> En
 
     // Color sliders:
     let mut v: Vec<Entity> = Vec::new();
-    let r_ent = spawn_slider(commands, ass, &(1.0, 10.0), &(200.0, 30.0), [0.9, 0.2, 0.2, 0.5], "Red".to_string());
-    let g_ent = spawn_slider(commands, ass, &(1.0, 20.0), &(200.0, 30.0), [0.2, 0.9, 0.2, 0.5], "Green".to_string());
-    let b_ent = spawn_slider(commands, ass, &(1.0, 30.0), &(200.0, 30.0), [0.2, 0.2, 0.9, 0.5], "Blue".to_string());
-    let a_ent = spawn_slider(commands, ass, &(1.0, 40.0), &(200.0, 30.0), [0.984, 0.905, 0.937, 0.5], "Alpha".to_string());
+    let red_slider = Slider{min: 0.0, max: 1.0, value: 0.5, step: 0.01, label: "Red".to_string(),
+                        display: SliderDisplay{dims: (200.0, 30.0), clr: Some([0.9, 0.2, 0.2, 0.5]), ..default()}, ..default()};
+    let r_ent = red_slider.spawn(commands, &ass, PositionType::Absolute, &(Val::Percent(1.0), Val::Percent(10.0)));
+
+    let green_slider = Slider{min: 0.0, max: 1.0, value: 0.5, step: 0.01, label: "Green".to_string(),
+                        display: SliderDisplay{dims: (200.0, 30.0), clr: Some([0.2, 0.9, 0.2, 0.5]), ..default()}, ..default()};
+    let g_ent = green_slider.spawn(commands, &ass, PositionType::Absolute, &(Val::Percent(1.0), Val::Percent(20.0)));
+
+    let blue_slider = Slider{min: 0.0, max: 1.0, value: 0.5, step: 0.01, label: "Blue".to_string(),
+                        display: SliderDisplay{dims: (200.0, 30.0), clr: Some([0.2, 0.2, 0.9, 0.5]), ..default()}, ..default()};
+    let b_ent = blue_slider.spawn(commands, &ass, PositionType::Absolute, &(Val::Percent(1.0), Val::Percent(30.0)));
+
+    let alpha_slider = Slider{min: 0.0, max: 1.0, value: 0.5, step: 0.01, label: "Alpha".to_string(),
+                        display: SliderDisplay{dims: (200.0, 30.0), clr: Some([0.984, 0.905, 0.937, 0.5]), ..default()}, ..default()};
+    let a_ent = alpha_slider.spawn(commands, &ass, PositionType::Absolute, &(Val::Percent(1.0), Val::Percent(40.0)));
+
     commands.entity(r_ent).insert(ColorPickerChannel::R);
     commands.entity(g_ent).insert(ColorPickerChannel::G);
     commands.entity(b_ent).insert(ColorPickerChannel::B);

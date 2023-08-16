@@ -1,6 +1,6 @@
 [package]
 name = "mtb_editor"
-version = "0.3.7"
+version = "0.3.9"
 authors = ["Patrick Chodowski <chodowski.patrick@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"

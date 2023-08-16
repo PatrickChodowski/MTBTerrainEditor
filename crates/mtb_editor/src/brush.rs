@@ -13,69 +13,124 @@ use triangulate::formats::IndexedListFormat;
 use crate::vertex::{Vertex, PickedVertex};
 use crate::mtb_ui::PickerState;
 use crate::mtb_grid::HoverData;
+
+use crate::widgets::side_panel::SidePanel;
+use crate::widgets::slider::{Slider, SliderDisplay};
 pub struct BrushPlugin;
 
 impl Plugin for BrushPlugin {
     fn build(&self, app: &mut App) {
         app
+        .insert_resource(BrushSettings::new())
         .add_system(despawn_brush.in_schedule(OnExit(PickerState::Brush)))
-        .add_system(spawn_brush .in_schedule(OnEnter(PickerState::Brush)))
-        .add_system(update_brush.in_set(OnUpdate(PickerState::Brush)))
+        .add_system(spawn_brush.in_schedule(OnEnter(PickerState::Brush)))
+        .add_system(add_settings.in_schedule(OnEnter(PickerState::Brush)))
+        .add_system(update_settings.in_set(OnUpdate(PickerState::Brush)))
+        .add_system(rm_settings.in_schedule(OnExit(PickerState::Brush)))
+        .add_system(update_brush.in_set(OnUpdate(PickerState::Brush)).after(update_settings))
         .add_system(select.in_set(OnUpdate(PickerState::Brush)).after(update_brush).run_if(input_pressed(MouseButton::Left)))
         ;
     }
 }
 
 
+
+pub fn add_settings(mut commands:      Commands, 
+                    ass:               Res<AssetServer>,
+                    brush_settings:    Res<BrushSettings>,
+                    sidepanel:         Query<Entity, With<SidePanel>>){
+
+    if let Ok(sidepanel) = sidepanel.get_single() {
+        let slider = Slider{min: 1.0, max: 500.0, value: brush_settings.radius, step: 1.0, label: "Radius".to_string(),
+                            display: SliderDisplay{dims: (100.0, 30.0),..default()}, ..default()};
+        let slider_entity = slider.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(10.0), Val::Px(20.0)));
+        commands.entity(slider_entity).insert(BrushSettingRadius);
+        commands.entity(sidepanel).push_children(&[slider_entity]);
+    }
+
+}
+
+pub fn update_settings(
+        mut brush_settings:    ResMut<BrushSettings>,
+        brush_radius:          Query<(&BrushSettingRadius, &Slider)>){
+
+    if let Ok((_br, slider)) = brush_radius.get_single() {
+        brush_settings.radius = slider.value;
+    }
+
+}
+
+pub fn rm_settings(mut commands:      Commands, 
+                   brush_settings: Query<Entity, With<BrushSettingRadius>>){
+
+    for entity in brush_settings.iter(){
+        commands.entity(entity).despawn_recursive();
+    }
+
+}
+
 fn select(mut commands:      Commands,
+          brush_settings:    Res<BrushSettings>,
           brush_select:      Query<(&Transform, &Brush)>,
           vertex:            Query<(Entity, &Transform), With<Vertex>>
 ){
-    if let Ok((brt, br)) = brush_select.get_single(){
+    if let Ok((brt, _br)) = brush_select.get_single(){
         for (entity, tr) in vertex.iter() {
-            if get_distance_euclidean(&(brt.translation.x, brt.translation.z), &(tr.translation.x, tr.translation.z)) <= br.radius {
+            if get_distance_euclidean(&(brt.translation.x, brt.translation.z), &(tr.translation.x, tr.translation.z)) <= brush_settings.radius {
                 commands.entity(entity).insert(PickedVertex);
             } 
-            // else {
-                // commands.entity(entity).remove::<PickedVertex>();
-            // }
         }
     }
 }
 
-
-#[derive(Component)]
-pub struct Brush {
+#[derive(Resource)]
+pub struct BrushSettings {
   pub radius: f32
 }
-impl Brush {
-  fn new() -> Self {
-    Brush {radius: 20.0}
-  }
+impl BrushSettings {
+    fn new() -> Self {
+        BrushSettings {radius: 20.0}
+    }
 }
 
+#[derive(Component)]
+pub struct Brush;
+
+#[derive(Component)]
+pub struct BrushSettingRadius;
+
+
 pub fn update_brush(hover_data:        Res<HoverData>,
+                    brush_settings:    Res<BrushSettings>,
                     mut brush:         Query<&mut Transform, With<Brush>>){
 
     if let Ok(mut t) = brush.get_single_mut(){
         t.translation = [hover_data.hovered_xz.0, 20.0, hover_data.hovered_xz.1].into();
+
+        if brush_settings.is_changed() {
+            let scale = brush_settings.radius;
+            t.scale = [scale, 1.0, scale].into();
+        }
+
     }
 }
 
 pub fn spawn_brush(mut commands:      Commands, 
                    mut materials:     ResMut<Assets<StandardMaterial>>,
                    mut meshes:        ResMut<Assets<Mesh>>, 
+                   brush_settings:    Res<BrushSettings>,
                    brush:             Query<&Transform, With<Brush>>,
                    hover_data:        Res<HoverData>){
 
     let loc = hover_data.hovered_xz;
     if brush.is_empty(){
+        let scale = brush_settings.radius;
         commands.spawn((PbrBundle {
-            mesh: meshes.add(Mesh::try_from(Polygon::new_regular_ngon(20.0, 32)).unwrap()),
+            mesh: meshes.add(Mesh::try_from(Polygon::new_regular_ngon(1.0, 32)).unwrap()),
             material: materials.add(StandardMaterial::from(Color::YELLOW.with_a(0.4))),
-            transform: Transform::from_xyz(loc.0, 20.0, loc.1),
+            transform: Transform::from_xyz(loc.0, 20.0, loc.1).with_scale([scale, 1.0, scale].into()),
             ..default()
-        }, Brush::new()));
+        }, Brush));
     }
 }
 

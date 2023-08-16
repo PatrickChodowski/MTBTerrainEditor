@@ -188,7 +188,6 @@ fn update_dropdown(window:          Query<&Window, With<PrimaryWindow>>,
                    mut dd_options:  Query<&mut Style, With<DropDownOption>>)
 {
 
-    println!("input pressed");
     let Ok(primary) = window.get_single() else {return;};
     if let Some(pos) = primary.cursor_position(){
         for (n, v, gt, children, mut dropdown) in dropdowns.iter_mut(){
@@ -201,13 +200,9 @@ fn update_dropdown(window:          Query<&Window, With<PrimaryWindow>>,
             let dd_size = n.size();
             let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
 
-            println!("pre click on dropdown");
-
             if !aabb.has_point(&(pos.x, pos.y)){
                 continue; // Mouse not over the slider
             }
-
-            println!("click on dropdown");
 
             dropdown.expanded = !dropdown.expanded;
             for child in children.iter(){

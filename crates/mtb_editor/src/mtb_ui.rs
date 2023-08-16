@@ -12,7 +12,7 @@ use crate::brush::BrushPlugin;
 use crate::boxselect::BoxSelectPlugin;
 
 use crate::widgets::buttons::{spawn_button, ButtonValue};
-use crate::widgets::dropdown::DropDown;
+use crate::widgets::dropdown::{DropDown, DropDownPlugin};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
 use crate::widgets::slider::SliderPlugin;
@@ -40,6 +40,7 @@ impl Plugin for MTBUIPlugin {
         .add_plugin(TextInputPlugin)
         .add_plugin(ModalPlugin)
         .add_plugin(SliderPlugin)
+        .add_plugin(DropDownPlugin)
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .insert_resource(ColorsLib::new())

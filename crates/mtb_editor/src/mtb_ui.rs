@@ -1,7 +1,9 @@
 
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
+use std::str::FromStr;
 use std::slice::Iter;
+use bevy::window::PrimaryWindow;
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
@@ -10,9 +12,9 @@ use crate::mtb_grid::{GridData, HoverData, Hoverables};
 use crate::AppState;
 use crate::brush::BrushPlugin;
 use crate::boxselect::BoxSelectPlugin;
-
+use crate::widgets::utils::AABB;
 use crate::widgets::buttons::{spawn_button, ButtonValue};
-use crate::widgets::dropdown::{DropDown, DropDownPlugin};
+use crate::widgets::dropdown::{DropDown, DropDownPlugin, DropDownOption};
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
 use crate::widgets::slider::SliderPlugin;
@@ -35,6 +37,7 @@ impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_state::<PickerState>()
+        .add_state::<ModifierState>()
         .add_plugin(BoxSelectPlugin)
         .add_plugin(ColorPickerPlugin)
         .add_plugin(TextInputPlugin)
@@ -53,6 +56,7 @@ impl Plugin for MTBUIPlugin {
         .add_system(open_editor.in_schedule(OnEnter(AppState::Edit)))
         .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
         .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
+        .add_system(click_dropdown.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
         ;
     }
 }
@@ -64,6 +68,104 @@ pub enum PickerState {
     Brush,
     Box
 }
+
+impl<'a> PickerState {
+  fn to_str(&self) -> &'a str {
+    match self {
+      PickerState::Box => {"box"}
+      PickerState::Point => {"point"}
+      PickerState::Brush => {"brush"}
+    }
+  }
+  pub fn iterator() -> Iter<'static, PickerState> {
+    static PICKER_OPTIONS: [PickerState; 3] = [PickerState::Box, PickerState::Point, PickerState::Brush];
+    PICKER_OPTIONS.iter()
+  }
+}
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
+pub enum ModifierState {
+    #[default]
+    Color,
+    Noise,
+    Value,
+    Wave,
+    Terraces,
+    Smoothing
+}
+
+impl<'a> ModifierState {
+  fn to_str(&self) -> &'a str {
+    match self {
+      ModifierState::Color     => {"Color"}
+      ModifierState::Noise     => {"Noise"}
+      ModifierState::Value     => {"Value"}
+      ModifierState::Wave      => {"Wave"}
+      ModifierState::Terraces  => {"Terraces"}
+      ModifierState::Smoothing => {"Smoothing"}
+    }
+  }
+  pub fn iterator() -> Iter<'static, ModifierState> {
+    static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, ModifierState::Noise, ModifierState::Value,
+                                              ModifierState::Wave, ModifierState::Terraces, ModifierState::Smoothing];
+    MOD_OPTIONS.iter()
+  }
+  
+}
+
+impl FromStr for ModifierState {
+  type Err = ();
+  fn from_str(input: &str) -> Result<ModifierState, Self::Err> {
+      match input {
+          "Color"     => Ok(ModifierState::Color),
+          "Noise"     => Ok(ModifierState::Noise),
+          "Value"     => Ok(ModifierState::Value),
+          "Wave"      => Ok(ModifierState::Wave),
+          "Terraces"  => Ok(ModifierState::Terraces),
+          "Smoothing" => Ok(ModifierState::Smoothing),
+          _      => Err(()),
+      }
+  }
+}
+
+
+#[derive(Component)]
+pub struct ModifierDropDown;
+
+pub fn click_dropdown(window:                    Query<&Window, With<PrimaryWindow>>,
+                      mut next_modifier_state:   ResMut<NextState<ModifierState>>,
+                      dropdown:                  Query<Option<&ModifierDropDown>, With<DropDown>>,
+                      dropdown_options:          Query<(&Node, &Visibility, &GlobalTransform, &DropDownOption, &Parent)>) {
+
+  let Ok(primary) = window.get_single() else {return;};
+  if let Some(pos) = primary.cursor_position(){
+      for (n, v, gt, dropdown_option, parent) in dropdown_options.iter(){
+          if v == Visibility::Hidden {
+              continue;
+          }
+          
+          let x = gt.translation().x;
+          let y = primary.height() - gt.translation().y;
+          let dd_size = n.size();
+          let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
+  
+          if !aabb.has_point(&(pos.x, pos.y)){
+              continue; // Mouse not over the slider
+          }
+
+          if let Ok(option_modifier_dd) = dropdown.get(**parent) {
+            if option_modifier_dd.is_none(){
+              continue;
+            }
+            if let Ok(modifier) = ModifierState::from_str(&dropdown_option.value){
+              next_modifier_state.set(modifier);
+            }
+          }
+      }
+  }
+
+}
+
 
 pub fn click_button(mut next_picker_state:   ResMut<NextState<PickerState>>,
                     mut buttons:             Query<(&Interaction, &ButtonValue, Option<&PickerState>), (Changed<Interaction>, With<Button>)>){
@@ -98,8 +200,14 @@ pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
       v.push(new_button);
   }
 
-  let dd = DropDown::default();
+  let mut dd_options: Vec<DropDownOption> = Vec::new();
+  for modifier in ModifierState::iterator() {
+    dd_options.push(DropDownOption{label: modifier.to_str().to_string(), value: modifier.to_str().to_string()},)
+  }
+
+  let dd = DropDown {label: "Modifier".to_string(), options: dd_options, ..default()};
   let dd_entity = dd.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(20.0), Val::Px(150.0)));
+  commands.entity(dd_entity).insert(ModifierDropDown);
   v.push(dd_entity);
 
   commands.entity(ent_sidepanel).push_children(&v);
@@ -186,22 +294,6 @@ pub enum ModalType {
 }
 
 
-impl<'a> PickerState {
-  fn to_str(&self) -> &'a str {
-    match self {
-      PickerState::Box => {"box"}
-      PickerState::Point => {"point"}
-      PickerState::Brush => {"brush"}
-    }
-  }
-  pub fn iterator() -> Iter<'static, PickerState> {
-    static PICKER_OPTIONS: [PickerState; 3] = [PickerState::Box, PickerState::Point, PickerState::Brush];
-    PICKER_OPTIONS.iter()
-  }
-}
-
-
-
 pub struct ToggleSubmenuEvent {
   pub button_entity: Entity,
   pub height_diff: f32,
@@ -240,6 +332,7 @@ fn update_left_into_panel(mut commands:  Commands,
                           hover_data:    Res<HoverData>,
                           ass:           Res<AssetServer>,
                           app_state:     Res<State<AppState>>,
+                          mod_state:     Res<State<ModifierState>>,
                           planes:        Query<&PlaneData>,
                           top_left:      Query<Entity, With<TopLeftInfoPanel>>){
 
@@ -248,6 +341,7 @@ fn update_left_into_panel(mut commands:  Commands,
 
   let mut v: Vec<Entity> = Vec::new();
   v.push(spawn_text_node(&format!("    App State: {:?}", app_state.0), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    Modifier: {:?}", mod_state.0), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Planes Count: {:?}", planes.iter().len()), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 

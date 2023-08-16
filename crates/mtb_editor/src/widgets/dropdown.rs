@@ -18,7 +18,6 @@ pub struct DropDownLabel;
 
 #[derive(Component, Clone, Debug)]
 pub struct DropDownOption {
-    pub index: u32,
     pub label: String,
     pub value: String
 }
@@ -37,9 +36,9 @@ impl Default for DropDown {
     fn default() -> Self {
         DropDown {label: "Default Dropdown".to_string(), 
                   options: vec![
-                    DropDownOption{index: 0, label: "Option 1".to_string(), value: "option1".to_string()},
-                    DropDownOption{index: 1, label: "Option 2".to_string(), value: "option2".to_string()},
-                    DropDownOption{index: 2, label: "Option 3".to_string(), value: "option3".to_string()}
+                    DropDownOption{label: "Option 1".to_string(), value: "option1".to_string()},
+                    DropDownOption{label: "Option 2".to_string(), value: "option2".to_string()},
+                    DropDownOption{label: "Option 3".to_string(), value: "option3".to_string()}
                   ],
                   expanded: false,
                   display: DropDownDisplay::default()
@@ -189,9 +188,9 @@ impl Default for DefaultDropDownStyles {
 
 
 
-fn update_dropdown(window:          Query<&Window, With<PrimaryWindow>>,
-                   mut dropdowns:   Query<(&Node, &Visibility, &GlobalTransform, &Children, &mut DropDown), Without<DropDownOption>>,
-                   mut dd_options:  Query<&mut Style, With<DropDownOption>>)
+fn update_dropdown(window:                Query<&Window, With<PrimaryWindow>>,
+                   mut dropdowns:         Query<(&Node, &Visibility, &GlobalTransform, &Children, &mut DropDown), Without<DropDownOption>>,
+                   mut dropdown_options:  Query<&mut Style, With<DropDownOption>>)
 {
 
     let Ok(primary) = window.get_single() else {return;};
@@ -212,7 +211,7 @@ fn update_dropdown(window:          Query<&Window, With<PrimaryWindow>>,
 
             dropdown.expanded = !dropdown.expanded;
             for child in children.iter(){
-                if let Ok(mut style) = dd_options.get_mut(*child) {
+                if let Ok(mut style) = dropdown_options.get_mut(*child) {
                     if dropdown.expanded {
                         style.display = Display::Flex;
                     } else {
@@ -223,3 +222,31 @@ fn update_dropdown(window:          Query<&Window, With<PrimaryWindow>>,
         }
     }
 }
+
+
+// fn click_dropdown(window:                 Query<&Window, With<PrimaryWindow>>,
+//                   dropdown_options:       Query<(&Node, &Visibility, &GlobalTransform, &DropDownOption)>) {
+
+
+//     let Ok(primary) = window.get_single() else {return;};
+//     if let Some(pos) = primary.cursor_position(){
+//         for (n, v, gt, dropdown_option) in dropdown_options.iter(){
+//             if v == Visibility::Hidden {
+//                 continue;
+//             }
+            
+//             let x = gt.translation().x;
+//             let y = primary.height() - gt.translation().y;
+//             let dd_size = n.size();
+//             let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
+    
+//             if !aabb.has_point(&(pos.x, pos.y)){
+//                 continue; // Mouse not over the slider
+//             }
+
+//             println!("CLICKED ON DROPDOWN OPTION {}", dropdown_option.label);
+//         }
+//     }
+
+
+// }

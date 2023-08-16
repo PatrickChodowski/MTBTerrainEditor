@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::window::PrimaryWindow;
 
-use super::utils::{get_aabb, has_point};
+use super::utils::AABB;
 
 pub struct TextInputPlugin;
 
@@ -46,8 +46,8 @@ pub fn try_focus(mut commands:           Commands,
             let x = gt.translation().x;
             let y = primary.height() - gt.translation().y;
             let slider_size = n.size();
-            let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
-            if has_point(&aabb, &(pos.x, pos.y)) {
+            let aabb = AABB::new(&(x, y), &(slider_size.x, slider_size.y));
+            if aabb.has_point(&(pos.x, pos.y)) {
                 bkgc.0.set_r(0.9);
                 bkgc.0.set_g(0.9);
                 bkgc.0.set_b(0.9);

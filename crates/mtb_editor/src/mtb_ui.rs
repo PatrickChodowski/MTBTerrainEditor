@@ -12,6 +12,7 @@ use crate::brush::BrushPlugin;
 use crate::boxselect::BoxSelectPlugin;
 
 use crate::widgets::buttons::{spawn_button, ButtonValue};
+use crate::widgets::dropdown::DropDown;
 use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
 use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
 use crate::widgets::slider::SliderPlugin;
@@ -84,6 +85,7 @@ pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
   let ent_sidepanel = spawn_side_panel(&mut commands);
   commands.entity(ent_sidepanel).insert(GUIElement);
   let mut v: Vec<Entity> = Vec::new();
+
   for picker_option in PickerState::iterator(){
       let new_button = spawn_button(&mut commands, 
                                     &ass,
@@ -94,6 +96,11 @@ pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
       commands.entity(new_button).insert(*picker_option);
       v.push(new_button);
   }
+
+  let dd = DropDown::default();
+  let dd_entity = dd.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(20.0), Val::Px(150.0)));
+  v.push(dd_entity);
+
   commands.entity(ent_sidepanel).push_children(&v);
 }
 

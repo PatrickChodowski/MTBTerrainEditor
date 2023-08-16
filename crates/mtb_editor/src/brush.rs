@@ -43,7 +43,7 @@ pub fn add_settings(mut commands:      Commands,
     if let Ok(sidepanel) = sidepanel.get_single() {
         let slider = Slider{min: 1.0, max: 500.0, value: brush_settings.radius, step: 1.0, label: "Radius".to_string(),
                             display: SliderDisplay{dims: (100.0, 30.0),..default()}, ..default()};
-        let slider_entity = slider.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(10.0), Val::Px(20.0)));
+        let slider_entity = slider.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(20.0), Val::Px(20.0)));
         commands.entity(slider_entity).insert(BrushSettingRadius);
         commands.entity(sidepanel).push_children(&[slider_entity]);
     }

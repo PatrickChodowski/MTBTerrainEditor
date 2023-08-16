@@ -2,7 +2,7 @@
 use bevy::{prelude::*, input::common_conditions::input_pressed};
 use bevy::window::PrimaryWindow;
 
-use super::utils::{get_aabb, has_point};
+use super::utils::AABB;
 pub struct SliderPlugin;
 
 impl Plugin for SliderPlugin {
@@ -14,7 +14,7 @@ impl Plugin for SliderPlugin {
 }
 
 pub fn update_sliders(
-    window:  Query<&Window, With<PrimaryWindow>>,
+    window:      Query<&Window, With<PrimaryWindow>>,
     mut sliders: Query<(&Node, &Visibility, &GlobalTransform, &Children, &mut Slider), (Without<SliderHandle>, Without<SliderLabel>)>,
     mut handles: Query<&mut Style, (With<SliderHandle>, Without<SliderLabel>)>,
     mut labels:  Query<&mut Text, (With<SliderLabel>, Without<SliderHandle>)>
@@ -30,19 +30,19 @@ pub fn update_sliders(
             let x = gt.translation().x;
             let y = primary.height() - gt.translation().y;
             let slider_size = n.size();
-            let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
+            let aabb = AABB::new(&(x, y), &(slider_size.x, slider_size.y));
 
-            if !has_point(&aabb, &(pos.x, pos.y)){
+            if !aabb.has_point(&(pos.x, pos.y)){
                 continue; // Mouse not over the slider
             }
 
             let pcrt: f32;
             match slider.display.layout {
                 SliderLayout::Horizontal => {
-                    pcrt = ((pos.x - aabb[0])/((aabb[1]- aabb[0])*0.98)).clamp(0.0, 1.0);
+                    pcrt = ((pos.x - aabb.min_x)/((aabb.max_x - aabb.min_x)*0.98)).clamp(0.0, 1.0);
                 }
                 SliderLayout::Vertical => {
-                    pcrt = ((pos.y - aabb[2])/((aabb[3]- aabb[2])*0.98)).clamp(0.0, 1.0);
+                    pcrt = ((pos.y - aabb.min_y)/((aabb.max_y- aabb.min_y)*0.98)).clamp(0.0, 1.0);
                 }
             }
             slider.map(pcrt);

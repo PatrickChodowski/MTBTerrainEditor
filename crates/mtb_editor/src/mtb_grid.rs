@@ -3,7 +3,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
-use crate::widgets::utils::{has_point, get_aabb};
+use crate::widgets::utils::AABB as WidgetsAABB;
 
 use crate::mtb_camera::MTBCamera;
 use crate::mtb_ui::GUIElement;
@@ -72,8 +72,8 @@ pub fn hover_check(mut hover_data:      ResMut<HoverData>,
             let x = gt.translation().x;
             let y = primary.height() - gt.translation().y;
             let slider_size = n.size();
-            let aabb = get_aabb(&(x, y), &(slider_size.x, slider_size.y));
-            if has_point(&aabb, &(pos.x, pos.y)){
+            let aabb = WidgetsAABB::new(&(x, y), &(slider_size.x, slider_size.y));
+            if aabb.has_point(&(pos.x, pos.y)){
               is_hovered_gui = true;
               break;
             }

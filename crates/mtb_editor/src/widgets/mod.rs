@@ -1,6 +1,7 @@
 pub mod button_group;
 pub mod buttons;
 pub mod color_picker;
+pub mod dropdown;
 pub mod modal;
 pub mod side_panel;
 pub mod slider;

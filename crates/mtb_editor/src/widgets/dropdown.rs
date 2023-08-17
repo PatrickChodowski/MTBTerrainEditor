@@ -8,7 +8,7 @@ pub struct DropDownPlugin;
 impl Plugin for DropDownPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_system(update_dropdown.run_if(input_just_pressed(MouseButton::Left)))
+        .add_systems(Update, update_dropdown.run_if(input_just_pressed(MouseButton::Left)))
         ;
     }
 }
@@ -66,8 +66,10 @@ impl DropDown {
 
         let mut label_style = styles.label_style;
         label_style.position_type = position_type;
-        label_style.position = UiRect{left: pos.0, top: pos.1, ..default()};
-        label_style.size = Size::new(Val::Px(self.display.dims.0), Val::Px(self.display.dims.1));
+        label_style.left = pos.0;
+        label_style.top = pos.1;
+        label_style.width = Val::Px(self.display.dims.0); 
+        label_style.height = Val::Px(self.display.dims.1);
 
         let dropdown_entity = commands.spawn((NodeBundle{
                 style: label_style,
@@ -86,10 +88,11 @@ impl DropDown {
 
         let mut option_style = styles.option_style;
         option_style.position_type = PositionType::Relative;
-        // option_style.position = UiRect{left: Val::Px(5.0), top: Val::Px(25.0), ..default()};
-        option_style.position = UiRect{left: Val::Percent(0.0), top: Val::Percent(70.0), ..default()};
+        option_style.left = Val::Percent(0.0);
+        option_style.top = Val::Percent(70.0);
         option_style.margin = UiRect{left: Val::Px(0.0), top: Val::Px(5.0), right: Val::Px(0.0), bottom: Val::Px(0.0)};
-        option_style.size = Size::new(Val::Px(self.display.option_dims.0), Val::Px(self.display.option_dims.1));
+        option_style.width = Val::Px(self.display.option_dims.0);
+        option_style.height =  Val::Px(self.display.option_dims.1);
 
         for ddopt in self.options.iter(){
 
@@ -189,26 +192,20 @@ impl Default for DefaultDropDownStyles {
 
 
 fn update_dropdown(window:                Query<&Window, With<PrimaryWindow>>,
-                   mut dropdowns:         Query<(&Node, &Visibility, &GlobalTransform, &Children, &mut DropDown), Without<DropDownOption>>,
+                   mut dropdowns:         Query<(&Node, &GlobalTransform, &Children, &mut DropDown), Without<DropDownOption>>,
                    mut dropdown_options:  Query<&mut Style, With<DropDownOption>>)
 {
 
     let Ok(primary) = window.get_single() else {return;};
     if let Some(pos) = primary.cursor_position(){
-        for (n, v, gt, children, mut dropdown) in dropdowns.iter_mut(){
-            if v == Visibility::Hidden {
-                continue;
-            }
-            
+        for (n, gt, children, mut dropdown) in dropdowns.iter_mut(){
             let x = gt.translation().x;
-            let y = primary.height() - gt.translation().y;
+            let y = gt.translation().y;
             let dd_size = n.size();
             let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
-
             if !aabb.has_point(&(pos.x, pos.y)){
                 continue; // Mouse not over the slider
             }
-
             dropdown.expanded = !dropdown.expanded;
             for child in children.iter(){
                 if let Ok(mut style) = dropdown_options.get_mut(*child) {

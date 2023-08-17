@@ -1,6 +1,6 @@
 [package]
 name = "mtb_terrain_gen"
-version = "0.3.7"
+version = "0.3.9"
 authors = ["Patrick Chodowski <chodowski.patrick@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -14,17 +14,17 @@ resolver = "2"
 members = ["crates/*"]
 
 [dependencies]
-bevy = { version = "0.10.1", features = ["dynamic_linking"] }
-bevy_common_assets = {  version ="0.6.0", features = ["toml"]}
+bevy = { version = "0.11.1", features = ["dynamic_linking"] }
+bevy_common_assets = {  version ="0.7.0", features = ["toml"]}
 libm = "0.2.7"
 serde = "1.0"
 noise = "0.8.2"
 rand="0.8.5"
 
 # Local
-mtb_core = { path = "crates/mtb_core", version = "0.3.7" }
-mtb_editor = { path = "crates/mtb_editor", version = "0.3.7" }
-mtb_loader = { path = "crates/mtb_loader", version = "0.3.7" }
+mtb_core = { path = "crates/mtb_core", version = "0.3.9" }
+mtb_editor = { path = "crates/mtb_editor", version = "0.3.9" }
+mtb_loader = { path = "crates/mtb_loader", version = "0.3.9" }
 
 
 [profile.dev]

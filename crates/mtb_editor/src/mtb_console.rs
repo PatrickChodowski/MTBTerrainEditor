@@ -20,12 +20,10 @@ impl Plugin for MTBConsolePlugin {
       .insert_resource(SentCommands{data: Vec::new(), index:0})
       .insert_resource(PlaneSetID(DEFAULT_PLANE_ID))
       .add_state::<ConsoleState>()
-      .add_startup_system(setup)
-      .add_systems((console_toggle.run_if(input_just_pressed(KeyCode::Return)), 
-                    update.run_if(in_state(ConsoleState::On)), 
-                    send_command.run_if(on_event::<TriggerCommand>()), 
-                    animate.run_if(in_state(ConsoleState::On)),
-                    display.run_if(in_state(ConsoleState::On))).chain())
+      .add_systems(Startup, setup)
+      .add_systems(PreUpdate, console_toggle.run_if(input_just_pressed(KeyCode::Return)))
+      .add_systems(Update, (update, animate, display).chain().run_if(in_state(ConsoleState::On)))
+      .add_systems(Update, send_command.run_if(on_event::<TriggerCommand>()))
       ;
   }
 }
@@ -103,6 +101,7 @@ impl SentCommands {
     }
 }
 
+#[derive(Event)]
 pub struct TriggerCommand;
 
 
@@ -137,10 +136,10 @@ fn setup(mut commands: Commands,
     let console_node = commands.spawn(NodeBundle{
         style: Style {
           position_type: PositionType::Absolute,
-          position: UiRect {left: Val::Percent(5.0), 
-                            top: Val::Percent(93.0), 
-                            ..default()},
-          size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+          left: Val::Percent(5.0), 
+          top: Val::Percent(93.0), 
+          width: Val::Percent(100.0), 
+          height: Val::Percent(100.0),
           flex_wrap: FlexWrap::Wrap,
           flex_direction: FlexDirection::Column,
           align_items: AlignItems::FlexStart,
@@ -186,7 +185,7 @@ fn console_toggle(console_state:            Res<State<ConsoleState>>,
                   mut console_node:         Query<&mut Visibility, With<ConsoleDisplay>>
                 ){
 
-    match console_state.0 {
+    match console_state.get() {
         ConsoleState::On => {
             trigger_command.send(TriggerCommand);
             for mut v in console_node.iter_mut(){

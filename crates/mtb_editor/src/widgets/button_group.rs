@@ -12,7 +12,7 @@ impl Plugin for ButtonGroupPlugin {
     fn build(&self, app: &mut App) {
         app
         // .add_system(update.run_if(resource_changed::<ColorsLib>()))
-        .add_system(click.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
+        .add_systems(PreUpdate, click.run_if(input_just_pressed(MouseButton::Left)))
         ;
     }
 }
@@ -36,15 +36,15 @@ pub fn spawn_button_group(commands:  &mut Commands,
 
     let ent_bg = commands.spawn((NodeBundle{
       style: Style {
-        position_type: PositionType::Absolute,
-        position: UiRect {left: Val::Percent(xy.0), 
-                          top: Val::Percent(xy.1), 
-                          ..default()},
-        size: Size::new(Val::Px(dims.0), Val::Px(dims.1)),
-        flex_wrap: FlexWrap::Wrap,
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::FlexStart,
-        justify_content: JustifyContent::FlexStart,
+        position_type:    PositionType::Absolute,
+        left:             Val::Percent(xy.0), 
+        top:              Val::Percent(xy.1), 
+        width:            Val::Px(dims.0), 
+        height:           Val::Px(dims.1),
+        flex_wrap:        FlexWrap::Wrap,
+        flex_direction:   FlexDirection::Row,
+        align_items:      AlignItems::FlexStart,
+        justify_content:  JustifyContent::FlexStart,
         ..default()
       },
       background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),

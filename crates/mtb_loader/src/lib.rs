@@ -9,11 +9,11 @@ pub struct MTBLoaderPlugin;
 impl Plugin for MTBLoaderPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_plugin(TomlAssetPlugin::<Planes>::new(&["mtbscene.toml"]))
-        .add_plugin(TomlAssetPlugin::<MTBConfigData>::new(&["mtbconfig.toml"]))
-        .add_startup_system(setup_config)
-        .add_system(setup_terrains_file_handle.run_if(on_event::<AssetEvent<MTBConfigData>>()))
-        .add_system(planes_update.run_if(on_event::<AssetEvent<Planes>>()).in_base_set(CoreSet::PostUpdate))
+        .add_plugins(TomlAssetPlugin::<Planes>::new(&["mtbscene.toml"]))
+        .add_plugins(TomlAssetPlugin::<MTBConfigData>::new(&["mtbconfig.toml"]))
+        .add_systems(Startup, setup_config)
+        .add_systems(Update, setup_terrains_file_handle.run_if(on_event::<AssetEvent<MTBConfigData>>()))
+        .add_systems(PostUpdate, planes_update.run_if(on_event::<AssetEvent<Planes>>()))
         ;
     }
   }

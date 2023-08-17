@@ -10,15 +10,12 @@ impl Plugin for VertexPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_event::<PickVertex>()
-        .add_startup_system(setup)
-        .add_system(pick_vertex.run_if(on_event::<PickVertex>()))
-        .add_system(clear.run_if(input_just_pressed(MouseButton::Right)).in_base_set(CoreSet::PreUpdate))
-        .add_system(highlight_picked.after(pick_vertex)
-                                    .in_base_set(CoreSet::PostUpdate))
-        .add_system(drag.run_if(input_pressed(MouseButton::Left))
-                        .after(hover_check)
-                        .in_set(OnUpdate(PickerState::Point)))
-        .add_system(vertex_update.after(drag).in_base_set(CoreSet::PostUpdate))
+        .add_systems(Startup, setup)
+        .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>()))
+        .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)))
+        .add_systems(PostUpdate, highlight_picked.after(pick_vertex))
+        .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Point))).after(hover_check))
+        .add_systems(PostUpdate, vertex_update.after(drag))
         ;
     }
 }
@@ -64,12 +61,12 @@ pub fn vertex_update(mut vertex: Query<(&Transform, &mut Vertex, &Parent), Chang
     }
 }
 
-
+#[derive(Event)]
 pub struct PickVertex {
     pub entity: Entity
 }
-impl From<ListenedEvent<Down>> for PickVertex {
-    fn from(event: ListenedEvent<Down>) -> Self {
+impl  From<ListenerInput<Pointer<Down>>> for PickVertex {
+    fn from(event: ListenerInput<Pointer<Down>>) -> Self {
         PickVertex{entity: event.target}
     }
 }
@@ -186,7 +183,7 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                     Vertex::from_loc(pos, index),
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
-                                    OnPointer::<Down>::send_event::<PickVertex>(),
+                                    On::<Pointer<Down>>::send_event::<PickVertex>(),
                                     // OnPointer::<DragStart>::target_remove::<Pickable>(), // Disable picking
                                     // OnPointer::<DragEnd>::target_insert(Pickable), // Re-enable picking
                                     // OnPointer::<Drag>::target_component_mut::<Transform>(|drag, transform| {

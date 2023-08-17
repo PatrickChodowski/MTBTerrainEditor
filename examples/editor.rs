@@ -1,4 +1,6 @@
 
+use bevy::asset::ChangeWatcher;
+use std::time::Duration;
 use bevy::prelude::*;
 use bevy::window::{WindowMode, PresentMode, WindowPlugin, WindowResolution};
 use mtb_editor::MTBEditorPlugin;
@@ -19,9 +21,9 @@ fn main() {
 
                 ..default()
             }), ..default()})
-            .set(AssetPlugin {watch_for_changes: true,..default()})
+            .set(AssetPlugin {watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),..default()})
         )
-        .add_plugin(MTBEditorPlugin)
+        .add_plugins(MTBEditorPlugin)
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
         .run();

@@ -38,25 +38,26 @@ impl Plugin for MTBUIPlugin {
         app
         .add_state::<PickerState>()
         .add_state::<ModifierState>()
-        .add_plugin(BoxSelectPlugin)
-        .add_plugin(ColorPickerPlugin)
-        .add_plugin(TextInputPlugin)
-        .add_plugin(ModalPlugin)
-        .add_plugin(SliderPlugin)
-        .add_plugin(DropDownPlugin)
+        .add_plugins(BoxSelectPlugin)
+        .add_plugins(ColorPickerPlugin)
+        .add_plugins(TextInputPlugin)
+        .add_plugins(ModalPlugin)
+        .add_plugins(SliderPlugin)
+        .add_plugins(DropDownPlugin)
         .add_event::<ToggleSubmenuEvent>()
         .add_event::<OpenModalEvent>()
         .insert_resource(ColorsLib::new())
-        .add_plugin(BrushPlugin)
-        .add_startup_system(setup)
-        .add_system(update_left_into_panel)
-        .add_system(open_modal.run_if(in_state(ModalState::Off).and_then(on_event::<OpenModalEvent>())))
-        .add_system(save_modal.in_schedule(OnExit(ModalState::On)))
+        .add_plugins(BrushPlugin)
+        .add_systems(Startup, setup)
 
-        .add_system(open_editor.in_schedule(OnEnter(AppState::Edit)))
-        .add_system(close_editor.in_schedule(OnExit(AppState::Edit)))
-        .add_system(click_button.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
-        .add_system(click_dropdown.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
+        .add_systems(Update, update_left_into_panel)
+        .add_systems(ModalState::Off, open_modal.run_if(on_event::<OpenModalEvent>()))
+        .add_systems(OnExit(ModalState::On), save_modal)
+
+        .add_systems(OnEnter(AppState::Edit), open_editor)
+        .add_systems(OnExit(AppState::Edit), close_editor)
+        .add_systems(PreUpdate, click_button.run_if(input_just_pressed(MouseButton::Left)))
+        .add_systems(PreUpdate, click_dropdown.run_if(input_just_pressed(MouseButton::Left)))
         ;
     }
 }
@@ -145,7 +146,7 @@ pub fn click_dropdown(window:                    Query<&Window, With<PrimaryWind
           }
           
           let x = gt.translation().x;
-          let y = primary.height() - gt.translation().y;
+          let y = gt.translation().y;
           let dd_size = n.size();
           let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
   
@@ -172,7 +173,7 @@ pub fn click_button(mut next_picker_state:   ResMut<NextState<PickerState>>,
 
   for (interaction, _value, picker) in buttons.iter_mut() {
     match *interaction {
-      Interaction::Clicked => {
+      Interaction::Pressed => {
         if let Some(picker) = picker {
           next_picker_state.set(*picker);
           info!(" [DEBUG] Changed Picker type to {}",picker.to_str());
@@ -281,6 +282,7 @@ pub fn save_modal(modals:                Query<(&ModalType, &Children), With<Mod
 }
 
 
+#[derive(Event)]
 pub struct OpenModalEvent {
   pub modal_type: ModalType
 }
@@ -293,7 +295,7 @@ pub enum ModalType {
   ColorGradient
 }
 
-
+#[derive(Event)]
 pub struct ToggleSubmenuEvent {
   pub button_entity: Entity,
   pub height_diff: f32,
@@ -340,8 +342,8 @@ fn update_left_into_panel(mut commands:  Commands,
   commands.entity(ent).despawn_descendants();
 
   let mut v: Vec<Entity> = Vec::new();
-  v.push(spawn_text_node(&format!("    App State: {:?}", app_state.0), &mut commands, &ass));  
-  v.push(spawn_text_node(&format!("    Modifier: {:?}", mod_state.0), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    App State: {:?}", app_state.get()), &mut commands, &ass));  
+  v.push(spawn_text_node(&format!("    Modifier: {:?}", mod_state.get()), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Planes Count: {:?}", planes.iter().len()), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
@@ -366,15 +368,15 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
 
   let ent = commands.spawn(NodeBundle{
     style: Style {
-      position_type: PositionType::Absolute,
-      position: UiRect {left: Val::Percent(0.0), 
-                        top: Val::Percent(0.0), 
-                        ..default()},
-      size: Size::new(Val::Percent(100.0), Val::Px(25.0)),
-      flex_wrap: FlexWrap::Wrap,
-      flex_direction: FlexDirection::Row,
-      align_items: AlignItems::FlexStart,
-      justify_content: JustifyContent::FlexStart,
+      position_type:    PositionType::Absolute,
+      left:             Val::Percent(0.0), 
+      top:              Val::Percent(0.0), 
+      width:            Val::Percent(100.0), 
+      height:           Val::Px(25.0),
+      flex_wrap:        FlexWrap::Wrap,
+      flex_direction:   FlexDirection::Row,
+      align_items:      AlignItems::FlexStart,
+      justify_content:  JustifyContent::FlexStart,
       ..default()
     },
     ..default()

@@ -16,7 +16,7 @@ impl Plugin for MTBGridPlugin {
       app
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
-      .add_system(hover_check.in_base_set(CoreSet::PreUpdate))
+      .add_systems(PreUpdate, hover_check)
       ;
   }
 }

@@ -1,4 +1,6 @@
 
+use bevy::asset::ChangeWatcher;
+use std::time::Duration;
 use bevy::prelude::*;
 use bevy::window::{WindowMode, PresentMode, WindowPlugin, WindowResolution};
 use bevy::pbr::wireframe::WireframePlugin;
@@ -20,13 +22,13 @@ fn main() {
                     mode: WindowMode::Windowed,
                 ..default()
             }), ..default()})
-            .set(AssetPlugin {watch_for_changes: true, ..default()})
+            .set(AssetPlugin {watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),..default()})
         )
-        .add_plugin(WireframePlugin)
-        .add_plugin(MTBLoaderPlugin)
+        .add_plugins(WireframePlugin)
+        .add_plugins(MTBLoaderPlugin)
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
-        .add_startup_system(setup)
+        .add_systems(Startup, setup)
         .run();
 }
 

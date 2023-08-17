@@ -8,7 +8,7 @@ pub struct SliderPlugin;
 impl Plugin for SliderPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_system(update_sliders.run_if(input_pressed(MouseButton::Left)))
+        .add_systems(Update, update_sliders.run_if(input_pressed(MouseButton::Left)))
         ;
     }
 }
@@ -28,7 +28,7 @@ pub fn update_sliders(
             }
             
             let x = gt.translation().x;
-            let y = primary.height() - gt.translation().y;
+            let y = gt.translation().y;
             let slider_size = n.size();
             let aabb = AABB::new(&(x, y), &(slider_size.x, slider_size.y));
 
@@ -49,8 +49,8 @@ pub fn update_sliders(
             for child_ent in children.iter() {
                 if let Ok(mut style) = handles.get_mut(*child_ent) {
                     let handle_dims = slider.get_handle_dims();
-                    style.size.width = Val::Px(handle_dims.0);
-                    style.size.height = Val::Px(handle_dims.1);
+                    style.width = Val::Px(handle_dims.0);
+                    style.height = Val::Px(handle_dims.1);
                 }
 
                 if let Ok(mut text) = labels.get_mut(*child_ent) {
@@ -127,8 +127,10 @@ impl Slider {
 
         let mut box_style = styles.box_style;
         box_style.position_type = position_type;
-        box_style.position = UiRect{left: pos.0, top: pos.1, ..default()};
-        box_style.size = Size::new(Val::Px(self.display.dims.0), Val::Px(self.display.dims.1));
+        box_style.left = pos.0;
+        box_style.top = pos.1;
+        box_style.width = Val::Px(self.display.dims.0);
+        box_style.height = Val::Px(self.display.dims.1);
 
         let slider_entity = commands.spawn((NodeBundle{
             style: box_style,
@@ -144,8 +146,10 @@ impl Slider {
         let handle_pos = self.get_handle_pos();
 
         let mut handle_style = styles.handle_style;
-        handle_style.position = UiRect{left: Val::Percent(handle_pos.0), top: Val::Percent(handle_pos.1), ..default()};
-        handle_style.size = Size::new(Val::Px(handle_dims.0), Val::Px(handle_dims.1));
+        handle_style.left =    Val::Percent(handle_pos.0);
+        handle_style.top =     Val::Percent(handle_pos.1);
+        handle_style.width =   Val::Px(handle_dims.0);
+        handle_style.height =  Val::Px(handle_dims.1);
       
         let handler_entity = commands.spawn((NodeBundle{
             style: handle_style,

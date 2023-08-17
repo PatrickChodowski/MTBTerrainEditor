@@ -6,7 +6,7 @@ pub struct ColorPickerPlugin;
 impl Plugin for ColorPickerPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_system(update_color_picker)
+        .add_systems(Update, update_color_picker)
         ;
     }
 }
@@ -63,15 +63,15 @@ pub fn spawn_color_picker(commands: &mut Commands, ass: &Res<AssetServer>) -> En
 
     let ent = commands.spawn(NodeBundle{
       style: Style {
-        position_type: PositionType::Absolute,
-        position: UiRect {left: Val::Percent(10.0), 
-                          top: Val::Percent(10.0), 
-                          ..default()},
-        size: Size::new(Val::Percent(80.0), Val::Percent(80.0)),
-        flex_wrap: FlexWrap::Wrap,
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::FlexStart,
-        justify_content: JustifyContent::FlexStart,
+        position_type:      PositionType::Absolute,
+        left:               Val::Percent(10.0), 
+        top:                Val::Percent(10.0), 
+        width:              Val::Percent(80.0), 
+        height:             Val::Percent(80.0),
+        flex_wrap:          FlexWrap::Wrap,
+        flex_direction:     FlexDirection::Row,
+        align_items:        AlignItems::FlexStart,
+        justify_content:    JustifyContent::FlexStart,
         ..default()
       },
       background_color: BackgroundColor([0.6, 0.6, 0.6, 1.0].into()),
@@ -108,15 +108,15 @@ pub fn spawn_color_picker(commands: &mut Commands, ass: &Res<AssetServer>) -> En
     // display square
     let display_ent = commands.spawn((NodeBundle{
         style: Style {
-          position_type: PositionType::Absolute,
-          position: UiRect {left: Val::Percent(50.0), 
-                            top: Val::Percent(10.0), 
-                            ..default()},
-          size: Size::new(Val::Px(200.0), Val::Px(200.0)),
-          flex_wrap: FlexWrap::Wrap,
-          flex_direction: FlexDirection::Row,
-          align_items: AlignItems::FlexStart,
-          justify_content: JustifyContent::FlexStart,
+          position_type:    PositionType::Absolute,
+          left:             Val::Percent(50.0), 
+          top:              Val::Percent(10.0), 
+          width:            Val::Px(200.0), 
+          height:           Val::Px(200.0),
+          flex_wrap:        FlexWrap::Wrap,
+          flex_direction:   FlexDirection::Row,
+          align_items:      AlignItems::FlexStart,
+          justify_content:  JustifyContent::FlexStart,
           ..default()
         },
         background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),

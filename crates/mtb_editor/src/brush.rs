@@ -22,13 +22,13 @@ impl Plugin for BrushPlugin {
     fn build(&self, app: &mut App) {
         app
         .insert_resource(BrushSettings::new())
-        .add_system(despawn_brush.in_schedule(OnExit(PickerState::Brush)))
-        .add_system(spawn_brush.in_schedule(OnEnter(PickerState::Brush)))
-        .add_system(add_settings.in_schedule(OnEnter(PickerState::Brush)))
-        .add_system(update_settings.in_set(OnUpdate(PickerState::Brush)))
-        .add_system(rm_settings.in_schedule(OnExit(PickerState::Brush)))
-        .add_system(update_brush.in_set(OnUpdate(PickerState::Brush)).after(update_settings))
-        .add_system(select.in_set(OnUpdate(PickerState::Brush)).after(update_brush).run_if(input_pressed(MouseButton::Left)))
+        .add_systems(OnExit(PickerState::Brush), despawn_brush)
+        .add_systems(OnEnter(PickerState::Brush), spawn_brush)
+        .add_systems(OnEnter(PickerState::Brush), add_settings)
+        .add_systems(Update, update_settings.run_if(in_state(PickerState::Brush)))
+        .add_systems(OnExit(PickerState::Brush), rm_settings)
+        .add_systems(Update, update_brush.after(update_settings).run_if(in_state(PickerState::Brush)))
+        .add_systems(Update, select.after(update_brush).run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Brush))))
         ;
     }
 }

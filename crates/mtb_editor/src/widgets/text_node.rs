@@ -17,7 +17,8 @@ pub fn spawn_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer
         align_items: AlignItems::Center,
         flex_direction: FlexDirection::Row,
         align_content: AlignContent::Center,
-        position: UiRect {left: Val::Px(0.0),top: Val::Px(0.0),..default()},
+        left: Val::Px(0.0),
+        top: Val::Px(0.0),
         ..default()
       },
       ..default()}).id();

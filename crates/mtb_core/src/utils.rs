@@ -1,6 +1,6 @@
 use libm::{fabsf, powf, sqrtf};
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypeUuid, TypePath};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -113,9 +113,9 @@ impl AABB {
 
   pub fn from_gui(n: &Node, s: &Style, window_width: f32, window_height: f32) -> Self {
     let ns = n.size();
-    let aabb = AABB{min_x: s.position.left.evaluate(window_width).unwrap(), 
+    let aabb = AABB{min_x: s.left.evaluate(window_width).unwrap(), 
                     max_x: ns.x, 
-                    max_z: window_height - s.position.top.evaluate(window_height).unwrap(),
+                    max_z: window_height - s.top.evaluate(window_height).unwrap(),
                     min_z: window_height - ns.y};
       return aabb;
     }
@@ -199,7 +199,7 @@ impl Arc {
 
 
 
-#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
+#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid, TypePath)]
 #[uuid = "201ce530-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct MTBConfigData {
     pub scene_file:         String

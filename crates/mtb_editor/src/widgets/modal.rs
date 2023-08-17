@@ -1,5 +1,5 @@
 
-use bevy::{prelude::*, input::common_conditions::input_just_pressed};
+use bevy::{prelude::*, input::common_conditions::input_just_pressed, ecs::schedule::ScheduleLabel};
 
 #[derive(Component)]
 pub struct ModalPanel;
@@ -10,13 +10,13 @@ impl Plugin for ModalPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_state::<ModalState>()
-        .add_system(close_modal.run_if(in_state(ModalState::On).and_then(input_just_pressed(KeyCode::Escape))))
+        .add_systems(ModalState::On, close_modal.run_if(input_just_pressed(KeyCode::Escape)))
         ;
     }
 }
 
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, ScheduleLabel)]
 pub enum ModalState {
     #[default]
     Off,
@@ -44,15 +44,15 @@ pub fn spawn_modal(commands:          &mut Commands,
 
     let ent = commands.spawn(NodeBundle{
       style: Style {
-        position_type: PositionType::Absolute,
-        position: UiRect {left: Val::Percent(25.0), 
-                          top: Val::Percent(25.0), 
-                          ..default()},
-        size: Size::new(Val::Percent(50.0), Val::Percent(50.0)),
-        flex_wrap: FlexWrap::Wrap,
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::FlexStart,
-        justify_content: JustifyContent::FlexStart,
+        position_type:    PositionType::Absolute,
+        left:             Val::Percent(25.0), 
+        top:              Val::Percent(25.0), 
+        width:            Val::Percent(50.0), 
+        height:           Val::Percent(50.0),
+        flex_wrap:        FlexWrap::Wrap,
+        flex_direction:   FlexDirection::Row,
+        align_items:      AlignItems::FlexStart,
+        justify_content:  JustifyContent::FlexStart,
         ..default()
       },
       background_color: BackgroundColor([0.5, 0.5, 0.5, 1.0].into()),

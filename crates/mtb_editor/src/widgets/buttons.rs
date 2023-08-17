@@ -19,14 +19,16 @@ pub fn spawn_button(commands: &mut Commands,
 
     let button_style = Style {
 
-        size: Size::new(dims.0, dims.1),
+        width: dims.0, 
+        height: dims.1,
         position_type,
         margin: UiRect::all(Val::Px(3.0)),
         padding: UiRect::all(Val::Px(0.0)),
         align_items: AlignItems::Center,
         flex_direction: FlexDirection::Column,
         align_content: AlignContent::Center,
-        position: UiRect {left: pos.0, top: pos.1,..default()},
+        left: pos.0, 
+        top: pos.1,
         ..default()
 
       };

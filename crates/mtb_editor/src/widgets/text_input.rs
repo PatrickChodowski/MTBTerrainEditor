@@ -1,4 +1,5 @@
 
+
 use bevy::prelude::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::window::PrimaryWindow;
@@ -11,8 +12,8 @@ impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_state::<FocusTextState>()
-        .add_system(try_focus.run_if(input_just_pressed(MouseButton::Left)).in_base_set(CoreSet::PreUpdate))
-        .add_system(update_text_input.after(try_focus).run_if(in_state(FocusTextState::On)))
+        .add_systems(PreUpdate, try_focus.run_if(input_just_pressed(MouseButton::Left)))
+        .add_systems(Update, update_text_input.after(try_focus).run_if(in_state(FocusTextState::On)))
         ;
     }
 }
@@ -120,10 +121,10 @@ pub fn spawn_text_input(commands: &mut Commands,
     let ent_textinput = commands.spawn((NodeBundle{
         style: Style {
           position_type: PositionType::Absolute,
-          position: UiRect {left: Val::Percent(xy.0), 
-                            top: Val::Percent(xy.1), 
-                            ..default()},
-          size: Size::new(Val::Px(dims.0), Val::Px(dims.1)),
+          left: Val::Percent(xy.0), 
+          top: Val::Percent(xy.1), 
+          width: Val::Px(dims.0), 
+          height: Val::Px(dims.1),
           flex_wrap: FlexWrap::Wrap,
           flex_direction: FlexDirection::Row,
           align_items: AlignItems::FlexStart,

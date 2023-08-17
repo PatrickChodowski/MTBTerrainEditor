@@ -1,7 +1,7 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypeUuid, TypePath};
 use serde::{Serialize, Deserialize};
 
 use crate::colors::Colors;
@@ -16,13 +16,14 @@ impl Plugin for PlanesPlugin {
         app
         .add_event::<SpawnNewPlaneEvent>()
         .add_event::<EditPlaneEvent>()
-        .add_system(spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
-        .add_system(edit_planes.after(spawn_new_plane).run_if(on_event::<EditPlaneEvent>()))
-        .add_system(update_planes.after(edit_planes).in_base_set(CoreSet::PostUpdate))
+        .add_systems(Update, spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
+        .add_systems(Update, edit_planes.after(spawn_new_plane).run_if(on_event::<EditPlaneEvent>()))
+        .add_systems(PostUpdate, update_planes.after(edit_planes))
         ;
     }
   }
 
+  #[derive(Event)]
   pub struct EditPlaneEvent{
     pub id:     u32,
     pub loc:    Option<[f32;3]>,
@@ -35,6 +36,7 @@ impl Plugin for PlanesPlugin {
     }
   }
 
+  #[derive(Event)]
   pub struct SpawnNewPlaneEvent{
     pub pd: PlaneData
   }
@@ -213,7 +215,7 @@ impl PlaneData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid)]
+#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid, TypePath)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct Planes {
     pub planes: Vec<PlaneData>

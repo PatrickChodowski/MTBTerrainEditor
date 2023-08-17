@@ -23,9 +23,6 @@ use mtb_grid::MTBGridPlugin;
 use mtb_ui::MTBUIPlugin;
 
 use mtb_core::planes::TerrainPlane;
-
-#[allow(unused_imports)]
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
 
 pub struct MTBEditorPlugin;
@@ -36,26 +33,25 @@ impl Plugin for MTBEditorPlugin {
         .add_state::<AppState>()
         .add_state::<DisplayState>()
         .add_plugins(DefaultPickingPlugins)
-        .add_plugin(WireframePlugin)
-        .add_plugin(MTBColorsPlugin)
-        .add_plugin(MTBConsolePlugin)
-        .add_plugin(MTBCameraPlugin)
-        .add_plugin(MTBGridPlugin)
-        .add_plugin(MTBUIPlugin)
-        .add_plugin(PlanesPlugin)
-        .add_plugin(VertexPlugin)
-        // .add_plugin(WorldInspectorPlugin::new())
-        .add_system(toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
-        .add_system(toggle_displaystate.run_if(input_just_pressed(KeyCode::Space).and_then(in_state(ConsoleState::Off))))
+        .add_plugins(WireframePlugin)
+        .add_plugins(MTBColorsPlugin)
+        .add_plugins(MTBConsolePlugin)
+        .add_plugins(MTBCameraPlugin)
+        .add_plugins(MTBGridPlugin)
+        .add_plugins(MTBUIPlugin)
+        .add_plugins(PlanesPlugin)
+        .add_plugins(VertexPlugin)
+        .add_systems(Update, toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
+        .add_systems(Update, toggle_displaystate.run_if(input_just_pressed(KeyCode::Space).and_then(in_state(ConsoleState::Off))))
 
-        .add_system(show_wireframe.in_schedule(OnEnter(DisplayState::Wireframe)))
-        .add_system(hide_wireframe.in_schedule(OnExit(DisplayState::Wireframe)))
+        .add_systems(OnEnter(DisplayState::Wireframe), show_wireframe)
+        .add_systems(OnExit(DisplayState::Wireframe), hide_wireframe)
 
-        .add_system(show_vertex.in_schedule(OnEnter(DisplayState::Vertex)))
-        .add_system(hide_vertex.in_schedule(OnExit(DisplayState::Vertex)))
+        .add_systems(OnEnter(DisplayState::Vertex), show_vertex)
+        .add_systems(OnExit(DisplayState::Vertex), hide_vertex)
 
-        .add_system(show_vertex_wire.in_schedule(OnEnter(DisplayState::VertexWireframe)))
-        .add_system(hide_vertex_wire.in_schedule(OnExit(DisplayState::VertexWireframe)))
+        .add_systems(OnEnter(DisplayState::VertexWireframe), show_vertex_wire)
+        .add_systems(OnExit(DisplayState::VertexWireframe), hide_vertex_wire)
         ;
     }
  }
@@ -140,7 +136,7 @@ pub fn hide_wireframe(mut commands: Commands, planes: Query<Entity, With<Wirefra
     app_state:            Res<State<AppState>>,
     mut next_app_state:   ResMut<NextState<AppState>>,
 ){
-    match app_state.0 {
+    match app_state.get() {
         AppState::Object => {next_app_state.set(AppState::Edit)}
         AppState::Edit => {next_app_state.set(AppState::Object);}
     }
@@ -149,7 +145,7 @@ pub fn hide_wireframe(mut commands: Commands, planes: Query<Entity, With<Wirefra
 fn toggle_displaystate(display_state:            Res<State<DisplayState>>,
                        mut next_display_state:   ResMut<NextState<DisplayState>>){
 
-    match display_state.0 {
+    match display_state.get() {
         DisplayState::Basic => {next_display_state.set(DisplayState::Wireframe)}
         DisplayState::Wireframe => {next_display_state.set(DisplayState::Vertex);}
         DisplayState::Vertex => {next_display_state.set(DisplayState::VertexWireframe);}

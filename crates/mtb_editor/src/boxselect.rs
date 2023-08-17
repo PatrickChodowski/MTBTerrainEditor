@@ -11,17 +11,12 @@ pub struct BoxSelectPlugin;
 impl Plugin for BoxSelectPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_system(despawn_box_select
-                        .run_if(input_just_pressed(MouseButton::Right)
-                        .or_else(input_just_released(MouseButton::Left)))
-                        .in_set(OnUpdate(PickerState::Box)))
-        .add_system(spawn_box_select
-                        .run_if(input_just_pressed(MouseButton::Left))
-                        .in_set(OnUpdate(PickerState::Box)))
-        .add_system(update_box_select
-                        .run_if(input_pressed(MouseButton::Left))
-                        .in_set(OnUpdate(PickerState::Box)))
-        .add_system(select.in_set(OnUpdate(PickerState::Box)).after(update_box_select))
+        .add_systems(Update, despawn_box_select.run_if(input_just_released(MouseButton::Left).and_then(in_state(PickerState::Box))))
+        .add_systems(Update, spawn_box_select
+                                        .run_if(input_just_pressed(MouseButton::Left).and_then(in_state(PickerState::Box))))
+        .add_systems(Update, update_box_select
+                                          .run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Box))))
+        .add_systems(Update, select.after(update_box_select).run_if(in_state(PickerState::Box)))
       ;                      
     }
   }

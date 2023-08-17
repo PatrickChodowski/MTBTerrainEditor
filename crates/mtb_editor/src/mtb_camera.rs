@@ -22,10 +22,10 @@ impl Plugin for MTBCameraPlugin {
   fn build(&self, app: &mut App) {
       app
       .init_resource::<InputState>()
-      .add_startup_system(setup)
-      .add_system(zoom_camera)
-      .add_system(move_camera.run_if(in_state(ConsoleState::Off).and_then(in_state(ModalState::Off))))
-      .add_system(pan_look)
+      .add_systems(Startup, setup)
+      .add_systems(Update, zoom_camera)
+      .add_systems(Update, move_camera.run_if(in_state(ConsoleState::Off).and_then(in_state(ModalState::Off))))
+      .add_systems(Update, pan_look)
       ;
   }
 }

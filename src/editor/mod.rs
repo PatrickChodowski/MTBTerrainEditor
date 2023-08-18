@@ -8,14 +8,12 @@ pub mod boxselect;
 pub mod brush;
 pub mod mtb_camera;
 pub mod mtb_colors;
-pub mod mtb_console;
 pub mod mtb_grid;
 pub mod mtb_ui;
-pub mod vertex;
 
-use mtb_console::{MTBConsolePlugin, ConsoleState};
 use super::core::planes::{PlanesPlugin, TerrainPlane};
-use vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
+use super::core::vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
+
 use mtb_colors::MTBColorsPlugin;
 use mtb_camera::MTBCameraPlugin;
 use mtb_grid::MTBGridPlugin;
@@ -31,14 +29,14 @@ impl Plugin for MTBEditorPlugin {
         .add_plugins(DefaultPickingPlugins)
         .add_plugins(WireframePlugin)
         .add_plugins(MTBColorsPlugin)
-        .add_plugins(MTBConsolePlugin)
         .add_plugins(MTBCameraPlugin)
         .add_plugins(MTBGridPlugin)
         .add_plugins(MTBUIPlugin)
         .add_plugins(PlanesPlugin)
         .add_plugins(VertexPlugin)
+        .add_systems(Update, spawn_new_plane_vertex)
         .add_systems(Update, toggle_appstate.run_if(input_just_pressed(KeyCode::Tab)))
-        .add_systems(Update, toggle_displaystate.run_if(input_just_pressed(KeyCode::Space).and_then(in_state(ConsoleState::Off))))
+        .add_systems(Update, toggle_displaystate.run_if(input_just_pressed(KeyCode::Space)))
 
         .add_systems(OnEnter(DisplayState::Wireframe), show_wireframe)
         .add_systems(OnExit(DisplayState::Wireframe), hide_wireframe)
@@ -52,53 +50,58 @@ impl Plugin for MTBEditorPlugin {
     }
  }
 
- pub fn show_vertex_wire(mut commands:     Commands, 
-                         planes:           Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,                    
-                         mut meshes:       ResMut<Assets<Mesh>>,
-                         refs:             Res<VertexRefs>){
 
-    for (entity, handle_mesh) in planes.iter(){
+ pub fn spawn_new_plane_vertex(mut commands:     Commands, 
+                               planes:              Query<(Entity, &Handle<Mesh>), Added<TerrainPlane>>,                    
+                               mut meshes:          ResMut<Assets<Mesh>>,
+                               refs:                Res<VertexRefs>){
+
+        for (entity, handle_mesh) in planes.iter(){
+            spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
+        }
+    }
+
+
+
+ pub fn show_vertex_wire(mut commands:     Commands, 
+                         planes:           Query<Entity, With<TerrainPlane>>,   
+                         mut vertex:       Query<&mut Visibility, With<Vertex>>){
+
+    for entity in planes.iter(){
         commands.entity(entity).insert(Wireframe);
-        spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
+    }
+
+    for mut vis in vertex.iter_mut(){
+        *vis = Visibility::Inherited;
     }
     
 }
 
 pub fn hide_vertex_wire(mut commands: Commands, 
                         planes:       Query<Entity, With<Wireframe>>,
-                        vertex:       Query<Entity, With<Vertex>>){
+                        mut vertex:   Query<&mut Visibility, With<Vertex>>){
     for plane in planes.iter(){
         commands.entity(plane).remove::<Wireframe>();
     }
-    for entity in vertex.iter(){
-        commands.entity(entity).despawn_recursive();
+    for mut vis in vertex.iter_mut(){
+        *vis = Visibility::Hidden;
     }
 }
 
 
 
-pub fn show_vertex(mut commands:     Commands, 
-                   planes:           Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,
-                   mut meshes:       ResMut<Assets<Mesh>>,
-                   refs:             Res<VertexRefs>
-                ){
+pub fn show_vertex(mut vertex:       Query<&mut Visibility, With<Vertex>>){
 
-    for (entity, handle_mesh) in planes.iter(){
-        spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
+    for mut vis in vertex.iter_mut(){
+        *vis = Visibility::Inherited;
     }
 }
 
-pub fn hide_vertex(mut commands: Commands,
-                   vertex:       Query<Entity, With<Vertex>>
-                ){
-
-    for entity in vertex.iter(){
-        commands.entity(entity).despawn_recursive();
+pub fn hide_vertex(mut vertex:   Query<&mut Visibility, With<Vertex>>){
+    for mut vis in vertex.iter_mut(){
+        *vis = Visibility::Hidden;
     }
-
 }
-
-
 
 pub fn show_wireframe(mut commands: Commands, planes: Query<Entity, With<TerrainPlane>>){
     for plane in planes.iter(){
@@ -123,8 +126,8 @@ pub fn hide_wireframe(mut commands: Commands, planes: Query<Entity, With<Wirefra
 
   #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
   pub enum AppState {
-      Object,
       #[default]
+      Object,
       Edit
   }
   

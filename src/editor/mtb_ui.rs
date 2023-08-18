@@ -6,7 +6,7 @@ use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 use crate::core::colors::ColorsLib;
-use crate::core::planes::PlaneData;
+use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
@@ -28,13 +28,14 @@ impl Plugin for MTBUIPlugin {
         .init_resource::<OccupiedScreenSpace>()
         .insert_resource(ColorsLib::new())
         .insert_resource(ModResources::default())
+        .insert_resource(PlaneData::new())
         .add_systems(Startup, setup)
-        .add_systems(Update, update_egui)
+        .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
+        .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
         ;
     }
 }
-
 
 #[derive(Default, Resource, Debug)]
 struct OccupiedScreenSpace {
@@ -101,11 +102,12 @@ impl FromStr for ModifierState {
 
 #[derive(Debug, Clone, PartialEq, Resource)]
 pub struct ModResources{
-  pub clr: egui::Color32
+  pub clr: egui::Color32,
+  pub value: f32
 }
 impl Default for ModResources {
     fn default() -> Self {
-      ModResources{clr: egui::Color32::LIGHT_BLUE.linear_multiply(0.5)}
+      ModResources{clr: egui::Color32::LIGHT_BLUE.linear_multiply(0.5), value: 0.0}
     }
 }
 impl ModResources {
@@ -125,15 +127,15 @@ fn setup(mut commands:  Commands){
   let _info_panel_entity = spawn_info_panel(&mut commands);
 }
 
-fn update_egui(mut contexts:              EguiContexts,
-               mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
-               picker_state:              Res<State<PickerState>>,
-               mut next_picker_state:     ResMut<NextState<PickerState>>,
-               mut brush_settings:        ResMut<BrushSettings>,
-               modifier_state:            Res<State<ModifierState>>,
-               mut next_modifier_state:   ResMut<NextState<ModifierState>>,
-               mut mod_res:               ResMut<ModResources>,
-               mut apply_mod:             EventWriter<ApplyModifierEvent>) {
+fn update_egui_editor(mut contexts:              EguiContexts,
+                      mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
+                      picker_state:              Res<State<PickerState>>,
+                      mut next_picker_state:     ResMut<NextState<PickerState>>,
+                      mut brush_settings:        ResMut<BrushSettings>,
+                      modifier_state:            Res<State<ModifierState>>,
+                      mut next_modifier_state:   ResMut<NextState<ModifierState>>,
+                      mut mod_res:               ResMut<ModResources>,
+                      mut apply_mod:             EventWriter<ApplyModifierEvent>) {
 
   let mut apply_mod_btn: bool = false;
   let ctx = contexts.ctx_mut();
@@ -172,6 +174,9 @@ fn update_egui(mut contexts:              EguiContexts,
           ModifierState::Color => {
             ui.color_edit_button_srgba(&mut mod_res.clr);
           }
+          ModifierState::Value => {
+            ui.add(egui::Slider::new(&mut mod_res.value, 0.0..=500.0).max_decimals(1));
+          }
           _ => {}
         }
       
@@ -187,9 +192,72 @@ fn update_egui(mut contexts:              EguiContexts,
     .response
     .rect
     .width();
+}
+
+
+
+fn update_egui_object(mut contexts:              EguiContexts,
+                      mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
+                      mut plane_data:            ResMut<PlaneData>,
+                      mut spawn_plane:           EventWriter<SpawnNewPlaneEvent>) {
+
+  let mut new_plane_btn: bool = false;
+
+  let ctx = contexts.ctx_mut();
+  occupied_screen_space.right = egui::SidePanel::right("right_panel")
+    .resizable(true)
+    .show(ctx, |ui| {
+        ui.label("Object mode");
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        ui.vertical(|ui| {
+          ui.label("Plane Data");
+          let _response = ui.add(egui::TextEdit::singleline(&mut plane_data.label));
+        });
+
+        ui.separator();
+
+        ui.columns(2, |columns| {
+          columns[0].label("Loc X");
+          columns[0].label("Loc Y");
+          columns[0].label("Loc Z");
+          columns[1].add(egui::DragValue::new(&mut plane_data.loc[0]).speed(1.0));
+          columns[1].add(egui::DragValue::new(&mut plane_data.loc[1]).speed(1.0));
+          columns[1].add(egui::DragValue::new(&mut plane_data.loc[2]).speed(1.0));
+        });
+
+        ui.separator();
+        ui.columns(2, |columns| {
+          columns[0].label("Width");
+          columns[0].label("Height");
+          columns[1].add(egui::DragValue::new(&mut plane_data.dims[0]).speed(1.0));
+          columns[1].add(egui::DragValue::new(&mut plane_data.dims[1]).speed(1.0));
+        });
+
+        ui.separator();
+        ui.columns(2, |columns| {
+          columns[0].label("Subs X");
+          columns[0].label("Subs Y");
+          columns[1].add(egui::DragValue::new(&mut plane_data.subdivisions[0]).speed(1.0));
+          columns[1].add(egui::DragValue::new(&mut plane_data.subdivisions[1]).speed(1.0));
+        });
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        new_plane_btn = ui.button("New Plane").clicked();
+        
+        if new_plane_btn {
+          spawn_plane.send(SpawnNewPlaneEvent{pd: plane_data.clone()});
+        }
+        
+        ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+    })
+    .response
+    .rect
+    .width();
 
 
 }
+
+
 
 fn update_left_into_panel(mut commands:  Commands,
                           grid:          Res<GridData>,
@@ -216,7 +284,7 @@ fn update_left_into_panel(mut commands:  Commands,
 
   if let Hoverables::Entity(entity) = hover_data.hoverable {
     if let Ok(pd) = planes.get(entity) {
-      v.push(spawn_text_node(&format!("    Plane ID: {:?}", pd.id), &mut commands, &ass));  
+      v.push(spawn_text_node(&format!("    Plane Label: {:?}", pd.label), &mut commands, &ass));  
       v.push(spawn_text_node(&format!("    Loc: {:?}",      pd.loc), &mut commands, &ass));  
       v.push(spawn_text_node(&format!("    Dims: {:?}",     pd.dims), &mut commands, &ass));  
       v.push(spawn_text_node(&format!("    Subs: {:?}",     pd.subdivisions), &mut commands, &ass));  

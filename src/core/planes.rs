@@ -1,41 +1,52 @@
 
 use bevy::prelude::*;
+use bevy::input::common_conditions::{input_pressed, input_just_pressed};
+use bevy_mod_picking::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::{TypeUuid, TypePath};
 use serde::{Serialize, Deserialize};
-
-use super::colors::Colors;
-use super::modifiers::{Modifier, ModifierData};
-use crate::editor::vertex::spawn_vertex;
+use crate::editor::AppState;
 use super::utils::{AABB, get_mesh_stats};
+use crate::editor::mtb_grid::{hover_check, HoverData};
 
-pub const DEFAULT_PLANE_ID: u32 = 0;
 pub struct PlanesPlugin;
 
 impl Plugin for PlanesPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_event::<SpawnNewPlaneEvent>()
-        .add_event::<EditPlaneEvent>()
-        .add_systems(Update, spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()))
-        .add_systems(Update, edit_planes.after(spawn_new_plane).run_if(on_event::<EditPlaneEvent>()))
-        .add_systems(PostUpdate, update_planes.after(edit_planes))
+        .add_event::<PickPlane>()
+        .add_systems(PreUpdate,  clear.run_if(input_just_pressed(MouseButton::Right)).run_if(in_state(AppState::Object)))
+        .add_systems(Update,     spawn_new_plane.run_if(on_event::<SpawnNewPlaneEvent>()).run_if(in_state(AppState::Object)))
+        .add_systems(Update,     pick_plane.run_if(in_state(AppState::Object)))
+        .add_systems(Update,     drag.run_if(input_pressed(MouseButton::Left)
+                                 .and_then(in_state(AppState::Object)))
+                                 .after(hover_check))
+        .add_systems(PostUpdate, highlight_picked_plane.after(pick_plane).run_if(in_state(AppState::Object)))
+        .add_systems(Update,     drop_plane.run_if(input_just_pressed(KeyCode::Back)))
+        .add_systems(OnExit(AppState::Object), deselect_plane)
         ;
     }
   }
 
-  #[derive(Event)]
-  pub struct EditPlaneEvent{
-    pub id:     u32,
-    pub loc:    Option<[f32;3]>,
-    pub dims:   Option<[f32;2]>,
-    pub subs:   Option<[u32;2]>,
-  }
-  impl EditPlaneEvent {
-    pub fn new() -> Self {
-        return EditPlaneEvent{id: DEFAULT_PLANE_ID, loc: None, dims: None, subs: None};
+
+  pub fn drop_plane(mut commands: Commands, 
+                    planes:       Query<Entity, With<PickedPlane>>) {
+    for entity in planes.iter(){
+        commands.entity(entity).despawn_recursive();
     }
   }
+
+  #[derive(Event)]
+  pub struct PickPlane {
+    pub entity: Entity
+  }
+
+  impl  From<ListenerInput<Pointer<Down>>> for PickPlane {
+    fn from(event: ListenerInput<Pointer<Down>>) -> Self {
+        PickPlane{entity: event.target}
+    }
+}
 
   #[derive(Event)]
   pub struct SpawnNewPlaneEvent{
@@ -47,112 +58,60 @@ impl Plugin for PlanesPlugin {
     }
   }
 
-  pub fn edit_planes(mut planes:       Query<&mut PlaneData>,
-                     mut spawn_plane:  EventReader<EditPlaneEvent>,){
+#[derive(Component)]
+pub struct PickedPlane;
 
-    for ev in spawn_plane.iter(){
-        for mut plane in planes.iter_mut(){
-            if plane.id != ev.id {
-                continue; // wrong plane
-            }
-            if let Some(new_loc) = ev.loc{
-                plane.loc = new_loc;
-            }
-            if let Some(new_dims) = ev.dims{
-                plane.dims = new_dims;
-            }
-            if let Some(new_subs) = ev.subs{
-                plane.subdivisions = new_subs;
-            }
+// Click on grid in edit mode
+fn clear(mut commands: Commands,
+         picked_plane: Query<Entity, With<PickedPlane>>){
+    for v in picked_plane.iter(){
+      commands.entity(v).remove::<PickedPlane>();
+    }
+}
+
+
+pub fn pick_plane(mut commands:          Commands,
+                    mut pick_plane_event:  EventReader<PickPlane>){
+    for ev in pick_plane_event.iter(){
+        commands.entity(ev.entity).insert(PickedPlane);
+    }
+}
+
+pub fn highlight_picked_plane(
+    mut commands:          Commands,
+    mut materials:         ResMut<Assets<StandardMaterial>>,
+    planes:                Query<(Entity, Option<&PickedPlane>), With<TerrainPlane>>){
+
+    for (entity, picked) in planes.iter(){
+        if picked.is_some(){
+            commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::ORANGE_RED).into()));
+        } else {
+            commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::WHITE).into()));
         }
     }
-  }
-  
+}
   pub fn spawn_new_plane(mut commands:     Commands, 
                          mut meshes:       ResMut<Assets<Mesh>>,
                          mut materials:    ResMut<Assets<StandardMaterial>>,
                          mut spawn_plane:  EventReader<SpawnNewPlaneEvent>,
                         ){
     for ev in spawn_plane.iter(){
-        if let Some(entity) = ev.pd.spawn(&mut commands, &mut meshes, &mut materials){
-            info!("DEBUG spawn plane {:?}", entity);
-            commands.entity(entity).insert(PlaneStatus::Edit);
-
-            // spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
-        }
+        let _entity = ev.pd.spawn(&mut commands, &mut meshes, &mut materials);
     }
   }
 
-  pub fn update_planes(mut commands:     Commands, 
-                       mut meshes:       ResMut<Assets<Mesh>>,
-                       mut planes:       Query<(Entity, &PlaneData, &mut Transform), Changed<PlaneData>>){
-    for (entity, pd, mut tr) in planes.iter_mut(){
-        info!("DEBUG updating plane {:?}", entity);
-        pd.remesh(entity, &mut commands, &mut meshes);
-        commands.entity(entity).insert(pd.get_aabb());
-        *tr = Transform::from_translation(pd.loc.into());
-    }
-  }
-
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Component)]
+#[derive(Serialize, Deserialize, Debug, Clone, Component, Resource)]
 pub struct PlaneData {
-    pub id:           u32,
+    pub label:        String,
     pub loc:          [f32; 3],
     pub subdivisions: [u32; 2],
-    pub dims:         [f32; 2],
-    pub color:        Colors,
-    pub modifiers:    Vec<ModifierData>,
-    pub active:       bool
+    pub dims:         [f32; 2]
 }
 
 
 
 
 impl PlaneData {
-
-    // it just may be much much more robust to iterate every time one by one on positions per modifier
-    pub fn apply(&self, mesh: &mut Mesh) -> Mesh {
-        let mut v_pos: Vec<[f32; 3]> = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
-
-        // Convert modifier data's to modifiers, extract meta data like edges for other modifiers
-        let mut mods: Vec<Modifier> = Vec::new();
-        for modifier in self.modifiers.iter(){
-            let m = modifier.set(self);
-            mods.push(m);
-        }
-
-        let mut min_height = f32::MAX;
-        let mut max_height = f32::MIN;
-
-        // Applying modifiers to point by point
-        for pos in v_pos.iter_mut(){
-            for m in mods.iter(){
-                pos[1] = m.apply_point(&pos, &self.loc);
-            }   
-            if pos[1] > max_height {
-                max_height = pos[1];
-            }
-            if pos[1] < min_height {
-                min_height = pos[1];
-            }
-        }
-
-        // Applying modifiers to local area
-        for m in mods.iter_mut(){
-            m.apply_area(&mut v_pos);
-        }
-
-        let mut v_clr: Vec<[f32; 4]> = Vec::new();
-        for pos in v_pos.iter(){
-            v_clr.push(self.color.apply(pos[1], min_height, max_height));
-        }
-
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr);
-        return mesh.clone()
-    }
 
   pub fn get_aabb(&self) -> AABB {
     let min_x = self.loc[0] -1.0*self.dims[0]/2.0;
@@ -163,13 +122,10 @@ impl PlaneData {
   }
 
   pub fn new() -> PlaneData {
-    return PlaneData{id: DEFAULT_PLANE_ID,
+    return PlaneData{label: "Default Plane".to_string(),
                      loc: [0.0, 0.0, 0.0], 
                      dims: [200.0, 200.0], 
-                     subdivisions: [10,10], 
-                     color: Colors::new(), 
-                     modifiers: Vec::new(), 
-                     active: true};
+                     subdivisions: [10,10]};
     }
 
 
@@ -178,43 +134,26 @@ impl PlaneData {
     pub fn spawn(&self,
                  commands:           &mut Commands, 
                  meshes:             &mut ResMut<Assets<Mesh>>,
-                 materials:          &mut ResMut<Assets<StandardMaterial>>) -> Option<Entity> {
+                 materials:          &mut ResMut<Assets<StandardMaterial>>) -> Entity {
 
-        if !self.active {
-            return None;
-        } else {
-
-            let mut mesh = plane_mesh(&self.subdivisions, &self.dims);
-            mesh = self.apply(&mut mesh);
-            
-            get_mesh_stats(&mesh);
-    
-            let entity = commands.spawn((PbrBundle {
-                material: materials.add(StandardMaterial{..default()}),
-                mesh: meshes.add(mesh),
-                transform: Transform::from_translation(self.loc.into()),
-                ..default()
-                },
-                TerrainPlane,
-                self.clone(),
-                self.get_aabb()
-            )).id();
-    
-            return Some(entity);
-
-        }
-    }
-
-    pub fn remesh(&self,  
-                   entity:             Entity,               
-                   commands:           &mut Commands, 
-                   meshes:             &mut ResMut<Assets<Mesh>>){
-
-        commands.entity(entity).remove::<Handle<Mesh>>();
-        let mut mesh = plane_mesh(&self.subdivisions, &self.dims);
-        mesh = self.apply(&mut mesh);
+        let mesh = plane_mesh(&self.subdivisions, &self.dims);
         get_mesh_stats(&mesh);
-        commands.entity(entity).insert(meshes.add(mesh));
+    
+        let entity = commands.spawn((PbrBundle {
+            material: materials.add(StandardMaterial{..default()}),
+            mesh: meshes.add(mesh),
+            transform: Transform::from_translation(self.loc.into()),
+            ..default()
+            },
+            TerrainPlane,
+            PickableBundle::default(),
+            RaycastPickTarget::default(),
+            On::<Pointer<Down>>::send_event::<PickPlane>(),
+            self.clone(),
+            self.get_aabb()
+        )).id();
+    
+        return entity;
     }
 }
 
@@ -226,12 +165,6 @@ pub struct Planes {
 
 #[derive(Resource)]
 pub struct PlanesAsset(pub Handle<Planes>);
-
-#[derive(Component)]
-pub enum PlaneStatus {
-    Set,
-    Edit
-}
 
 #[derive(Component)]
 pub struct TerrainPlane;
@@ -301,3 +234,27 @@ impl From<RectPlane> for Mesh {
     }
 }
 
+pub fn deselect_plane(mut commands: Commands,
+                      mut materials: ResMut<Assets<StandardMaterial>>,
+                      picked_plane:  Query<Entity, With<PickedPlane>>){
+    for v in picked_plane.iter(){
+        commands.entity(v).remove::<PickedPlane>();
+        commands.entity(v).insert(materials.add(StandardMaterial::from(Color::WHITE).into()));
+    }
+}
+
+pub fn drag(mut picked_plane:  Query<(&mut Transform, &mut PlaneData), With<PickedPlane>>, 
+            hover_data:        Res<HoverData>){
+
+    let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
+    let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
+
+    for (mut tr, mut pd)  in picked_plane.iter_mut(){
+        tr.translation.x += delta_x;
+        tr.translation.z += delta_y;
+
+        pd.loc[0] = tr.translation.x;
+        pd.loc[2] = tr.translation.z;
+    }
+
+}

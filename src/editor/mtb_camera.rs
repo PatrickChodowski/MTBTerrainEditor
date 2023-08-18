@@ -5,8 +5,6 @@ use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f;
 
-use super::mtb_console::ConsoleState; 
-
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
 const CAMERA_START_Y: f32 = 800.0;
@@ -22,7 +20,7 @@ impl Plugin for MTBCameraPlugin {
       .init_resource::<InputState>()
       .add_systems(Startup, setup)
       .add_systems(Update, zoom_camera)
-      .add_systems(Update, move_camera.run_if(in_state(ConsoleState::Off)))
+      .add_systems(Update, move_camera)
       .add_systems(Update, pan_look)
       ;
   }

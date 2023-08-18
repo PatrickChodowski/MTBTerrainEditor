@@ -6,6 +6,7 @@ use bevy::window::{WindowMode, PresentMode, WindowPlugin, WindowResolution};
 
 pub mod core;
 pub mod editor;
+
 use crate::editor::MTBEditorPlugin;
 
 pub const HEIGHT: f32 = 900.0;

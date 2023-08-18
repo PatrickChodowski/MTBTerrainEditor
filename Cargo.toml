@@ -1,6 +1,6 @@
 [package]
 name = "mtb_terrain_gen"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Patrick Chodowski <chodowski.patrick@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"

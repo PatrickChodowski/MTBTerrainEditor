@@ -1,7 +1,7 @@
 use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues};
 use bevy_mod_picking::prelude::*;
-use crate::core::planes::TerrainPlane;
-use super::{mtb_grid::{HoverData, hover_check}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}};
+use super::planes::TerrainPlane;
+use crate::editor::{mtb_grid::{HoverData, hover_check}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState};
 
 
 pub struct VertexPlugin;
@@ -11,17 +11,22 @@ impl Plugin for VertexPlugin {
         app
         .add_event::<PickVertex>()
         .add_systems(Startup, setup)
-        .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>()))
-        .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)))
-        .add_systems(PostUpdate, highlight_picked.after(pick_vertex))
-        .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Point))).after(hover_check))
-        .add_systems(Update, apply_modifiers)
-        .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers))
-        .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers))
+        .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>()).run_if(in_state(AppState::Edit)))
+        .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)).run_if(in_state(AppState::Edit)))
+        .add_systems(PostUpdate, highlight_picked.after(pick_vertex).run_if(in_state(AppState::Edit)))
+        .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left)
+                                 .and_then(in_state(PickerState::Point))
+                                 .and_then(in_state(AppState::Edit))
+                                ).after(hover_check))
+        .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)))
+        .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers).run_if(in_state(AppState::Edit)))
+        .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
+        .add_systems(OnExit(AppState::Edit), deselect_vertex)
 
         ;
     }
 }
+
 
 fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
@@ -34,11 +39,15 @@ fn apply_modifiers(
 
         let clr = mod_res.to_clr();
 
-        for (mut _tr, mut v) in picked_vertex.iter_mut(){
+        for (mut tr, mut v) in picked_vertex.iter_mut(){
 
             match ev.mod_type {
                 ModifierState::Color => {
                     v.clr = clr;
+                }
+                ModifierState::Value => {
+                    v.loc[1] = mod_res.value;
+                    tr.translation[1] = mod_res.value;
                 }
                 _ => {}
             }
@@ -100,10 +109,15 @@ pub fn vertex_update_vertex(vertex: Query<(&mut Vertex, &Parent), Changed<Vertex
             plane_ref = **parent;
             if let Ok(plane_mesh_handle) = planes.get(plane_ref) {
                 if let Some(_plane_mesh) = meshes.get_mut(plane_mesh_handle) {
-                    if let VertexAttributeValues::Float32x4(vcolors) = _plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR).unwrap() {
-                        v_clr = Some(vcolors.to_vec());
-                    }
                     v_pos = Some(_plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec());
+
+                    if let Some(attr_vcolor) = _plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
+                        if let VertexAttributeValues::Float32x4(vcolors) = attr_vcolor {
+                            v_clr = Some(vcolors.to_vec());
+                        }
+                    } else {
+                        v_clr = Some(vec![[1.0, 1.0, 1.0, 1.0]; v_pos.as_ref().unwrap().len()]);
+                    }
                 }
             }
             break; // only first needed to get the plane
@@ -241,17 +255,23 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     On::<Pointer<Down>>::send_event::<PickVertex>(),
-                                    // OnPointer::<DragStart>::target_remove::<Pickable>(), // Disable picking
-                                    // OnPointer::<DragEnd>::target_insert(Pickable), // Re-enable picking
-                                    // OnPointer::<Drag>::target_component_mut::<Transform>(|drag, transform| {
-                                    //     transform.translation += drag.delta.extend(0.0) // Make the square follow the mouse
-                                    // }),
                                 )).id();
 
+        commands.entity(entity).insert(Visibility::Hidden);
         vertices.push(entity);
 
     }
 
     commands.entity(*plane_entity).push_children(&vertices);
 
+}
+
+pub fn deselect_vertex(mut commands:    Commands,
+                       picked_vertex:   Query<Entity, With<PickedVertex>>,
+                       refs:            Res<VertexRefs>
+                    ){
+    for v in picked_vertex.iter(){
+        commands.entity(v).remove::<PickedVertex>();
+        commands.entity(v).insert(refs.mat.clone_weak());
+    }
 }

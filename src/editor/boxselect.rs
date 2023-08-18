@@ -3,7 +3,7 @@ use bevy::input::common_conditions::{input_just_pressed, input_pressed, input_ju
 use bevy::prelude::*;
 use libm::fabsf;
 
-use super::vertex::{Vertex, PickedVertex};
+use crate::core::vertex::{Vertex, PickedVertex};
 use super::mtb_ui::PickerState;
 use super::mtb_grid::{HoverData, Hoverables};
 pub struct BoxSelectPlugin;
@@ -39,8 +39,6 @@ fn select(mut commands:      Commands,
             let py = tr.translation.z;
             if px >= aabb[0] && px <= aabb[1] && py >= aabb[2] && py <= aabb[3] {
                 commands.entity(entity).insert(PickedVertex);
-            } else {
-                commands.entity(entity).remove::<PickedVertex>();
             }
         }
     }

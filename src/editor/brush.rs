@@ -10,7 +10,7 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use triangulate::{ListFormat, Vertex as TRIVertex, TriangulationError};
 use triangulate::formats::IndexedListFormat;
 
-use super::vertex::{Vertex, PickedVertex};
+use crate::core::vertex::{Vertex, PickedVertex};
 use super::mtb_ui::PickerState;
 use super::mtb_grid::HoverData;
 

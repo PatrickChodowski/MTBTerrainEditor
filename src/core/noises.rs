@@ -2,9 +2,9 @@
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
 use serde::{Serialize, Deserialize};
 
-use crate::easings::Easings;
-use crate::modifiers::ModifierBase;
-use crate::utils::Area;
+use super::easings::Easings;
+use super::modifiers::ModifierBase;
+use super::utils::Area;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NoiseData {

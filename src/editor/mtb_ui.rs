@@ -5,20 +5,21 @@ use std::str::FromStr;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
-use mtb_core::colors::ColorsLib;
-use mtb_core::planes::PlaneData;
+use crate::core::colors::ColorsLib;
+use crate::core::planes::PlaneData;
 
-use crate::mtb_grid::{GridData, HoverData, Hoverables};
-use crate::AppState;
-use crate::brush::{BrushPlugin, BrushSettings};
-use crate::boxselect::BoxSelectPlugin;
-use crate::spawn_text_node;
+use super::mtb_grid::{GridData, HoverData, Hoverables};
+use super::AppState;
+use super::brush::{BrushPlugin, BrushSettings};
+use super::boxselect::BoxSelectPlugin;
+use super::spawn_text_node;
 
 pub struct MTBUIPlugin;
 
 impl Plugin for MTBUIPlugin {
     fn build(&self, app: &mut App) {
         app
+        .add_event::<ApplyModifierEvent>()
         .add_state::<PickerState>()
         .add_state::<ModifierState>()
         .add_plugins(BoxSelectPlugin)
@@ -26,6 +27,7 @@ impl Plugin for MTBUIPlugin {
         .add_plugins(EguiPlugin)
         .init_resource::<OccupiedScreenSpace>()
         .insert_resource(ColorsLib::new())
+        .insert_resource(ModResources::default())
         .add_systems(Startup, setup)
         .add_systems(Update, update_egui)
         .add_systems(Update, update_left_into_panel)
@@ -42,7 +44,10 @@ struct OccupiedScreenSpace {
     _bottom: f32,
 }
 
-
+#[derive(Event)]
+pub struct ApplyModifierEvent{
+  pub mod_type: ModifierState
+}
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum PickerState {
@@ -94,7 +99,25 @@ impl FromStr for ModifierState {
   }
 }
 
-  
+#[derive(Debug, Clone, PartialEq, Resource)]
+pub struct ModResources{
+  pub clr: egui::Color32
+}
+impl Default for ModResources {
+    fn default() -> Self {
+      ModResources{clr: egui::Color32::LIGHT_BLUE.linear_multiply(0.5)}
+    }
+}
+impl ModResources {
+  pub fn to_clr(&self) -> [f32; 4] {
+      [(self.clr.r() as f32)/255.0, 
+       (self.clr.g() as f32)/255.0, 
+       (self.clr.b() as f32)/255.0, 
+       (self.clr.a() as f32)/255.0]
+  }
+}
+
+
 #[derive(Component)]
 pub struct TopLeftInfoPanel;
 
@@ -108,22 +131,17 @@ fn update_egui(mut contexts:              EguiContexts,
                mut next_picker_state:     ResMut<NextState<PickerState>>,
                mut brush_settings:        ResMut<BrushSettings>,
                modifier_state:            Res<State<ModifierState>>,
-               mut next_modifier_state:   ResMut<NextState<ModifierState>>) {
+               mut next_modifier_state:   ResMut<NextState<ModifierState>>,
+               mut mod_res:               ResMut<ModResources>,
+               mut apply_mod:             EventWriter<ApplyModifierEvent>) {
 
-  let mut color: egui::Color32 = egui::Color32::LIGHT_BLUE.linear_multiply(0.5);
-
-  // let mut box_select = false;
-
+  let mut apply_mod_btn: bool = false;
   let ctx = contexts.ctx_mut();
   occupied_screen_space.right = egui::SidePanel::right("right_panel")
     .resizable(true)
     .show(ctx, |ui| {
         ui.label("Edit mode");
         ui.allocate_space(egui::Vec2::new(1.0, 20.0));
-        // ui.horizontal(|ui| {
-        //   box_select = ui.button("Box Select").clicked();
-        // });
-
         ui.vertical(|ui| {
           ui.label("Picker:");
           for &p in PickerState::iterator(){
@@ -152,13 +170,18 @@ fn update_egui(mut contexts:              EguiContexts,
 
         match modifier_state.get() {
           ModifierState::Color => {
-            ui.color_edit_button_srgba(&mut color);
+            ui.color_edit_button_srgba(&mut mod_res.clr);
           }
           _ => {}
         }
       
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        apply_mod_btn = ui.button("Apply").clicked();
 
-
+        if apply_mod_btn {
+          apply_mod.send(ApplyModifierEvent{mod_type: *modifier_state.get()});
+        }
+        
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
     })
     .response

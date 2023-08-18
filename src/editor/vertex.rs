@@ -1,7 +1,7 @@
-use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}};
+use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues};
 use bevy_mod_picking::prelude::*;
-use mtb_core::planes::TerrainPlane;
-use crate::{mtb_grid::{HoverData, hover_check}, mtb_ui::PickerState};
+use crate::core::planes::TerrainPlane;
+use super::{mtb_grid::{HoverData, hover_check}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}};
 
 
 pub struct VertexPlugin;
@@ -15,8 +15,34 @@ impl Plugin for VertexPlugin {
         .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)))
         .add_systems(PostUpdate, highlight_picked.after(pick_vertex))
         .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Point))).after(hover_check))
-        .add_systems(PostUpdate, vertex_update.after(drag))
+        .add_systems(Update, apply_modifiers)
+        .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers))
+        .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers))
+
         ;
+    }
+}
+
+fn apply_modifiers(
+    mut apply_mod:      EventReader<ApplyModifierEvent>,
+    mod_res:            Res<ModResources>,
+    mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>
+) {
+
+    for ev in apply_mod.iter(){
+        info!("Applied modifier {:?}", ev.mod_type);
+
+        let clr = mod_res.to_clr();
+
+        for (mut _tr, mut v) in picked_vertex.iter_mut(){
+
+            match ev.mod_type {
+                ModifierState::Color => {
+                    v.clr = clr;
+                }
+                _ => {}
+            }
+        }
     }
 }
 
@@ -44,9 +70,9 @@ pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>,
 }
 
 
-pub fn vertex_update(mut vertex: Query<(&Transform, &mut Vertex, &Parent), Changed<Transform>>,
-                     planes: Query<&Handle<Mesh>, With<TerrainPlane>>,
-                     mut meshes: ResMut<Assets<Mesh>>
+pub fn vertex_update_transform(mut vertex: Query<(&Transform, &mut Vertex, &Parent), Changed<Transform>>,
+                               planes: Query<&Handle<Mesh>, With<TerrainPlane>>,
+                               mut meshes: ResMut<Assets<Mesh>>
 ){
     for (transform, mut vertex, parent) in vertex.iter_mut(){
 
@@ -60,6 +86,44 @@ pub fn vertex_update(mut vertex: Query<(&Transform, &mut Vertex, &Parent), Chang
         vertex.loc = transform.translation.into();
     }
 }
+
+pub fn vertex_update_vertex(vertex: Query<(&mut Vertex, &Parent), Changed<Vertex>>,
+                            planes: Query<&Handle<Mesh>, With<TerrainPlane>>,
+                            mut meshes: ResMut<Assets<Mesh>>
+){
+    let mut plane_ref: Entity = Entity::PLACEHOLDER;
+    let mut v_clr: Option<Vec<[f32;4]>> = None;
+    let mut v_pos: Option<Vec<[f32; 3]>> = None;
+
+    for (index, (_vertex, parent)) in vertex.iter().enumerate(){
+        if index == 0 {
+            plane_ref = **parent;
+            if let Ok(plane_mesh_handle) = planes.get(plane_ref) {
+                if let Some(_plane_mesh) = meshes.get_mut(plane_mesh_handle) {
+                    if let VertexAttributeValues::Float32x4(vcolors) = _plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR).unwrap() {
+                        v_clr = Some(vcolors.to_vec());
+                    }
+                    v_pos = Some(_plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec());
+                }
+            }
+            break; // only first needed to get the plane
+        }
+    }
+
+    if v_pos.is_some() && v_clr.is_some() {
+        for (vertex, _parent) in vertex.iter(){
+            v_pos.as_mut().unwrap()[vertex.index] = vertex.loc;
+            v_clr.as_mut().unwrap()[vertex.index] = vertex.clr;
+        }
+        if let Ok(plane_mesh_handle) = planes.get(plane_ref) {
+            if let Some(plane_mesh) = meshes.get_mut(plane_mesh_handle) {
+                plane_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos.unwrap());
+                plane_mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr.unwrap());
+            }
+        }
+    }    
+}
+
 
 #[derive(Event)]
 pub struct PickVertex {
@@ -111,16 +175,9 @@ pub fn setup(mut commands:     Commands,
 }
 
 pub fn pick_vertex(mut commands:          Commands,
-                   mut pick_vertex_event: EventReader<PickVertex>,
-                   picked_vertex:         Query<&PickedVertex>
-                ){
-
+                   mut pick_vertex_event: EventReader<PickVertex>){
     for ev in pick_vertex_event.iter(){
-        if let Ok(_ent) = picked_vertex.get(ev.entity) {
-            commands.entity(ev.entity).remove::<PickedVertex>();
-        } else {
-            commands.entity(ev.entity).insert(PickedVertex);
-        }
+        commands.entity(ev.entity).insert(PickedVertex);
     }
 }
 

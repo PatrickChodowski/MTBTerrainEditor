@@ -1,7 +1,7 @@
 
 use bevy::prelude::*;
 
-use mtb_core::colors::ColorData;
+use crate::core::colors::ColorData;
 
 pub struct MTBColorsPlugin;
 

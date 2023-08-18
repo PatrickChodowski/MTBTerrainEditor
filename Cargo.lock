@@ -2465,61 +2465,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "mtb_core"
-version = "0.3.9"
-dependencies = [
- "bevy",
- "bevy_common_assets",
- "libm",
- "noise",
- "rand 0.8.5",
- "serde",
-]
-
-[[package]]
-name = "mtb_editor"
-version = "0.3.9"
+name = "mtb_terrain_gen"
+version = "0.4.1"
 dependencies = [
  "bevy",
  "bevy_common_assets",
  "bevy_egui",
  "bevy_mod_picking",
  "libm",
- "mtb_core",
  "noise",
  "rand 0.8.5",
  "serde",
  "serde_json",
  "strsim",
  "triangulate",
-]
-
-[[package]]
-name = "mtb_loader"
-version = "0.3.9"
-dependencies = [
- "bevy",
- "bevy_common_assets",
- "libm",
- "mtb_core",
- "noise",
- "rand 0.8.5",
- "serde",
-]
-
-[[package]]
-name = "mtb_terrain_gen"
-version = "0.3.9"
-dependencies = [
- "bevy",
- "bevy_common_assets",
- "libm",
- "mtb_core",
- "mtb_editor",
- "mtb_loader",
- "noise",
- "rand 0.8.5",
- "serde",
 ]
 
 [[package]]

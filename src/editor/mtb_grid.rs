@@ -1,10 +1,10 @@
 
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
-use mtb_core::planes::{TerrainPlane, PlaneData};
-use mtb_core::utils::AABB;
+use crate::core::planes::{TerrainPlane, PlaneData};
+use crate::core::utils::AABB;
 
-use crate::mtb_camera::MTBCamera;
+use super::mtb_camera::MTBCamera;
 pub const TILE_DIM: f32 = 10.0;
 
 pub struct MTBGridPlugin;
@@ -50,14 +50,14 @@ fn _update(mut grid: ResMut<GridData>,
 
 // check if mouse is hovering over grid, plane or gui
 pub fn hover_check(mut hover_data:      ResMut<HoverData>,
-                   gui:                 Query<(&Node, &GlobalTransform, &Visibility)>,
+                   _gui:                 Query<(&Node, &GlobalTransform, &Visibility)>,
                    planes:              Query<(Entity, &AABB), With<PlaneData>>,
                    window:              Query<&Window, With<PrimaryWindow>>,
                    camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                    grid:                Res<GridData>){
 
     hover_data.reset();
-    let mut is_hovered_gui: bool = false;
+    let is_hovered_gui: bool = false;
     let mut hovered_entity: Option<Entity> = None;
 
     let Ok(primary) = window.get_single() else {return;};

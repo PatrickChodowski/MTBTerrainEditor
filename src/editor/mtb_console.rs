@@ -6,7 +6,7 @@ use strsim::levenshtein;
 use std::collections::HashSet;
 use std::fs::{self, File};
 
-use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
+use crate::core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
 
 
 pub struct MTBConsolePlugin;

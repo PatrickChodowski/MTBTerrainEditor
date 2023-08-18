@@ -3,9 +3,9 @@ use bevy::input::common_conditions::{input_just_pressed, input_pressed, input_ju
 use bevy::prelude::*;
 use libm::fabsf;
 
-use crate::vertex::{Vertex, PickedVertex};
-use crate::mtb_ui::PickerState;
-use crate::mtb_grid::{HoverData, Hoverables};
+use super::vertex::{Vertex, PickedVertex};
+use super::mtb_ui::PickerState;
+use super::mtb_grid::{HoverData, Hoverables};
 pub struct BoxSelectPlugin;
 
 impl Plugin for BoxSelectPlugin {

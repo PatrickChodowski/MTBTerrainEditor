@@ -4,9 +4,10 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::{TypeUuid, TypePath};
 use serde::{Serialize, Deserialize};
 
-use crate::colors::Colors;
-use crate::modifiers::{Modifier, ModifierData};
-use crate::utils::{AABB, get_mesh_stats};
+use super::colors::Colors;
+use super::modifiers::{Modifier, ModifierData};
+use crate::editor::vertex::spawn_vertex;
+use super::utils::{AABB, get_mesh_stats};
 
 pub const DEFAULT_PLANE_ID: u32 = 0;
 pub struct PlanesPlugin;
@@ -76,6 +77,8 @@ impl Plugin for PlanesPlugin {
         if let Some(entity) = ev.pd.spawn(&mut commands, &mut meshes, &mut materials){
             info!("DEBUG spawn plane {:?}", entity);
             commands.entity(entity).insert(PlaneStatus::Edit);
+
+            // spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
         }
     }
   }

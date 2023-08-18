@@ -14,14 +14,12 @@ pub mod mtb_ui;
 pub mod vertex;
 
 use mtb_console::{MTBConsolePlugin, ConsoleState};
-use mtb_core::planes::PlanesPlugin;
+use super::core::planes::{PlanesPlugin, TerrainPlane};
+use vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
 use mtb_colors::MTBColorsPlugin;
 use mtb_camera::MTBCameraPlugin;
 use mtb_grid::MTBGridPlugin;
 use mtb_ui::MTBUIPlugin;
-
-use mtb_core::planes::TerrainPlane;
-use vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
 
 pub struct MTBEditorPlugin;
 

@@ -2,7 +2,7 @@
 use std::error::Error;
 use bevy::input::common_conditions::input_pressed;
 use bevy::prelude::*;
-use mtb_core::utils::get_distance_euclidean;
+use crate::core::utils::get_distance_euclidean;
 use std::fmt::{Display, Formatter};
 use bevy::prelude::Mesh;
 use bevy::math::{Rect, Vec2, Vec3};
@@ -10,9 +10,9 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use triangulate::{ListFormat, Vertex as TRIVertex, TriangulationError};
 use triangulate::formats::IndexedListFormat;
 
-use crate::vertex::{Vertex, PickedVertex};
-use crate::mtb_ui::PickerState;
-use crate::mtb_grid::HoverData;
+use super::vertex::{Vertex, PickedVertex};
+use super::mtb_ui::PickerState;
+use super::mtb_grid::HoverData;
 
 pub struct BrushPlugin;
 

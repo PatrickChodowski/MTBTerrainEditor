@@ -2,14 +2,14 @@
 use bevy::prelude::*;
 use serde::{Deserialize,Serialize};
 
-use crate::noises::{NoiseData, Noise};
-use crate::smoothing::{SmoothingData,Smoothing};
-use crate::terraces::{TerracesData, Terraces};
-use crate::planes::PlaneData;
-use crate::value::{ValueData, Value};
-use crate::wanders::{TargetWanderNoiseData,TargetWanderNoise};
-use crate::wave::{WaveData,Wave};
-use crate::utils::{AreaData, Area};
+use super::noises::{NoiseData, Noise};
+use super::smoothing::{SmoothingData,Smoothing};
+use super::terraces::{TerracesData, Terraces};
+use super::planes::PlaneData;
+use super::value::{ValueData, Value};
+use super::wanders::{TargetWanderNoiseData,TargetWanderNoise};
+use super::wave::{WaveData,Wave};
+use super::utils::{AreaData, Area};
 
 
 // Struct needed for every modifier. Added as component to all modifiers

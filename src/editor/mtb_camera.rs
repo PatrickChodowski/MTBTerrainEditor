@@ -5,7 +5,7 @@ use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f;
 
-use crate::mtb_console::ConsoleState; 
+use super::mtb_console::ConsoleState; 
 
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;

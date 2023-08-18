@@ -1,14 +1,12 @@
 
+use bevy::prelude::Resource;
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
-use serde::{Serialize, Deserialize};
-
+use std::slice::Iter;
 use super::easings::Easings;
-use super::modifiers::ModifierBase;
-use super::utils::Area;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct NoiseData {
-    pub mb:             ModifierBase,
+
+#[derive(Clone, Resource, Debug)]
+pub struct Noise {
     pub noise:          Noises,
     pub seed:           u32,
     pub scale:          f64,
@@ -17,33 +15,29 @@ pub struct NoiseData {
     pub easing:         Easings,
     pub global:         bool
 }
-
-#[derive(Clone)]
-pub struct Noise {
-    pub area:           Area,
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        Option<usize>,
-    pub freq:           Option<f64>,
-    pub easing:         Easings,
-    pub global:         bool,
-    pub noise_function: NoiseFunction
+impl Noise {
+    pub fn new() -> Self {
+        Noise { noise: Noises::Perlin, seed: 0, scale: 0.1, octaves: None, freq: None, easing: Easings::None, global: false}
+    }
 }
 
-
-impl NoiseData {
-    pub fn set(&self) -> Noise {
+impl Noise {
+    pub fn set(&self) -> NoiseFunction {
         let nfn = NoiseFunction::new(self.noise.clone(), self.seed, self.octaves, self.freq);
-        return Noise {area:             self.mb.to_area(),
-                      noise:            self.noise.clone(), 
-                      seed:             self.seed, 
-                      scale:            self.scale, 
-                      octaves:          self.octaves, 
-                      freq:             self.freq, 
-                      easing:           self.easing,
-                      global:           self.global, 
-                      noise_function:   nfn};
+        return nfn;
+    }
+    pub fn apply(&self, noise_fn: NoiseFunction, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
+
+        let mut gpos: [f32; 3] = *pos;
+        if self.global {
+            gpos[0] = pos[0] + loc[0];
+            gpos[1] = pos[1] + loc[1];
+            gpos[2] = pos[2] + loc[2];
+        }
+
+        let r: f64 = noise_fn.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
+        let eased_r = self.easing.apply(r as f32);
+        return eased_r * gpos[1];    
     }
 }
 
@@ -51,7 +45,7 @@ impl NoiseData {
 
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Noises {
     Perlin,
     PerlinSurflet,
@@ -83,29 +77,46 @@ pub enum Noises {
 
 }
 
-impl Noise {
-    pub fn apply(&self, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
 
-        let mut gpos: [f32; 3] = *pos;
-        if self.global {
-            gpos[0] = pos[0] + loc[0];
-            gpos[1] = pos[1] + loc[1];
-            gpos[2] = pos[2] + loc[2];
-        }
-
-        if !self.area.has_point(pos) {
-            return gpos[1];
-        }
-
-        let r: f64 = self.noise_function.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
-        let eased_r = self.easing.apply(r as f32);
-        return eased_r * gpos[1];    
-    }
+impl<'a> Noises {
+      pub fn iterator() -> Iter<'static, Noises> {
+    static NOISES_OPTIONS: [Noises; 27] = [
+        Noises::Perlin,
+        Noises::PerlinSurflet,
+        Noises::OpenSimplex,
+        Noises::Value,
+        Noises::SuperSimplex,
+        Noises::Worley,
+        Noises::Simplex,
+        Noises::FBMPerlin,
+        Noises::BMPerlin,
+        Noises::BPerlin,
+        Noises::RMPerlin,
+        Noises::HMPerlin,
+        Noises::FBMPerlinSurflet,
+        Noises::BMPerlinSurflet,
+        Noises::BPerlinSurflet,
+        Noises::RMPerlinSurflet,
+        Noises::HMPerlinSurflet,
+        Noises::FBMValue,
+        Noises::BMValue,
+        Noises::BValue,
+        Noises::RMValue,
+        Noises::HMValue,
+        Noises::FBMSS,
+        Noises::BMSS,
+        Noises::BSS,
+        Noises::RMSS,
+        Noises::HMSS 
+    ];
+    NOISES_OPTIONS.iter()
+  }
 }
+
 
 // Simpler noise used as argument in other modifiers
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct SimpleNoiseData {
     pub noise:          Noises,
     pub seed:           u32,

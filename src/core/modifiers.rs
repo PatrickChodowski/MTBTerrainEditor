@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize,Serialize};
 
-use super::noises::{NoiseData, Noise};
+use super::noises::Noise;
 use super::smoothing::{SmoothingData,Smoothing};
 use super::terraces::{TerracesData, Terraces};
 use super::planes::PlaneData;

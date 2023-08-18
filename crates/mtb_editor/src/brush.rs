@@ -14,8 +14,6 @@ use crate::vertex::{Vertex, PickedVertex};
 use crate::mtb_ui::PickerState;
 use crate::mtb_grid::HoverData;
 
-use crate::widgets::side_panel::SidePanel;
-use crate::widgets::slider::{Slider, SliderDisplay};
 pub struct BrushPlugin;
 
 impl Plugin for BrushPlugin {
@@ -24,49 +22,10 @@ impl Plugin for BrushPlugin {
         .insert_resource(BrushSettings::new())
         .add_systems(OnExit(PickerState::Brush), despawn_brush)
         .add_systems(OnEnter(PickerState::Brush), spawn_brush)
-        .add_systems(OnEnter(PickerState::Brush), add_settings)
-        .add_systems(Update, update_settings.run_if(in_state(PickerState::Brush)))
-        .add_systems(OnExit(PickerState::Brush), rm_settings)
-        .add_systems(Update, update_brush.after(update_settings).run_if(in_state(PickerState::Brush)))
+        .add_systems(Update, update_brush.run_if(in_state(PickerState::Brush)))
         .add_systems(Update, select.after(update_brush).run_if(input_pressed(MouseButton::Left).and_then(in_state(PickerState::Brush))))
         ;
     }
-}
-
-
-
-pub fn add_settings(mut commands:      Commands, 
-                    ass:               Res<AssetServer>,
-                    brush_settings:    Res<BrushSettings>,
-                    sidepanel:         Query<Entity, With<SidePanel>>){
-
-    if let Ok(sidepanel) = sidepanel.get_single() {
-        let slider = Slider{min: 1.0, max: 500.0, value: brush_settings.radius, step: 1.0, label: "Radius".to_string(),
-                            display: SliderDisplay{dims: (100.0, 30.0),..default()}, ..default()};
-        let slider_entity = slider.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(20.0), Val::Px(20.0)));
-        commands.entity(slider_entity).insert(BrushSettingRadius);
-        commands.entity(sidepanel).push_children(&[slider_entity]);
-    }
-
-}
-
-pub fn update_settings(
-        mut brush_settings:    ResMut<BrushSettings>,
-        brush_radius:          Query<(&BrushSettingRadius, &Slider)>){
-
-    if let Ok((_br, slider)) = brush_radius.get_single() {
-        brush_settings.radius = slider.value;
-    }
-
-}
-
-pub fn rm_settings(mut commands:      Commands, 
-                   brush_settings: Query<Entity, With<BrushSettingRadius>>){
-
-    for entity in brush_settings.iter(){
-        commands.entity(entity).despawn_recursive();
-    }
-
 }
 
 fn select(mut commands:      Commands,

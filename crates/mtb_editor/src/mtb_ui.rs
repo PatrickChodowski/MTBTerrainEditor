@@ -12,7 +12,7 @@ use crate::mtb_grid::{GridData, HoverData, Hoverables};
 use crate::AppState;
 use crate::brush::{BrushPlugin, BrushSettings};
 use crate::boxselect::BoxSelectPlugin;
-use crate::widgets::text_node::spawn_text_node;
+use crate::spawn_text_node;
 
 pub struct MTBUIPlugin;
 
@@ -70,7 +70,7 @@ pub enum ModifierState {
     Smoothing
 }
 
-impl<'a> ModifierState {
+impl<'a> ModifierState { 
   pub fn iterator() -> Iter<'static, ModifierState> {
     static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, ModifierState::Noise, ModifierState::Value,
                                               ModifierState::Wave, ModifierState::Terraces, ModifierState::Smoothing];

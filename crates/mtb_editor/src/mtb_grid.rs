@@ -3,7 +3,6 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use mtb_core::planes::{TerrainPlane, PlaneData};
 use mtb_core::utils::AABB;
-use crate::widgets::utils::AABB as WidgetsAABB;
 
 use crate::mtb_camera::MTBCamera;
 pub const TILE_DIM: f32 = 10.0;
@@ -66,18 +65,18 @@ pub fn hover_check(mut hover_data:      ResMut<HoverData>,
     if let Some(pos) = primary.cursor_position(){
         hover_data.cursor_position = Some((pos.x, pos.y));
 
-        for (n, gt, v) in gui.iter(){
-          if v != Visibility::Hidden {
-            let x = gt.translation().x;
-            let y = primary.height() - gt.translation().y;
-            let slider_size = n.size();
-            let aabb = WidgetsAABB::new(&(x, y), &(slider_size.x, slider_size.y));
-            if aabb.has_point(&(pos.x, pos.y)){
-              is_hovered_gui = true;
-              break;
-            }
-          }
-        }
+        // for (n, gt, v) in gui.iter(){
+        //   if v != Visibility::Hidden {
+        //     let x = gt.translation().x;
+        //     let y = primary.height() - gt.translation().y;
+        //     let slider_size = n.size();
+        //     let aabb = WidgetsAABB::new(&(x, y), &(slider_size.x, slider_size.y));
+        //     if aabb.has_point(&(pos.x, pos.y)){
+        //       is_hovered_gui = true;
+        //       break;
+        //     }
+        //   }
+        // }
 
         let (camera, camera_transform) = camera.single();
         if let Some(ray) = camera.viewport_to_world(camera_transform, pos){

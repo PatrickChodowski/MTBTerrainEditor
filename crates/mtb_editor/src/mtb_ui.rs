@@ -1,35 +1,18 @@
 
-use bevy::input::common_conditions::input_just_pressed;
+
 use bevy::prelude::*;
 use std::str::FromStr;
 use std::slice::Iter;
-use bevy::window::PrimaryWindow;
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 use mtb_core::colors::ColorsLib;
 use mtb_core::planes::PlaneData;
 
 use crate::mtb_grid::{GridData, HoverData, Hoverables};
 use crate::AppState;
-use crate::brush::BrushPlugin;
+use crate::brush::{BrushPlugin, BrushSettings};
 use crate::boxselect::BoxSelectPlugin;
-use crate::widgets::utils::AABB;
-use crate::widgets::buttons::{spawn_button, ButtonValue};
-use crate::widgets::dropdown::{DropDown, DropDownPlugin, DropDownOption};
-use crate::widgets::modal::{ModalPlugin, ModalPanel, ModalState, spawn_modal};
-use crate::widgets::side_panel::{spawn_side_panel, SidePanel};
-use crate::widgets::slider::SliderPlugin;
-use crate::widgets::button_group::spawn_button_group;
-use crate::widgets::color_picker::{ColorPickerPlugin, ColorPickerData, spawn_color_picker};
-use crate::widgets::text_input::{spawn_text_input, TextInputPlugin, TextInputBox};
 use crate::widgets::text_node::spawn_text_node;
-
-pub const MENU_BTN_COLOR: Color = Color::rgb(0.4, 0.4, 0.4); 
-pub const MENU_BTN_COLOR_HOVER: Color = Color::rgb(0.45, 0.45, 0.45); 
-pub const MENU_BTN_COLOR_PRESSED: Color = Color::rgb(0.5, 0.5, 0.5); 
-pub const MENU_BTN_HEIGHT: Val = Val::Px(25.0);
-pub const MENU_BTN_WIDTH: Val = Val::Px(100.0);
-pub const MENU_CHILD_BTN_WIDTH: Val = Val::Px(80.0);
-pub const MENU_TEXT_COLOR: Color= Color::rgb(1.0, 1.0, 1.0); 
 
 pub struct MTBUIPlugin;
 
@@ -39,28 +22,27 @@ impl Plugin for MTBUIPlugin {
         .add_state::<PickerState>()
         .add_state::<ModifierState>()
         .add_plugins(BoxSelectPlugin)
-        .add_plugins(ColorPickerPlugin)
-        .add_plugins(TextInputPlugin)
-        .add_plugins(ModalPlugin)
-        .add_plugins(SliderPlugin)
-        .add_plugins(DropDownPlugin)
-        .add_event::<ToggleSubmenuEvent>()
-        .add_event::<OpenModalEvent>()
-        .insert_resource(ColorsLib::new())
         .add_plugins(BrushPlugin)
+        .add_plugins(EguiPlugin)
+        .init_resource::<OccupiedScreenSpace>()
+        .insert_resource(ColorsLib::new())
         .add_systems(Startup, setup)
-
+        .add_systems(Update, update_egui)
         .add_systems(Update, update_left_into_panel)
-        .add_systems(ModalState::Off, open_modal.run_if(on_event::<OpenModalEvent>()))
-        .add_systems(OnExit(ModalState::On), save_modal)
-
-        .add_systems(OnEnter(AppState::Edit), open_editor)
-        .add_systems(OnExit(AppState::Edit), close_editor)
-        .add_systems(PreUpdate, click_button.run_if(input_just_pressed(MouseButton::Left)))
-        .add_systems(PreUpdate, click_dropdown.run_if(input_just_pressed(MouseButton::Left)))
         ;
     }
 }
+
+
+#[derive(Default, Resource, Debug)]
+struct OccupiedScreenSpace {
+    _left: f32,
+    _top: f32,
+    right: f32,
+    _bottom: f32,
+}
+
+
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum PickerState {
@@ -71,13 +53,6 @@ pub enum PickerState {
 }
 
 impl<'a> PickerState {
-  fn to_str(&self) -> &'a str {
-    match self {
-      PickerState::Box => {"box"}
-      PickerState::Point => {"point"}
-      PickerState::Brush => {"brush"}
-    }
-  }
   pub fn iterator() -> Iter<'static, PickerState> {
     static PICKER_OPTIONS: [PickerState; 3] = [PickerState::Box, PickerState::Point, PickerState::Brush];
     PICKER_OPTIONS.iter()
@@ -96,16 +71,6 @@ pub enum ModifierState {
 }
 
 impl<'a> ModifierState {
-  fn to_str(&self) -> &'a str {
-    match self {
-      ModifierState::Color     => {"Color"}
-      ModifierState::Noise     => {"Noise"}
-      ModifierState::Value     => {"Value"}
-      ModifierState::Wave      => {"Wave"}
-      ModifierState::Terraces  => {"Terraces"}
-      ModifierState::Smoothing => {"Smoothing"}
-    }
-  }
   pub fn iterator() -> Iter<'static, ModifierState> {
     static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, ModifierState::Noise, ModifierState::Value,
                                               ModifierState::Wave, ModifierState::Terraces, ModifierState::Smoothing];
@@ -129,204 +94,78 @@ impl FromStr for ModifierState {
   }
 }
 
-
-#[derive(Component)]
-pub struct ModifierDropDown;
-
-pub fn click_dropdown(window:                    Query<&Window, With<PrimaryWindow>>,
-                      mut next_modifier_state:   ResMut<NextState<ModifierState>>,
-                      dropdown:                  Query<Option<&ModifierDropDown>, With<DropDown>>,
-                      dropdown_options:          Query<(&Node, &Visibility, &GlobalTransform, &DropDownOption, &Parent)>) {
-
-  let Ok(primary) = window.get_single() else {return;};
-  if let Some(pos) = primary.cursor_position(){
-      for (n, v, gt, dropdown_option, parent) in dropdown_options.iter(){
-          if v == Visibility::Hidden {
-              continue;
-          }
-          
-          let x = gt.translation().x;
-          let y = gt.translation().y;
-          let dd_size = n.size();
-          let aabb = AABB::new(&(x, y), &(dd_size.x, dd_size.y));
-  
-          if !aabb.has_point(&(pos.x, pos.y)){
-              continue; // Mouse not over the slider
-          }
-
-          if let Ok(option_modifier_dd) = dropdown.get(**parent) {
-            if option_modifier_dd.is_none(){
-              continue;
-            }
-            if let Ok(modifier) = ModifierState::from_str(&dropdown_option.value){
-              next_modifier_state.set(modifier);
-            }
-          }
-      }
-  }
-
-}
-
-
-pub fn click_button(mut next_picker_state:   ResMut<NextState<PickerState>>,
-                    mut buttons:             Query<(&Interaction, &ButtonValue, Option<&PickerState>), (Changed<Interaction>, With<Button>)>){
-
-  for (interaction, _value, picker) in buttons.iter_mut() {
-    match *interaction {
-      Interaction::Pressed => {
-        if let Some(picker) = picker {
-          next_picker_state.set(*picker);
-          info!(" [DEBUG] Changed Picker type to {}",picker.to_str());
-        }
-      }
-      _ => {}
-    }
-  }
-}
-
-
-pub fn open_editor(mut commands: Commands, ass: Res<AssetServer>){
-  let ent_sidepanel = spawn_side_panel(&mut commands);
-  commands.entity(ent_sidepanel).insert(GUIElement);
-  let mut v: Vec<Entity> = Vec::new();
-
-  for picker_option in PickerState::iterator(){
-      let new_button = spawn_button(&mut commands, 
-                                    &ass,
-                                    ButtonValue::String(picker_option.to_str().to_string()),
-                                    (Val::Percent(10.0), Val::Percent(1.0)),
-                                    (Val::Percent(80.0), Val::Px(20.0)),
-                                    PositionType::Relative);
-      commands.entity(new_button).insert(*picker_option);
-      v.push(new_button);
-  }
-
-  let mut dd_options: Vec<DropDownOption> = Vec::new();
-  for modifier in ModifierState::iterator() {
-    dd_options.push(DropDownOption{label: modifier.to_str().to_string(), value: modifier.to_str().to_string()},)
-  }
-
-  let dd = DropDown {label: "Modifier".to_string(), options: dd_options, ..default()};
-  let dd_entity = dd.spawn(&mut commands, &ass, PositionType::Relative, &(Val::Px(20.0), Val::Px(150.0)));
-  commands.entity(dd_entity).insert(ModifierDropDown);
-  v.push(dd_entity);
-
-  commands.entity(ent_sidepanel).push_children(&v);
-}
-
-pub fn close_editor(mut commands: Commands, sidepanel: Query<Entity, With<SidePanel>>){
-  for entity in sidepanel.iter(){
-    commands.entity(entity).despawn_recursive();
-  }
-}
-
-pub fn open_modal(mut commands:          Commands,
-                  mut open_modal:        EventReader<OpenModalEvent>,
-                  ass:                   Res<AssetServer>,
-                  mut next_modal_state:  ResMut<NextState<ModalState>>,
-                  colors_lib:            Res<ColorsLib>){
-
-    for ev in open_modal.iter(){
-      let modal = spawn_modal(&mut commands, &mut next_modal_state);
-      commands.entity(modal).insert(ev.modal_type).insert(GUIElement);
-
-      match ev.modal_type {
-        ModalType::Color => {
-          let color_picker = spawn_color_picker(&mut commands, &ass);
-          let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
-          let button_group = spawn_button_group(&mut commands, &ass, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
-          commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
-        }
-        ModalType::PlaneColor => {
-          let color_picker = spawn_color_picker(&mut commands, &ass);
-          let text_input = spawn_text_input(&mut commands, &ass, &(11.0, 55.0), &(200.0, 30.0), "ColorName".to_string());
-          let button_group = spawn_button_group(&mut commands, &ass, &colors_lib, &(11.0, 65.0), &(625.0, 100.0));
-          commands.entity(modal).push_children(&[color_picker, text_input, button_group]);
-        }
-
-        ModalType::ColorGradient => {
-          let color_picker = spawn_color_picker(&mut commands, &ass);
-          commands.entity(modal).push_children(&[color_picker]);
-        }
-      }
-    }
-}
-
-// Close with saving data
-pub fn save_modal(modals:                Query<(&ModalType, &Children), With<ModalPanel>>,
-                  color_picker:          Query<&ColorPickerData>,
-                  text_inputs:           Query<&TextInputBox>,
-                  mut colors_lib:        ResMut<ColorsLib>){
-
-  for (modal_type, children) in modals.iter(){
-    match modal_type {
-      ModalType::Color => {
-        let mut id: Option<String> = None;
-        let mut clr: Option<[f32;4]> = None;
-        for child in children.iter(){
-          if let Ok(cpd) = color_picker.get(*child) {
-            clr = Some([cpd.r, cpd.g, cpd.b, cpd.a]);
-          }
-          if let Ok(text) = text_inputs.get(*child){
-            id = Some(text.text.clone());
-          }
-        }
-        if id.is_some() && clr.is_some(){
-          colors_lib.add(id.unwrap(), clr.unwrap());
-        }
-      }
-      ModalType::ColorGradient => {}
-      ModalType::PlaneColor => {}
-    }
-  }
-}
-
-
-#[derive(Event)]
-pub struct OpenModalEvent {
-  pub modal_type: ModalType
-}
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
-pub enum ModalType {
-  #[default]
-  PlaneColor,
-  Color,
-  ColorGradient
-}
-
-#[derive(Event)]
-pub struct ToggleSubmenuEvent {
-  pub button_entity: Entity,
-  pub height_diff: f32,
-  pub is_open: bool
-}
   
 #[derive(Component)]
 pub struct TopLeftInfoPanel;
 
-
-#[derive(Component)]
-pub struct GUIElement;
-
-#[allow(dead_code)]
-struct ButtonData {
-  label: String,
-  children: Option<Vec<ButtonData>> 
-}
-
-#[derive(Component)]
-pub struct Expandable {
-  pub is_open: bool
-}
-
-#[derive(Component)]
-pub struct ButtonLabel;
-
-
-
-fn setup(mut commands:  Commands,  _ass: Res<AssetServer>,) {
+fn setup(mut commands:  Commands){
   let _info_panel_entity = spawn_info_panel(&mut commands);
+}
+
+fn update_egui(mut contexts:              EguiContexts,
+               mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
+               picker_state:              Res<State<PickerState>>,
+               mut next_picker_state:     ResMut<NextState<PickerState>>,
+               mut brush_settings:        ResMut<BrushSettings>,
+               modifier_state:            Res<State<ModifierState>>,
+               mut next_modifier_state:   ResMut<NextState<ModifierState>>) {
+
+  let mut color: egui::Color32 = egui::Color32::LIGHT_BLUE.linear_multiply(0.5);
+
+  // let mut box_select = false;
+
+  let ctx = contexts.ctx_mut();
+  occupied_screen_space.right = egui::SidePanel::right("right_panel")
+    .resizable(true)
+    .show(ctx, |ui| {
+        ui.label("Edit mode");
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        // ui.horizontal(|ui| {
+        //   box_select = ui.button("Box Select").clicked();
+        // });
+
+        ui.vertical(|ui| {
+          ui.label("Picker:");
+          for &p in PickerState::iterator(){
+              if ui.radio_value(&mut picker_state.get(), &p, format!("{p:?}")).clicked() {
+                next_picker_state.set(p);
+              };
+          }
+        });
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        if let PickerState::Brush = picker_state.get() {
+          ui.add(egui::Slider::new(&mut brush_settings.radius, 1.0..=100.0).max_decimals(1));
+        }
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        ui.vertical(|ui| {
+          ui.label("Modifier:");
+          for &p in ModifierState::iterator(){
+              if ui.radio_value(&mut modifier_state.get(), &p, format!("{p:?}")).clicked() {
+                next_modifier_state.set(p);
+              };
+          }
+        });
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+
+        match modifier_state.get() {
+          ModifierState::Color => {
+            ui.color_edit_button_srgba(&mut color);
+          }
+          _ => {}
+        }
+      
+
+
+        ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+    })
+    .response
+    .rect
+    .width();
+
+
 }
 
 fn update_left_into_panel(mut commands:  Commands,
@@ -381,7 +220,6 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
     },
     ..default()
   })
-  .insert(GUIElement)
   .insert(TopLeftInfoPanel)
   .id()
   ;

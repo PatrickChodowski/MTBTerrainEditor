@@ -6,7 +6,6 @@ use strsim::levenshtein;
 use std::collections::HashSet;
 use std::fs::{self, File};
 
-use super::mtb_ui::{OpenModalEvent, ModalType};
 use mtb_core::planes::{SpawnNewPlaneEvent, EditPlaneEvent, DEFAULT_PLANE_ID};
 
 
@@ -111,8 +110,7 @@ const ALLOWED_CHARS: [&str; 10] = ["_", ".", ",", "-", ":", ";", "|", "/", "\\",
 pub enum Funcs {
     NewPlaneData,
     PlaneData,
-    SetID,
-    NewColor
+    SetID
 }
 
 impl FromStr for Funcs {
@@ -122,7 +120,6 @@ impl FromStr for Funcs {
             "set"   => Ok(Funcs::SetID),
             "npd"   => Ok(Funcs::NewPlaneData),
             "pd"    => Ok(Funcs::PlaneData),
-            "nc"    => Ok(Funcs::NewColor),
             _      => Err(()),
         }
     }
@@ -316,7 +313,6 @@ fn get_func_args<'a>(console: &ResMut<ConsoleInput>) -> Option<Vec<&'a str>> {
                 Funcs::NewPlaneData             => {return Some(vec!["id", "loc", "dims", "subs"])}
                 Funcs::PlaneData                => {return Some(vec!["id", "loc", "dims", "subs", "mod", "clr", "active"])}
                 Funcs::SetID                    => {return Some(vec!["id"])}
-                Funcs::NewColor                 => {return Some(vec![""])}
             }
         }
     } 
@@ -373,7 +369,6 @@ fn send_command(console:              Res<ConsoleInput>,
                 mut sent_commands:    ResMut<SentCommands>,
                 mut spawn_new_plane:  EventWriter<SpawnNewPlaneEvent>,
                 mut edit_plane:       EventWriter<EditPlaneEvent>,
-                mut open_modal:       EventWriter<OpenModalEvent>,
                 mut plane_set_id:     ResMut<PlaneSetID>
             ){
 
@@ -446,9 +441,6 @@ fn send_command(console:              Res<ConsoleInput>,
                         if let Some(subs_str) = search_arg_value("subs", &args){
                             epe.subs = unpack_array2_u32(&subs_str, "PlaneData", "subs");
                         }
-                        if let Some(_clr_str) = search_arg_value("clr", &args){
-                            open_modal.send(OpenModalEvent {modal_type: ModalType::PlaneColor})
-                        }
 
                         info!(" [CONSOLE] Editing plane id {:?}", epe.id);
                         edit_plane.send(epe);
@@ -464,7 +456,6 @@ fn send_command(console:              Res<ConsoleInput>,
                             }
                         }
                     }
-                    Funcs::NewColor => {open_modal.send(OpenModalEvent {modal_type: ModalType::Color})}
                 }
             } else {
                 info!(" [CONSOLE] Invalid function string");

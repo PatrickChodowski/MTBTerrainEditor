@@ -1,11 +1,10 @@
 
 
 use bevy::prelude::*;
-use std::str::FromStr;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
-use crate::core::colors::ColorsLib;
+use crate::core::color::Color;
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
@@ -28,7 +27,6 @@ impl Plugin for MTBUIPlugin {
         .add_plugins(BrushPlugin)
         .add_plugins(EguiPlugin)
         .init_resource::<OccupiedScreenSpace>()
-        .insert_resource(ColorsLib::new())
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
         .add_systems(Startup, setup)
@@ -70,60 +68,42 @@ impl<'a> PickerState {
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum ModifierState {
     Color,
+    ColorGradient,
+    ColorTerraces,
     #[default]
     Noise,
     Value,
     Wave,
-    Terraces,
-    Smoothing
+    Terraces
 }
 
 impl<'a> ModifierState { 
   pub fn iterator() -> Iter<'static, ModifierState> {
-    static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, ModifierState::Noise, ModifierState::Value,
-                                              ModifierState::Wave, ModifierState::Terraces, ModifierState::Smoothing];
+    static MOD_OPTIONS: [ModifierState; 7] = [ModifierState::Color, 
+                                              ModifierState::ColorGradient, 
+                                              ModifierState::ColorTerraces,
+                                              ModifierState::Noise, 
+                                              ModifierState::Value,
+                                              ModifierState::Wave, 
+                                              ModifierState::Terraces];
     MOD_OPTIONS.iter()
   }
   
 }
 
-impl FromStr for ModifierState {
-  type Err = ();
-  fn from_str(input: &str) -> Result<ModifierState, Self::Err> {
-      match input {
-          "Color"     => Ok(ModifierState::Color),
-          "Noise"     => Ok(ModifierState::Noise),
-          "Value"     => Ok(ModifierState::Value),
-          "Wave"      => Ok(ModifierState::Wave),
-          "Terraces"  => Ok(ModifierState::Terraces),
-          "Smoothing" => Ok(ModifierState::Smoothing),
-          _      => Err(()),
-      }
-  }
-}
-
 #[derive(Debug, Clone, Resource)]
 pub struct ModResources{
-  pub clr: egui::Color32,
+  pub color: Color,
   pub value: Value,
   pub noise: Noise,
 }
 impl Default for ModResources {
     fn default() -> Self {
-      ModResources{clr: egui::Color32::LIGHT_BLUE.linear_multiply(0.5), 
+      ModResources{color: Color::new(), 
                    value: Value::new(),
                    noise: Noise::new()}
     }
 }
-impl ModResources {
-  pub fn to_clr(&self) -> [f32; 4] {
-      [(self.clr.r() as f32)/255.0, 
-       (self.clr.g() as f32)/255.0, 
-       (self.clr.b() as f32)/255.0, 
-       (self.clr.a() as f32)/255.0]
-  }
-}
-
 
 #[derive(Component)]
 pub struct TopLeftInfoPanel;
@@ -177,13 +157,13 @@ fn update_egui_editor(mut contexts:              EguiContexts,
 
         match modifier_state.get() {
           ModifierState::Color => {
-            ui.color_edit_button_srgba(&mut mod_res.clr);
+            Color::ui(ui, &mut mod_res);
           }
           ModifierState::Value => {
             Value::ui(ui, &mut mod_res);
           }
           ModifierState::Noise => {
-           Noise::ui(ui, &mut mod_res);
+            Noise::ui(ui, &mut mod_res);
           }
           _ => {}
         }

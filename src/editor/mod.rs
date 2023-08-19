@@ -7,14 +7,12 @@ use bevy_mod_picking::DefaultPickingPlugins;
 pub mod boxselect;
 pub mod brush;
 pub mod mtb_camera;
-pub mod mtb_colors;
 pub mod mtb_grid;
 pub mod mtb_ui;
 
 use super::core::planes::{PlanesPlugin, TerrainPlane};
 use super::core::vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};
 
-use mtb_colors::MTBColorsPlugin;
 use mtb_camera::MTBCameraPlugin;
 use mtb_grid::MTBGridPlugin;
 use mtb_ui::MTBUIPlugin;
@@ -28,7 +26,6 @@ impl Plugin for MTBEditorPlugin {
         .add_state::<DisplayState>()
         .add_plugins(DefaultPickingPlugins)
         .add_plugins(WireframePlugin)
-        .add_plugins(MTBColorsPlugin)
         .add_plugins(MTBCameraPlugin)
         .add_plugins(MTBGridPlugin)
         .add_plugins(MTBUIPlugin)

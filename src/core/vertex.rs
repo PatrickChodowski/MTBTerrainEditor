@@ -30,21 +30,21 @@ impl Plugin for VertexPlugin {
 
 fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
-    mod_res:            Res<ModResources>,
+    mut mod_res:        ResMut<ModResources>,
     mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>
 ) {
 
     for ev in apply_mod.iter(){
         info!(" Applied modifier {:?}", ev.mod_type);
 
-        let clr = mod_res.to_clr();
+        mod_res.color.set();
         let nfn = mod_res.noise.set();
 
         for (mut tr, mut v) in picked_vertex.iter_mut(){
 
             match ev.mod_type {
                 ModifierState::Color => {
-                    v.clr = clr;
+                    v.clr = mod_res.color.apply();
                 }
                 ModifierState::Value => {
                     v.loc[1] = mod_res.value.apply(&v.loc);

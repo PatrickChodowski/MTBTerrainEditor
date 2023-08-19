@@ -1,5 +1,6 @@
+use std::slice::Iter;
 use bevy::reflect::Reflect;
-use libm::powf;
+// use libm::powf;
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Reflect)]
@@ -9,9 +10,24 @@ pub enum Easings {
     SmoothStop,
     SmoothStart,
     SmoothEnd,
-    AbsoluteValue,
-    AbsoluteValuePow(f32)
+    AbsoluteValue
 }
+
+impl<'a> Easings {
+    pub fn iterator() -> Iter<'static, Easings> {
+        static EASING_OPTIONS: [Easings; 6] = [
+                Easings::None,
+                Easings::SmoothStep,
+                Easings::SmoothStop,
+                Easings::SmoothStart,
+                Easings::SmoothEnd,
+                Easings::AbsoluteValue
+        ];
+        EASING_OPTIONS.iter()
+    }
+}
+
+
 
 impl Easings {
     pub fn apply(&self, x: f32) -> f32 {
@@ -32,9 +48,9 @@ impl Easings {
             Easings::AbsoluteValue => {
                 return x.abs();
             }
-            Easings::AbsoluteValuePow(p) => {
-                return powf(x.abs(), *p);
-            }
+            // Easings::AbsoluteValuePow(p) => {
+            //     return powf(x.abs(), *p);
+            // }
             Easings::None => {
                 return x;
             }

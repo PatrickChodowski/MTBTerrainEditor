@@ -1,105 +1,23 @@
 use libm::{fabsf, powf, sqrtf};
 use bevy::prelude::*;
-use bevy::reflect::{TypeUuid, TypePath};
+use std::slice::Iter;
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Axis {
   X,Z
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
-pub struct AreaDims {
-    pub x: f32,
-    pub z: f32
-} 
-impl AreaDims {
-  fn to_tuple(&self) -> (f32, f32){
-    return (self.x, self.z);
+impl<'a> Axis {
+  pub fn iterator() -> Iter<'static, Axis> {
+      static OPTIONS: [Axis; 2] = [
+          Axis::X,
+          Axis::Z,
+      ];
+      OPTIONS.iter()
   }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
-pub struct ArcData {
-  pub r: f32,
-  pub a: f32
-}
-impl ArcData {
-  fn to_tuple(&self) -> (f32, f32){
-    return (self.r, self.a);
-  }
-}
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum AreaData {
-    AABB(AreaDims),
-    Ellipse(AreaDims),
-    Arc(ArcData)
-}
-
-impl AreaData {
-  pub fn to_area(&self, loc: &[f32; 2]) -> Area {
-    let area: Area;
-    match self {
-        AreaData::AABB(dims) => {
-            area = Area::AABB(AABB{min_x: loc[0]-1.0*dims.x/2.0, max_x: loc[0]+dims.x/2.0, min_z: loc[1]-1.0*dims.z/2.0, max_z: loc[1]+dims.z/2.0});
-        }
-        AreaData::Ellipse(dims) => {
-            area = Area::Ellipse(Ellipse{ a: dims.x, b: dims.z, x: loc[0], z: loc[1] });
-        }
-        AreaData::Arc(dims) => {
-          area = Area::Arc(Arc{r: dims.r, a: dims.a, loc: *loc});
-      }
-    }
-    return area;
-  }
-  pub fn get_dims(&self) -> (f32, f32) {
-    match self {
-      AreaData::AABB(dims) => {dims.to_tuple()}
-      AreaData::Ellipse(dims) => {dims.to_tuple()}
-      AreaData::Arc(dims) => {dims.to_tuple()}
-    }
-  }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Area {
-    AABB(AABB),
-    Ellipse(Ellipse),
-    Arc(Arc)
-}
-impl Area {
-  pub fn has_point(&self, pos: &[f32; 3]) -> bool {
-    let has_point: bool;
-    match &self {
-      Area::AABB(aabb) => {has_point = aabb.has_point(pos)}
-      Area::Ellipse(ellipse) => {has_point = ellipse.has_point(pos)}
-      Area::Arc(arc) => {has_point = arc.has_point(pos)}
-    }
-    return has_point;
-  }
-
-  pub fn get_center(&self) -> (f32, f32){
-    match &self {
-      Area::AABB(aabb) => {aabb.get_center()}
-      Area::Ellipse(ellipse) => {ellipse.get_center()}
-      Area::Arc(arc) => {arc.get_center()}
-    }
-  }
-
-  pub fn get_radius(&self) -> f32 {
-    match &self {
-      Area::AABB(aabb) => {aabb.get_radius()}
-      Area::Ellipse(ellipse) => {ellipse.get_radius()}
-      Area::Arc(arc) => {arc.get_radius()}
-    }
-  }
-
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Edge {X, NX, Z, NZ}  
 
 #[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize, Component)]
 pub struct AABB {
@@ -147,42 +65,6 @@ impl AABB {
 
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Arc {
-  pub r:    f32,
-  pub a:    f32,
-  pub loc:  [f32; 2]
-}
-
-impl Arc {
-  pub fn has_point(&self, pos: &[f32; 3]) -> bool {
-    let dx = pos[0] - self.loc[0];
-    let dz = pos[2] - self.loc[1];
-    let dist = (dx * dx + dz * dz).sqrt();
-    if dist > self.r {
-      return false;
-    }
-    let theta = (dz / dist).atan2(dx / dist);
-    let mut normalized_theta = theta;
-    if normalized_theta < 0.0 {
-        normalized_theta += 2.0 * std::f32::consts::PI;
-    }
-
-    let half_a = self.a / 2.0;
-    let lower_bound = (self.a - half_a) % (2.0 * std::f32::consts::PI);
-    let upper_bound = (self.a + half_a) % (2.0 * std::f32::consts::PI);
-    normalized_theta >= lower_bound && normalized_theta <= upper_bound
-
-  }
-
-  pub fn get_center(&self) -> (f32, f32) {
-    return (self.loc[0], self.loc[1]);
-  }
-
-  pub fn get_radius(&self) -> f32 {
-    return self.r;
-  }
-}
 
 
 
@@ -190,23 +72,6 @@ impl Arc {
 
 
 
-
-
-
-
-
-
-
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, TypeUuid, TypePath)]
-#[uuid = "201ce530-bfeb-41b3-9db0-4b8b380a2c46"]
-pub struct MTBConfigData {
-    pub scene_file:         String
-}
-
-#[derive(Resource)]
-pub struct MTBConfigAsset(pub Handle<MTBConfigData>);
 
 
 // unpacks mesh stats
@@ -222,50 +87,6 @@ pub fn get_mesh_stats(mesh: &Mesh){
       );
   }
 
-}
-
-
-#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
-pub struct Ellipse {
-  pub a: f32,  // axis
-  pub b: f32,  // axis
-  pub x: f32,  // loc 
-  pub z: f32   // loc
-}
-
-impl Ellipse {
-  pub fn get_radius(&self) -> f32 {
-    let x_r = self.x/2.0;
-    let z_r = self.z/2.0;
-
-    // get longest of two
-    if x_r >= z_r {
-      x_r
-    } else {
-      z_r
-    }
-  }
-
-  pub fn get_center(&self) -> (f32,f32){
-    (self.x, self.z)
-  }
-
-  pub fn has_point(&self, p: &[f32; 3]) -> bool {
-    let dx = p[0] - self.x;
-    let dz = p[2] - self.z;
-    (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0
-  }
-
-  pub fn has_point_dist(&self, p: &[f32; 3]) -> Option<f32> {
-    let dx = p[0] - self.x;
-    let dz = p[2] - self.z;
-
-    if (dx * dx) / (self.a * self.a) + (dz * dz) / (self.b * self.b) <= 1.0 {
-      Some(get_distance_euclidean(&(self.x, self.z), &(p[0],p[2])))
-    } else {
-      None
-    }
-  }
 }
 
 pub fn get_distance_manhattan(xz: &(f32, f32), target: &(f32, f32)) -> f32 {

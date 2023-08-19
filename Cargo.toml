@@ -12,7 +12,7 @@ resolver = "2"
 
 
 [dependencies]
-bevy = { version = "0.11.1", features = ["dynamic_linking"] }
+bevy = { version = "0.11.2", features = ["dynamic_linking"] }
 bevy_common_assets = {  version ="0.7.0", features = ["toml"]}
 bevy_mod_picking = {version = "0.14", features = ["selection","backend_raycast","backend_bevy_ui"], default-features = false, git="https://github.com/aevyrie/bevy_mod_picking", branch="main"}
 bevy_egui = {version="0.21"}
@@ -23,6 +23,7 @@ serde_json = "1.0.104"
 strsim = "0.10.0"
 noise = "0.8.2"
 rand="0.8.5"
+pennereq = "0.3.1"
 
 [profile.dev]
 opt-level = 1

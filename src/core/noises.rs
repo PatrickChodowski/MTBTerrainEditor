@@ -3,6 +3,9 @@ use bevy::prelude::Resource;
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
 use std::slice::Iter;
 use super::easings::Easings;
+use bevy_egui::{egui, egui::Ui};
+use crate::editor::mtb_ui::ModResources;
+use bevy::prelude::ResMut;
 
 
 #[derive(Clone, Resource, Debug)]
@@ -26,7 +29,7 @@ impl Noise {
         let nfn = NoiseFunction::new(self.noise.clone(), self.seed, self.octaves, self.freq);
         return nfn;
     }
-    pub fn apply(&self, noise_fn: NoiseFunction, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
+    pub fn apply(&self, noise_fn: &NoiseFunction, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
 
         let mut gpos: [f32; 3] = *pos;
         if self.global {
@@ -38,6 +41,40 @@ impl Noise {
         let r: f64 = noise_fn.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
         let eased_r = self.easing.apply(r as f32);
         return eased_r * gpos[1];    
+    }
+
+    pub fn ui(ui: &mut Ui, mod_res: &mut ResMut<ModResources>) {
+
+        egui::ComboBox::from_label("Noise")
+        .width(140.0)
+        .selected_text(format!("{:?}", mod_res.noise.noise))
+        .show_ui(ui, |ui| {
+          for &p in Noises::iterator(){
+            ui.selectable_value(&mut mod_res.noise.noise, p, format!("{p:?}"));
+          }
+        });
+
+        ui.separator();
+
+        ui.columns(2, |columns| {
+          columns[1].label("Seed");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.seed).speed(1.0));
+          columns[1].label("Scale");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.scale).speed(1.0));
+        });
+
+        egui::ComboBox::from_label("Easing")
+        .width(140.0)
+        .selected_text(format!("{:?}", mod_res.noise.easing))
+        .show_ui(ui, |ui| {
+          for &p in Easings::iterator(){
+            ui.selectable_value(&mut mod_res.noise.easing, p, format!("{p:?}"));
+          }
+        });
+
+        ui.checkbox(&mut mod_res.noise.global, "Use global position?");
+
+
     }
 }
 

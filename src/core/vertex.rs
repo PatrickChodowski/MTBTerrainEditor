@@ -35,10 +35,10 @@ fn apply_modifiers(
 ) {
 
     for ev in apply_mod.iter(){
-        info!("Applied modifier {:?}", ev.mod_type);
+        info!(" Applied modifier {:?}", ev.mod_type);
 
         let clr = mod_res.to_clr();
-        let nfn = mod_res.noise_data.set();
+        let nfn = mod_res.noise.set();
 
         for (mut tr, mut v) in picked_vertex.iter_mut(){
 
@@ -47,11 +47,11 @@ fn apply_modifiers(
                     v.clr = clr;
                 }
                 ModifierState::Value => {
-                    v.loc[1] = mod_res.value;
-                    tr.translation[1] = mod_res.value;
+                    v.loc[1] = mod_res.value.apply(&v.loc);
+                    tr.translation[1] = mod_res.value.apply(&v.loc);
                 }
                 ModifierState::Noise => {
-                    let noise_height = mod_res.noise_data.apply(nfn.clone(), &v.loc, &v.loc);
+                    let noise_height = mod_res.noise.apply(&nfn, &v.loc, &v.loc);
                     v.loc[1] = noise_height;
                     tr.translation[1] = noise_height;
                 }

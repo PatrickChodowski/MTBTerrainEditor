@@ -6,8 +6,9 @@ use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 use crate::core::colors::ColorsLib;
-use crate::core::noises::{Noises, Noise};
+use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
+use crate::core::value::Value;
 
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
@@ -68,8 +69,8 @@ impl<'a> PickerState {
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum ModifierState {
-    #[default]
     Color,
+    #[default]
     Noise,
     Value,
     Wave,
@@ -104,17 +105,14 @@ impl FromStr for ModifierState {
 #[derive(Debug, Clone, Resource)]
 pub struct ModResources{
   pub clr: egui::Color32,
-  pub value: f32,
-  pub noise: Noises,
-  pub noise_data: Noise
+  pub value: Value,
+  pub noise: Noise,
 }
 impl Default for ModResources {
     fn default() -> Self {
       ModResources{clr: egui::Color32::LIGHT_BLUE.linear_multiply(0.5), 
-                   value: 0.0,
-                   noise: Noises::Perlin,
-                   noise_data: Noise::new()
-                   }
+                   value: Value::new(),
+                   noise: Noise::new()}
     }
 }
 impl ModResources {
@@ -182,17 +180,10 @@ fn update_egui_editor(mut contexts:              EguiContexts,
             ui.color_edit_button_srgba(&mut mod_res.clr);
           }
           ModifierState::Value => {
-            ui.add(egui::Slider::new(&mut mod_res.value, 0.0..=500.0).max_decimals(1));
+            Value::ui(ui, &mut mod_res);
           }
           ModifierState::Noise => {
-            egui::ComboBox::from_label("Noise")
-            .width(140.0)
-            .selected_text(format!("{:?}", mod_res.noise))
-            .show_ui(ui, |ui| {
-              for &p in Noises::iterator(){
-                ui.selectable_value(&mut mod_res.noise, p, format!("{p:?}"));
-              }
-            });
+           Noise::ui(ui, &mut mod_res);
           }
           _ => {}
         }

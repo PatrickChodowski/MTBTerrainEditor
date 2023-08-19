@@ -126,8 +126,8 @@ pub fn hide_wireframe(mut commands: Commands, planes: Query<Entity, With<Wirefra
 
   #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
   pub enum AppState {
-      #[default]
       Object,
+      #[default]
       Edit
   }
   

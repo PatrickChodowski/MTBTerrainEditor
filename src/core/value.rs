@@ -1,94 +1,184 @@
-
+use bevy_egui::{egui, egui::Ui};
+use bevy::prelude::ResMut;
 use serde::{Deserialize,Serialize};
 
-use super::easings::Easings;
-use super::modifiers::ModifierBase;
-use super::utils::{Area, Axis, get_distance_euclidean};
+use crate::editor::mtb_ui::ModResources;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum Val {
-    Value(f32),
-    Diff(f32),
-    Scale(f32)
+use super::easings::Easings;
+use super::utils::{Axis, get_distance_euclidean};
+use std::slice::Iter;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum ValueType {
+    Value,
+    Diff,
+    Scale
 }
-impl Val {
-    pub fn apply(&self, x: f32) -> f32 {
+impl ValueType {
+    pub fn apply(&self, value: f32, pos: &[f32;3]) -> f32 {
         match &self {
-            Val::Value(v) => {return *v;}
-            Val::Diff(d)  => {return x + d;}
-            Val::Scale(s) => {return x*s;}
+            ValueType::Value => {return value}
+            ValueType::Diff  => {return pos[1] + value;}
+            ValueType::Scale => {return pos[1]*value;}
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum ValueScaling {
-    None,
-    DistanceCenter(f32),
-    DistanceCenterRev(f32),
-    DistanceAxis((Axis, f32))
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ValueData {
-    pub mb:        ModifierBase,
-    pub scaling:   ValueScaling,
-    pub val:       Val,
-    pub easing:    Easings
-}
-impl ValueData {
-    pub fn set(&self) -> Value {
-        let v = Value{val: self.val, area: self.mb.to_area(), scaling: self.scaling, easing: self.easing};
-        return v;
+impl<'a> ValueType {
+    pub fn iterator() -> Iter<'static, ValueType> {
+        static OPTIONS: [ValueType; 3] = [
+            ValueType::Value,
+            ValueType::Diff,
+            ValueType::Scale
+        ];
+        OPTIONS.iter()
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum ValueScaling {
+    None,
+    DistancePoint,
+    DistancePointRev,
+    DistanceAxis,
+    DistanceAxisRev
+}
+
+impl<'a> ValueScaling {
+    pub fn iterator() -> Iter<'static, ValueScaling> {
+        static OPTIONS: [ValueScaling; 5] = [
+            ValueScaling::None,
+            ValueScaling::DistancePoint,
+            ValueScaling::DistancePointRev,
+            ValueScaling::DistanceAxis,
+            ValueScaling::DistanceAxisRev
+        ];
+        OPTIONS.iter()
+    }
+}
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Value {
-    pub val:       Val,
-    pub area:      Area,
-    pub easing:    Easings,
-    pub scaling:   ValueScaling,
+    pub _value:     f32,
+    pub _scale:     f32,
+    pub _axis:      Axis,
+    pub _axis_v:    f32,
+    pub _point:     (f32, f32),
+    pub value_type: ValueType,
+    pub easing:     Easings,
+    pub scaling:    ValueScaling,
 }
 
-impl Value {
-    pub fn apply(&self, pos: &[f32; 3]) -> f32 { 
+impl Value {    
 
-        let center = self.area.get_center();
-        let r = self.area.get_radius();
-
-        if self.area.has_point(pos){
-            let v2 = self.val.apply(pos[1]);
-            match self.scaling {
-                ValueScaling::DistanceCenterRev(d) => {
-                    let dist = get_distance_euclidean(&(pos[0], pos[2]), &center);
-                    let mut scale: f32 = (dist/r*d).clamp(0.0, 1.0);
-                    // println!("Radius: {} Distance: {}, scale: {} v2: {}", r, dist, scale, v2);
-                    scale = self.easing.apply(scale);
-                    return v2*scale;
-                }
-                ValueScaling::DistanceCenter(d) => {
-                    let dist = get_distance_euclidean(&(pos[0], pos[2]), &center);
-                    let mut scale: f32 = 1.0-(dist/r*d).clamp(0.0, 1.0);
-                    // println!("Radius: {} Distance: {}, scale: {} v2: {}", r, dist, scale, v2);
-                    scale = self.easing.apply(scale);
-                    return v2*scale;
-                }
-                ValueScaling::DistanceAxis((axis, d)) => {
-                    let dist: f32;
-                    match axis {
-                        Axis::X => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(center.0, pos[2]));}
-                        Axis::Z => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(pos[0], center.1));}
-                    }
-                    let mut scale: f32 = 1.0-(dist/r*d).clamp(0.0, 1.0);
-                    scale = self.easing.apply(scale);
-                    return v2*scale;
-                }
-                ValueScaling::None => {
-                    return v2;
-                }
-            }
-        }
-        return pos[1];
+    pub fn new() -> Self {
+        Value{_value:     10.0, 
+              _scale:     1.0,
+              _axis:      Axis::X,
+              _axis_v:    0.0,
+              _point:     (0.0, 0.0),
+              value_type: ValueType::Value, 
+              easing:     Easings::None, 
+              scaling:    ValueScaling::None}
     }
+
+    pub fn apply(&self, pos: &[f32;3]) -> f32 {
+        let v2: f32 = self.value_type.apply(self._value, pos);
+
+        match self.scaling {
+            ValueScaling::DistanceAxisRev => {
+                let dist: f32;
+                match self._axis {
+                    Axis::X => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(self._axis_v, pos[2]));}
+                    Axis::Z => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(pos[0], self._axis_v));}
+                }
+                let mut scale: f32 = 1.0 - 1.0/dist;
+                scale = self.easing.apply(scale);
+                return v2*scale;
+            }
+            ValueScaling::DistanceAxis => {
+                let dist: f32;
+                match self._axis {
+                    Axis::X => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(self._axis_v, pos[2]));}
+                    Axis::Z => {dist = get_distance_euclidean(&(pos[0], pos[2]), &(pos[0], self._axis_v));}
+                }
+                let mut scale: f32 = 1.0/dist;
+                scale = self.easing.apply(scale);
+                return v2*scale;
+            }
+            ValueScaling::DistancePointRev => {
+                let dist = get_distance_euclidean(&(pos[0], pos[2]), &self._point);
+                let mut scale: f32 = 1.0 - 1.0/dist;
+                scale = self.easing.apply(scale);
+                return v2*scale;
+            }
+            ValueScaling::DistancePoint => {
+                let dist = get_distance_euclidean(&(pos[0], pos[2]), &self._point);
+                let mut scale: f32 = 1.0/dist;
+                scale = self.easing.apply(scale);
+                return v2*scale;
+            }
+            ValueScaling::None => {return v2;}
+        }
+    }   
+
+    pub fn ui(ui: &mut Ui, mod_res: &mut ResMut<ModResources>) {
+        
+        ui.label("Value");
+        ui.add(egui::DragValue::new(&mut mod_res.value._value).speed(0.1));
+        ui.vertical(|ui| {
+          ui.label("Type:");
+          for &p in ValueType::iterator(){
+              if ui.radio_value(&mut mod_res.value.value_type, p, format!("{p:?}")).clicked() {
+                mod_res.value.value_type = p;
+              };
+          }
+        });
+        ui.separator();
+        ui.vertical(|ui| {
+          ui.label("Scaling:");
+          for &p in ValueScaling::iterator(){
+              if ui.radio_value(&mut mod_res.value.scaling, p, format!("{p:?}")).clicked() {
+                mod_res.value.scaling = p;
+              };
+          }
+        });
+
+        match mod_res.value.scaling {
+          ValueScaling::DistanceAxis | ValueScaling::DistanceAxisRev => {
+            ui.vertical(|ui| {
+              ui.label("Axis:");
+              for &p in Axis::iterator(){
+                  if ui.radio_value(&mut mod_res.value._axis, p, format!("{p:?}")).clicked() {
+                    mod_res.value._axis = p;
+                  };
+              }
+              ui.label("Axis Value:");
+              ui.add(egui::DragValue::new(&mut mod_res.value._axis_v).speed(1.0));
+              ui.label("Scale:");
+              ui.add(egui::DragValue::new(&mut mod_res.value._scale).speed(0.1));
+            });
+          }
+          ValueScaling::DistancePoint | ValueScaling::DistancePointRev => {
+            ui.vertical(|ui| {
+              ui.label("Point:");
+              ui.columns(2, |columns| {
+                columns[1].label("X");
+                columns[0].add(egui::DragValue::new(&mut mod_res.value._point.0).speed(1.0));
+                columns[1].label("Y");
+                columns[0].add(egui::DragValue::new(&mut mod_res.value._point.1).speed(1.0));
+              });
+              ui.label("Scale:");
+              ui.add(egui::DragValue::new(&mut mod_res.value._scale).speed(0.1));
+            });
+          }
+          _ => {}
+        }
+
+        ui.separator();
+
+    }
+
 }

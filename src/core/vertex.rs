@@ -38,6 +38,7 @@ fn apply_modifiers(
         info!(" Applied modifier {:?}", ev.mod_type);
 
         mod_res.color.set();
+        mod_res.color_gradient.set();
         let nfn = mod_res.noise.set();
 
         for (mut tr, mut v) in picked_vertex.iter_mut(){
@@ -45,6 +46,9 @@ fn apply_modifiers(
             match ev.mod_type {
                 ModifierState::Color => {
                     v.clr = mod_res.color.apply();
+                }
+                ModifierState::ColorGradient => {
+                    v.clr = mod_res.color_gradient.apply(v.loc[1]);
                 }
                 ModifierState::Value => {
                     v.loc[1] = mod_res.value.apply(&v.loc);

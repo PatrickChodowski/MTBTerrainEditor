@@ -5,6 +5,7 @@ use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 use crate::core::color::Color;
+use crate::core::color_gradient::ColorGradient;
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
@@ -93,15 +94,17 @@ impl<'a> ModifierState {
 
 #[derive(Debug, Clone, Resource)]
 pub struct ModResources{
-  pub color: Color,
-  pub value: Value,
-  pub noise: Noise,
+  pub color:          Color,
+  pub color_gradient: ColorGradient,
+  pub value:          Value,
+  pub noise:          Noise,
 }
 impl Default for ModResources {
     fn default() -> Self {
-      ModResources{color: Color::new(), 
-                   value: Value::new(),
-                   noise: Noise::new()}
+      ModResources{color:           Color::new(), 
+                   color_gradient:  ColorGradient::new(), 
+                   value:           Value::new(),
+                   noise:           Noise::new()}
     }
 }
 
@@ -158,6 +161,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
         match modifier_state.get() {
           ModifierState::Color => {
             Color::ui(ui, &mut mod_res);
+          }
+          ModifierState::ColorGradient => {
+            ColorGradient::ui(ui, &mut mod_res);
           }
           ModifierState::Value => {
             Value::ui(ui, &mut mod_res);

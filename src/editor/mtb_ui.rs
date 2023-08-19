@@ -10,7 +10,7 @@ use crate::core::value::Value;
 use crate::core::wave::Wave;
 use crate::core::terrace::Terrace;
 
-use super::io::{ExportPlanes, IOPlugin, IOName};
+use super::io::{WriteData, LoadData, IOPlugin, IOName};
 use super::actions::ActionsPlugin;
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
@@ -208,7 +208,8 @@ fn update_egui_object(mut contexts:              EguiContexts,
                       mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
                       mut plane_data:            ResMut<PlaneData>,
                       mut spawn_plane:           EventWriter<SpawnNewPlaneEvent>,
-                      mut export_planes:         EventWriter<ExportPlanes>,
+                      mut write_data:            EventWriter<WriteData>,
+                      mut load_data:             EventWriter<LoadData>,
                       mut ioname:                ResMut<IOName>
                     ) {
   let ctx = contexts.ctx_mut();
@@ -261,8 +262,8 @@ fn update_egui_object(mut contexts:              EguiContexts,
           ui.label("Save Data");
           let _response = ui.add(egui::TextEdit::singleline(&mut ioname.data));
           ui.separator();
-          if ui.button("Export Planes").clicked(){
-            export_planes.send(ExportPlanes);
+          if ui.button("Save").clicked(){
+            write_data.send(WriteData);
           }
         });
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());

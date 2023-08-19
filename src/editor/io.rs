@@ -10,9 +10,11 @@ pub struct IOPlugin;
 impl Plugin for IOPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_event::<ExportPlanes>()
+        .add_event::<WriteData>()
+        .add_event::<LoadData>()
         .insert_resource(IOName::new())
-        .add_systems(PostUpdate, export_planes.run_if(on_event::<ExportPlanes>()))
+        .add_systems(PostUpdate, write_data.run_if(on_event::<WriteData>()))
+        .add_systems(PostUpdate, load_data.run_if(on_event::<LoadData>()))
       ;                      
     }
   }
@@ -30,7 +32,10 @@ impl IOName {
 
 
 #[derive(Event)]
-pub struct ExportPlanes;
+pub struct WriteData;
+
+#[derive(Event)]
+pub struct LoadData;
 
 #[derive(Serialize, Deserialize)]
 pub struct SavePlaneData {
@@ -45,11 +50,11 @@ impl SavePlaneData {
 
 
 
-pub fn export_planes(vertex: Query<&Vertex>,
-                     planes: Query<(&PlaneData, &Children)>,
-                     ioname: Res<IOName>) {
+pub fn write_data(vertex: Query<&Vertex>,
+                  planes: Query<(&PlaneData, &Children)>,
+                  ioname: Res<IOName>) {
 
-    info!("Exporting planes to {}", ioname.data);
+    info!("Eriting data to {}", ioname.data);
     let mut v: Vec<SavePlaneData> = Vec::new();
     for (pd, children) in planes.iter(){
         let mut spd = SavePlaneData::from_pd(pd);
@@ -65,5 +70,28 @@ pub fn export_planes(vertex: Query<&Vertex>,
     let mut writer = BufWriter::new(f);
     let _res = serde_json::to_writer(&mut writer, &v);
     let _res = writer.flush();
+
+}
+
+pub fn load_data(vertex: Query<&Vertex>,
+                  planes: Query<(&PlaneData, &Children)>,
+                  ioname: Res<IOName>) {
+
+    // info!("Eriting data to {}", ioname.data);
+    // let mut v: Vec<SavePlaneData> = Vec::new();
+    // for (pd, children) in planes.iter(){
+    //     let mut spd = SavePlaneData::from_pd(pd);
+    //     for child in children.iter(){
+    //         if let Ok(p_vertex) = vertex.get(*child){
+    //             spd.vertex.push(*p_vertex);
+    //         }
+    //     }
+    //     v.push(spd);
+    // }
+
+    // let f = File::create(format!("./assets/saves/{}.json", ioname.data)).ok().unwrap();
+    // let mut writer = BufWriter::new(f);
+    // let _res = serde_json::to_writer(&mut writer, &v);
+    // let _res = writer.flush();
 
 }

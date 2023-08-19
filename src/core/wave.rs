@@ -1,49 +1,31 @@
-// Moves vertices x's and z's positions slightly
-use serde::{Deserialize,Serialize};
-use bevy::utils::HashMap;
+use bevy_egui::{egui, egui::Ui};
+use bevy::prelude::ResMut;
+use crate::editor::mtb_ui::ModResources;
+use super::noises::{Noise, NoiseFunction};
 
-use super::modifiers::ModifierBase;
-use super::noises::{SimpleNoiseData, SimpleNoise};
-use super::utils::Area;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct WaveData {
-    pub mb:        ModifierBase,
-    pub noise:     SimpleNoiseData,
-    pub scale_x:   f32,
-    pub scale_z:   f32,
-}
-
-impl WaveData {
-    pub fn set(&self) -> Wave {
-        Wave{area: self.mb.to_area(), noise: self.noise.set(), scale_x: self.scale_x, scale_z: self.scale_z}
-    }
-}
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Wave {
-    pub area:       Area,
-    pub noise:      SimpleNoise,
+    pub noise:     Noise,
     pub scale_x:   f32,
     pub scale_z:   f32,
 }
 
 impl Wave {
-    pub fn apply(&self, v_pos: &mut Vec<[f32; 3]>) {
-        let mut points: HashMap<usize, [f32; 3]> = HashMap::new();
-        for (index, pos) in v_pos.iter().enumerate(){
-            if self.area.has_point(pos){
-                points.insert(index, *pos);
-            }  
-        }
+    pub fn new() -> Wave {
+        Wave{noise: Noise::new(), scale_x: 0.01, scale_z: 0.01}
+    }
+}
 
-        for (index, pos) in points.iter(){
-            let nudge_x = self.noise.apply(pos[1], pos[2]);
-            let nudge_z = self.noise.apply(pos[0], pos[1]);
-            let nudged_x = nudge_x*self.scale_x;
-            let nudged_z = nudge_z*self.scale_z;
-            v_pos[*index] = [pos[0]+nudged_x, pos[1], pos[2]+nudged_z];
-        }
+impl Wave {
+    pub fn apply(&self, pos: &[f32; 3], noise_fn: &NoiseFunction) -> [f32; 3] {
+        let nudge_x = noise_fn.apply(self.noise.scale, pos[1].into(), pos[2].into());
+        let nudge_z = noise_fn.apply(self.noise.scale, pos[0].into(), pos[1].into());
+        let nudged_x = nudge_x as f32*self.scale_x;
+        let nudged_z = nudge_z as f32*self.scale_z;
+        return [pos[0]+nudged_x, pos[1], pos[2]+nudged_z];
+    }
+
+    pub fn ui(ui: &mut Ui, mod_res: &mut ResMut<ModResources>) {
 
     }
 }

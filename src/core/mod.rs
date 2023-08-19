@@ -7,3 +7,4 @@ pub mod easings;
 pub mod color;
 pub mod color_gradient;
 pub mod value;
+pub mod wave;

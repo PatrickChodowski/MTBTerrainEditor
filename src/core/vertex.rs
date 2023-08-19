@@ -40,6 +40,7 @@ fn apply_modifiers(
         mod_res.color.set();
         mod_res.color_gradient.set();
         let nfn = mod_res.noise.set();
+        let wnfn = mod_res.wave.noise.set();
 
         for (mut tr, mut v) in picked_vertex.iter_mut(){
 
@@ -51,13 +52,19 @@ fn apply_modifiers(
                     v.clr = mod_res.color_gradient.apply(v.loc[1]);
                 }
                 ModifierState::Value => {
-                    v.loc[1] = mod_res.value.apply(&v.loc);
-                    tr.translation[1] = mod_res.value.apply(&v.loc);
+                    let height = mod_res.value.apply(&v.loc);
+                    v.loc[1] = height;
+                    tr.translation[1] = height;
                 }
                 ModifierState::Noise => {
                     let noise_height = mod_res.noise.apply(&nfn, &v.loc, &v.loc);
                     v.loc[1] = noise_height;
                     tr.translation[1] = noise_height;
+                }
+                ModifierState::Wave => {
+                    let pos = mod_res.wave.noise.apply(&wnfn, &v.loc, &v.loc);
+                    v.loc[1] = pos;
+                    tr.translation[1] = pos;
                 }
                 _ => {}
             }

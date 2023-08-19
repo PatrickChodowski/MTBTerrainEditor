@@ -9,6 +9,7 @@ use crate::core::color_gradient::ColorGradient;
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
+use crate::core::wave::Wave;
 
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
@@ -70,7 +71,6 @@ impl<'a> PickerState {
 pub enum ModifierState {
     Color,
     ColorGradient,
-    ColorTerraces,
     #[default]
     Noise,
     Value,
@@ -80,9 +80,8 @@ pub enum ModifierState {
 
 impl<'a> ModifierState { 
   pub fn iterator() -> Iter<'static, ModifierState> {
-    static MOD_OPTIONS: [ModifierState; 7] = [ModifierState::Color, 
-                                              ModifierState::ColorGradient, 
-                                              ModifierState::ColorTerraces,
+    static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, 
+                                              ModifierState::ColorGradient,
                                               ModifierState::Noise, 
                                               ModifierState::Value,
                                               ModifierState::Wave, 
@@ -98,13 +97,15 @@ pub struct ModResources{
   pub color_gradient: ColorGradient,
   pub value:          Value,
   pub noise:          Noise,
+  pub wave:           Wave
 }
 impl Default for ModResources {
     fn default() -> Self {
       ModResources{color:           Color::new(), 
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
-                   noise:           Noise::new()}
+                   noise:           Noise::new(),
+                   wave:            Wave::new()}
     }
 }
 
@@ -170,6 +171,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
           }
           ModifierState::Noise => {
             Noise::ui(ui, &mut mod_res);
+          }
+          ModifierState::Wave => {
+            Wave::ui(ui, &mut mod_res);
           }
           _ => {}
         }

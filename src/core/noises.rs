@@ -160,57 +160,6 @@ impl<'a> Noises {
   }
 }
 
-
-// Simpler noise used as argument in other modifiers
-
-#[derive(Clone, Debug)]
-pub struct SimpleNoiseData {
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        usize,
-    pub freq:           f64,
-}
-
-impl SimpleNoiseData {
-    pub fn set(&self) -> SimpleNoise {
-        let nfn = NoiseFunction::new(self.noise.clone(), self.seed, self.octaves, self.freq);
-        return SimpleNoise {
-                    noise:            self.noise.clone(), 
-                    seed:             self.seed, 
-                    scale:            self.scale, 
-                    octaves:          self.octaves, 
-                    freq:             self.freq, 
-                    noise_function:   nfn};
-    }
-}
-
-
-#[derive(Clone)]
-pub struct SimpleNoise {
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        usize,
-    pub freq:           f64,
-    pub noise_function: NoiseFunction
-}
-
-impl SimpleNoise {
-    pub fn apply(&self, x: f32, z: f32) -> f32 {
-        let r: f64 = self.noise_function.apply(self.scale, x as f64, z as f64);
-        return r as f32;    
-    }
-    pub fn _apply3d(&self, x: f32, y: f32, z: f32) -> f32 {
-        let r: f64 = self.noise_function._apply3d(self.scale, x as f64, y as f64, z as f64);
-        return r as f32;    
-    }
-}
-
-
-
-
-
 #[derive(Clone)]
 pub enum NoiseFunction {
     Perlin(Perlin),

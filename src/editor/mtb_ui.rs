@@ -1,5 +1,6 @@
 
 
+use bevy::input::common_conditions::{input_just_pressed, input_pressed};
 use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
@@ -10,6 +11,7 @@ use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
 use crate::core::wave::Wave;
+use crate::core::terrace::Terrace;
 
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
@@ -35,8 +37,14 @@ impl Plugin for MTBUIPlugin {
         .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
         .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
+        .add_systems(Update, undo.run_if(input_just_pressed(KeyCode::Z)
+                                 .and_then(input_pressed(KeyCode::ControlLeft))))
         ;
     }
+}
+
+pub fn undo(){
+  info!("Undo");
 }
 
 #[derive(Default, Resource, Debug)]
@@ -75,7 +83,7 @@ pub enum ModifierState {
     Noise,
     Value,
     Wave,
-    Terraces
+    Terrace
 }
 
 impl<'a> ModifierState { 
@@ -85,7 +93,7 @@ impl<'a> ModifierState {
                                               ModifierState::Noise, 
                                               ModifierState::Value,
                                               ModifierState::Wave, 
-                                              ModifierState::Terraces];
+                                              ModifierState::Terrace];
     MOD_OPTIONS.iter()
   }
   
@@ -97,7 +105,8 @@ pub struct ModResources{
   pub color_gradient: ColorGradient,
   pub value:          Value,
   pub noise:          Noise,
-  pub wave:           Wave
+  pub wave:           Wave,
+  pub terrace:        Terrace
 }
 impl Default for ModResources {
     fn default() -> Self {
@@ -105,7 +114,9 @@ impl Default for ModResources {
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
                    noise:           Noise::new(),
-                   wave:            Wave::new()}
+                   wave:            Wave::new(),
+                   terrace:         Terrace::new()
+                  }
     }
 }
 
@@ -175,7 +186,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
           ModifierState::Wave => {
             Wave::ui(ui, &mut mod_res);
           }
-          _ => {}
+          ModifierState::Terrace => {
+            Terrace::ui(ui, &mut mod_res);
+          }
         }
       
         ui.allocate_space(egui::Vec2::new(1.0, 20.0));

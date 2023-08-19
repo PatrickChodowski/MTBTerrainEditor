@@ -62,11 +62,15 @@ fn apply_modifiers(
                     tr.translation[1] = noise_height;
                 }
                 ModifierState::Wave => {
-                    let pos = mod_res.wave.noise.apply(&wnfn, &v.loc, &v.loc);
-                    v.loc[1] = pos;
-                    tr.translation[1] = pos;
+                    let pos = mod_res.wave.apply(&wnfn, &v.loc);
+                    v.loc = pos;
+                    tr.translation = pos.into();
                 }
-                _ => {}
+                ModifierState::Terrace => {
+                    let height = mod_res.terrace.apply(v.loc[1]);
+                    v.loc[1] = height;
+                    tr.translation[1] = height;
+                }
             }
         }
     }

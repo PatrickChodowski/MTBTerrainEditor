@@ -4,11 +4,13 @@ use bevy::prelude::*;
 use bevy::pbr::wireframe::{WireframePlugin,Wireframe};
 use bevy_mod_picking::DefaultPickingPlugins;
 
+pub mod actions;
 pub mod boxselect;
 pub mod brush;
 pub mod mtb_camera;
 pub mod mtb_grid;
 pub mod mtb_ui;
+pub mod io;
 
 use super::core::planes::{PlanesPlugin, TerrainPlane};
 use super::core::vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};

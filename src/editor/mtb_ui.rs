@@ -1,6 +1,3 @@
-
-
-use bevy::input::common_conditions::{input_just_pressed, input_pressed};
 use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
@@ -13,6 +10,8 @@ use crate::core::value::Value;
 use crate::core::wave::Wave;
 use crate::core::terrace::Terrace;
 
+use super::io::{ExportPlanes, IOPlugin, IOName};
+use super::actions::ActionsPlugin;
 use super::mtb_grid::{GridData, HoverData, Hoverables};
 use super::AppState;
 use super::brush::{BrushPlugin, BrushSettings};
@@ -30,6 +29,8 @@ impl Plugin for MTBUIPlugin {
         .add_plugins(BoxSelectPlugin)
         .add_plugins(BrushPlugin)
         .add_plugins(EguiPlugin)
+        .add_plugins(IOPlugin)
+        .add_plugins(ActionsPlugin)
         .init_resource::<OccupiedScreenSpace>()
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
@@ -37,15 +38,10 @@ impl Plugin for MTBUIPlugin {
         .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
         .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
-        .add_systems(Update, undo.run_if(input_just_pressed(KeyCode::Z)
-                                 .and_then(input_pressed(KeyCode::ControlLeft))))
         ;
     }
 }
 
-pub fn undo(){
-  info!("Undo");
-}
 
 #[derive(Default, Resource, Debug)]
 struct OccupiedScreenSpace {
@@ -59,6 +55,7 @@ struct OccupiedScreenSpace {
 pub struct ApplyModifierEvent{
   pub mod_type: ModifierState
 }
+
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum PickerState {
@@ -210,10 +207,10 @@ fn update_egui_editor(mut contexts:              EguiContexts,
 fn update_egui_object(mut contexts:              EguiContexts,
                       mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
                       mut plane_data:            ResMut<PlaneData>,
-                      mut spawn_plane:           EventWriter<SpawnNewPlaneEvent>) {
-
-  let mut new_plane_btn: bool = false;
-
+                      mut spawn_plane:           EventWriter<SpawnNewPlaneEvent>,
+                      mut export_planes:         EventWriter<ExportPlanes>,
+                      mut ioname:                ResMut<IOName>
+                    ) {
   let ctx = contexts.ctx_mut();
   occupied_screen_space.right = egui::SidePanel::right("right_panel")
     .resizable(true)
@@ -253,12 +250,21 @@ fn update_egui_object(mut contexts:              EguiContexts,
         });
 
         ui.allocate_space(egui::Vec2::new(1.0, 20.0));
-        new_plane_btn = ui.button("New Plane").clicked();
-        
-        if new_plane_btn {
+        if ui.button("New Plane").clicked(){
           spawn_plane.send(SpawnNewPlaneEvent{pd: plane_data.clone()});
         }
-        
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        ui.separator();
+
+        ui.vertical(|ui| {
+          ui.label("Save Data");
+          let _response = ui.add(egui::TextEdit::singleline(&mut ioname.data));
+          ui.separator();
+          if ui.button("Export Planes").clicked(){
+            export_planes.send(ExportPlanes);
+          }
+        });
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
     })
     .response

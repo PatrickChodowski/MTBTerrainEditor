@@ -1,5 +1,6 @@
 use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues};
 use bevy_mod_picking::prelude::*;
+use serde::{Serialize, Deserialize};
 use super::planes::TerrainPlane;
 use crate::editor::{mtb_grid::{HoverData, hover_check}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState};
 
@@ -241,7 +242,7 @@ pub struct RefVertex;
 #[derive(Component)]
 pub struct PickedVertex;
 
-#[derive(Component)]
+#[derive(Component, Serialize, Deserialize, Copy, Clone)]
 pub struct Vertex {
     pub index: usize,
     pub loc: [f32;3],

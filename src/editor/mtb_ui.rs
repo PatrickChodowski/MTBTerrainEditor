@@ -259,13 +259,20 @@ fn update_egui_object(mut contexts:              EguiContexts,
         ui.separator();
 
         ui.vertical(|ui| {
-          ui.label("Save Data");
+
+          ui.label("Save/Load Data");
           let _response = ui.add(egui::TextEdit::singleline(&mut ioname.data));
           ui.separator();
           if ui.button("Save").clicked(){
             write_data.send(WriteData);
           }
+          ui.separator();
+          if ui.button("Load").clicked(){
+            load_data.send(LoadData);
+          }
+
         });
+
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
     })
     .response

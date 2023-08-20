@@ -51,9 +51,9 @@ impl Plugin for MTBEditorPlugin {
 
 
  pub fn spawn_new_plane_vertex(mut commands:     Commands, 
-                               planes:              Query<(Entity, &Handle<Mesh>), Added<TerrainPlane>>,                    
-                               mut meshes:          ResMut<Assets<Mesh>>,
-                               refs:                Res<VertexRefs>){
+                               planes:           Query<(Entity, &Handle<Mesh>), Added<TerrainPlane>>,                    
+                               mut meshes:       ResMut<Assets<Mesh>>,
+                               refs:             Res<VertexRefs>){
 
         for (entity, handle_mesh) in planes.iter(){
             spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);

@@ -2466,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "mtb_terrain_gen"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "bevy",
  "bevy_common_assets",

@@ -169,7 +169,7 @@ pub struct PlanesAsset(pub Handle<Planes>);
 #[derive(Component)]
 pub struct TerrainPlane;
 
-fn plane_mesh(subdivisions: &[u32; 2], dims: &[f32; 2]) -> Mesh {
+pub fn plane_mesh(subdivisions: &[u32; 2], dims: &[f32; 2]) -> Mesh {
     let mesh = Mesh::from(RectPlane {
         width: dims[0],
         length: dims[1],  

@@ -6,7 +6,6 @@ use std::io::{BufWriter, Write};
 use std::fs::{self, File};
 
 use crate::core::planes::{PlaneData, TerrainPlane, PickPlane, plane_mesh};
-use crate::core::utils::get_mesh_stats;
 use crate::core::vertex::Vertex;
 
 pub struct IOPlugin;
@@ -50,7 +49,7 @@ impl SavePlaneData {
     pub fn from_pd(pd: &PlaneData) -> Self {
         SavePlaneData{plane: pd.clone(), vertex: Vec::new()}
     }
-    
+
     pub fn spawn(&self,
                  commands:           &mut Commands, 
                  meshes:             &mut ResMut<Assets<Mesh>>,
@@ -81,8 +80,6 @@ impl SavePlaneData {
             mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr.unwrap());
         } 
 
-
-        get_mesh_stats(&mesh);
         let entity = commands.spawn((PbrBundle {
             material: materials.add(StandardMaterial{..default()}),
             mesh: meshes.add(mesh),
@@ -133,19 +130,16 @@ pub fn load_data(mut commands:      Commands,
                  planes:            Query<Entity, With<PlaneData>>,
                  ioname:            Res<IOName>) {
 
-    for entity in planes.iter(){
-        commands.entity(entity).despawn_recursive();
-    }
-
     let path: &str = &format!("./assets/saves/{}.json", ioname.data);
-    let data: String = fs::read_to_string(path)
-                            .expect(&format!("\n [ERROR io.load] Unable to read file {path}  \n"));
-    let vspds: Vec<SavePlaneData> = serde_json::from_str(&data)
-                                                .expect(&format!("\n [ERROR io.load] Unable to get data from {path} \n"));
-    
+    if let Ok(data) = fs::read_to_string(path){
+        if let Ok(vspds) = serde_json::from_str::<Vec<SavePlaneData>>(&data) {
+            for entity in planes.iter(){
+                commands.entity(entity).despawn_recursive();
+            }
 
-    for spd in vspds.iter(){
-        spd.spawn(&mut commands, &mut meshes, &mut materials);
-    }
-                        
+            for spd in vspds.iter(){
+                spd.spawn(&mut commands, &mut meshes, &mut materials);
+            }
+        }
+    }                       
 }

@@ -56,6 +56,7 @@ impl Plugin for MTBEditorPlugin {
                                refs:             Res<VertexRefs>){
 
         for (entity, handle_mesh) in planes.iter(){
+            info!(" debug spawning vertices");
             spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs);
         }
     }

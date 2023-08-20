@@ -249,8 +249,8 @@ pub struct Vertex {
     pub clr: [f32;4]
 }
 impl Vertex {
-    pub fn from_loc(loc: &[f32;3], index: usize) -> Self{
-        Vertex {loc: *loc, clr: [0.5, 0.5, 0.5, 1.0], index}
+    pub fn new(index: usize, loc: &[f32;3], clr: &[f32; 4]) -> Self{
+        Vertex {loc: *loc, clr: *clr, index}
     }
 }
 
@@ -264,7 +264,15 @@ pub fn spawn_vertex(plane_entity: &Entity,
     let plane_mesh = meshes.get_mut(handle_mesh).unwrap();
 
     let v_pos: Vec<[f32; 3]> = plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
-    // let mut v_clr: Vec<[f32; 4]> = Vec::new();
+    let mut v_clr: Vec<[f32; 4]> = Vec::new();
+    if let Some(attr_vcolor) = plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
+        if let VertexAttributeValues::Float32x4(vcolors) = attr_vcolor {
+            v_clr = vcolors.to_vec();
+        }
+    } else {
+        v_clr = vec![[1.0, 1.0, 1.0, 1.0]; v_pos.len()];
+    }
+    
     let mut vertices: Vec<Entity> = Vec::new();
     for (index, pos) in v_pos.iter().enumerate(){
 
@@ -273,7 +281,7 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                         mesh: refs.mesh.clone_weak(),
                                     transform: Transform::from_translation(pos.clone().into()),
                                     ..default()}, 
-                                    Vertex::from_loc(pos, index),
+                                    Vertex::new(index, pos, &v_clr[index]),
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     On::<Pointer<Down>>::send_event::<PickVertex>(),

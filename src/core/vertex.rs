@@ -31,15 +31,12 @@ impl Plugin for VertexPlugin {
 
 fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
-    mut mod_res:        ResMut<ModResources>,
+    mod_res:            Res<ModResources>,
     mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>
 ) {
 
     for ev in apply_mod.iter(){
         info!(" Applied modifier {:?}", ev.mod_type);
-
-        mod_res.color.set();
-        mod_res.color_gradient.set();
         let nfn = mod_res.noise.set();
         let wnfn = mod_res.wave.noise.set();
 

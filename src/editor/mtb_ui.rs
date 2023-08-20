@@ -10,6 +10,7 @@ use crate::core::value::Value;
 use crate::core::wave::Wave;
 use crate::core::terrace::Terrace;
 
+use super::colors::{ColorsPlugin, Colors, ModifierColor};
 use super::io::{WriteData, LoadData, IOPlugin, IOName};
 use super::actions::ActionsPlugin;
 use super::mtb_grid::{GridData, HoverData, Hoverables};
@@ -31,6 +32,7 @@ impl Plugin for MTBUIPlugin {
         .add_plugins(EguiPlugin)
         .add_plugins(IOPlugin)
         .add_plugins(ActionsPlugin)
+        .add_plugins(ColorsPlugin)
         .init_resource::<OccupiedScreenSpace>()
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
@@ -132,9 +134,10 @@ fn update_egui_editor(mut contexts:              EguiContexts,
                       modifier_state:            Res<State<ModifierState>>,
                       mut next_modifier_state:   ResMut<NextState<ModifierState>>,
                       mut mod_res:               ResMut<ModResources>,
-                      mut apply_mod:             EventWriter<ApplyModifierEvent>) {
+                      mut apply_mod:             EventWriter<ApplyModifierEvent>,
+                      mut colors:                ResMut<Colors>,
+                    ) {
 
-  let mut apply_mod_btn: bool = false;
   let ctx = contexts.ctx_mut();
   occupied_screen_space.right = egui::SidePanel::right("right_panel")
     .resizable(true)
@@ -170,9 +173,13 @@ fn update_egui_editor(mut contexts:              EguiContexts,
         match modifier_state.get() {
           ModifierState::Color => {
             Color::ui(ui, &mut mod_res);
+            ui.separator();
+            colors.ui(ui, &mut mod_res, ModifierState::Color, colors.mod_color);
           }
           ModifierState::ColorGradient => {
             ColorGradient::ui(ui, &mut mod_res);
+            ui.separator();
+            colors.ui(ui, &mut mod_res, ModifierState::ColorGradient, colors.mod_color);
           }
           ModifierState::Value => {
             Value::ui(ui, &mut mod_res);
@@ -189,10 +196,20 @@ fn update_egui_editor(mut contexts:              EguiContexts,
         }
       
         ui.allocate_space(egui::Vec2::new(1.0, 20.0));
-        apply_mod_btn = ui.button("Apply").clicked();
 
-        if apply_mod_btn {
+        if ui.button("Apply").clicked() {
           apply_mod.send(ApplyModifierEvent{mod_type: *modifier_state.get()});
+
+          match modifier_state.get(){
+            ModifierState::Color => {
+              colors.addf32(&mod_res.color.color);
+            }
+            ModifierState::ColorGradient => {
+              colors.addf32(&mod_res.color_gradient.min_color);
+              colors.addf32(&mod_res.color_gradient.max_color);
+            }
+            _ => {}
+          }
         }
         
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());

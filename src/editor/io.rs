@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::utils::HashSet;
 use bevy::render::mesh::VertexAttributeValues;
 use bevy_mod_picking::prelude::*;
 use serde::{Serialize, Deserialize};
@@ -7,6 +8,7 @@ use std::fs::{self, File};
 
 use crate::core::planes::{PlaneData, TerrainPlane, PickPlane, plane_mesh};
 use crate::core::vertex::Vertex;
+use super::colors::Colors;
 
 pub struct IOPlugin;
 
@@ -43,11 +45,12 @@ pub struct LoadData;
 #[derive(Serialize, Deserialize)]
 pub struct SavePlaneData {
     pub plane:        PlaneData,
-    pub vertex:       Vec<Vertex>
+    pub vertex:       Vec<Vertex>,
+    pub colors:       HashSet<[u8; 4]>
 }
 impl SavePlaneData {
     pub fn from_pd(pd: &PlaneData) -> Self {
-        SavePlaneData{plane: pd.clone(), vertex: Vec::new()}
+        SavePlaneData{plane: pd.clone(), vertex: Vec::new(), colors: HashSet::new()}
     }
 
     pub fn spawn(&self,
@@ -103,6 +106,7 @@ impl SavePlaneData {
 
 pub fn write_data(vertex: Query<&Vertex>,
                   planes: Query<(&PlaneData, &Children)>,
+                  colors: Res<Colors>,
                   ioname: Res<IOName>) {
 
     info!("Eriting data to {}", ioname.data);
@@ -114,6 +118,7 @@ pub fn write_data(vertex: Query<&Vertex>,
                 spd.vertex.push(*p_vertex);
             }
         }
+        spd.colors = colors.data.clone();
         v.push(spd);
     }
 
@@ -127,6 +132,7 @@ pub fn write_data(vertex: Query<&Vertex>,
 pub fn load_data(mut commands:      Commands,
                  mut meshes:        ResMut<Assets<Mesh>>,
                  mut materials:     ResMut<Assets<StandardMaterial>>,
+                 mut colors:        ResMut<Colors>,
                  planes:            Query<Entity, With<PlaneData>>,
                  ioname:            Res<IOName>) {
 
@@ -139,6 +145,7 @@ pub fn load_data(mut commands:      Commands,
 
             for spd in vspds.iter(){
                 spd.spawn(&mut commands, &mut meshes, &mut materials);
+                colors.data = spd.colors.clone();
             }
         }
     }                       

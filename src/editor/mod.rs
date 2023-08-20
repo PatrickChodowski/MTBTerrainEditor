@@ -11,6 +11,7 @@ pub mod mtb_camera;
 pub mod mtb_grid;
 pub mod mtb_ui;
 pub mod io;
+pub mod colors;
 
 use super::core::planes::{PlanesPlugin, TerrainPlane};
 use super::core::vertex::{spawn_vertex, Vertex, VertexRefs, VertexPlugin};

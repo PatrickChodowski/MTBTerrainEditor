@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use std::io::{BufWriter, Write};
 use std::fs::{self, File};
 
-use crate::core::planes::{PlaneData, TerrainPlane, PickPlane, plane_mesh};
+use crate::core::planes::{PlaneData, TerrainPlane, PickPlane, PlaneEdit, plane_mesh};
 use crate::core::vertex::Vertex;
 use super::colors::Colors;
 
@@ -90,6 +90,7 @@ impl SavePlaneData {
             ..default()
             },
             TerrainPlane,
+            PlaneEdit(false),
             PickableBundle::default(),
             RaycastPickTarget::default(),
             On::<Pointer<Down>>::send_event::<PickPlane>(),

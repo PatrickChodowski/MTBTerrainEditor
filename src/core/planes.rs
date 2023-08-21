@@ -1,13 +1,15 @@
 
 use bevy::prelude::*;
 use bevy::input::common_conditions::{input_pressed, input_just_pressed};
+use bevy_egui::EguiContexts;
+use bevy_egui::egui::{DragValue, Ui, Context, Window};
 use bevy_mod_picking::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::{TypeUuid, TypePath};
 use serde::{Serialize, Deserialize};
-use crate::editor::AppState;
+use crate::editor::{AppState, DoubleClick};
 use super::utils::{AABB, get_mesh_stats};
-use crate::editor::mtb_grid::{hover_check, HoverData};
+use crate::editor::mtb_grid::{hover_check, HoverData, Hoverables};
 
 pub struct PlanesPlugin;
 
@@ -25,7 +27,55 @@ impl Plugin for PlanesPlugin {
         .add_systems(PostUpdate, highlight_picked_plane.after(pick_plane).run_if(in_state(AppState::Object)))
         .add_systems(Update,     drop_plane.run_if(input_just_pressed(KeyCode::Back)))
         .add_systems(OnExit(AppState::Object), deselect_plane)
+
+        .add_systems(PostUpdate, spawn_edit_plane.run_if(in_state(AppState::Object).and_then(on_event::<DoubleClick>())))
+        .add_systems(PostUpdate, edit_plane.run_if(in_state(AppState::Object)))
         ;
+    }
+  }
+
+  pub fn spawn_edit_plane(hover_data:        Res<HoverData>,
+                          mut planes:        Query<&mut PlaneEdit>) {
+    
+      if let Hoverables::Entity(entity) = hover_data.hoverable {
+          if let Ok(mut pd) = planes.get_mut(entity) {
+              pd.0 = true;
+          }
+      }
+      
+    }
+
+  pub fn edit_plane(mut contexts:      EguiContexts,
+                    mut planes:        Query<(&mut PlaneData, &mut Transform, &mut AABB,  &mut PlaneEdit)>){
+
+    let ctx = contexts.ctx_mut();
+    for (mut pd, mut tr, mut aabb, mut pe) in planes.iter_mut() {
+        if !pe.0 {
+            continue;
+        }
+
+        Window::new(format!("Plane Edit {}", pd.label))
+                .open(&mut pe.0)
+                .resizable(true)
+                .default_width(280.0)
+                .show(ctx, |ui| {
+                    
+                    ui.columns(2, |columns| {
+                        columns[0].label("Loc X ");
+                        columns[1].add(DragValue::new(&mut pd.loc[0]).speed(1.0));
+                        columns[0].label("Loc Y ");
+                        columns[1].add(DragValue::new(&mut pd.loc[1]).speed(1.0));
+                        columns[0].label("Loc Z ");
+                        columns[1].add(DragValue::new(&mut pd.loc[2]).speed(1.0));
+                    }
+                );
+
+        });
+
+        tr.translation.x = pd.loc[0];  
+        tr.translation.y = pd.loc[1];  
+        tr.translation.z = pd.loc[2];   
+        *aabb = pd.get_aabb();
     }
   }
 
@@ -49,7 +99,7 @@ impl Plugin for PlanesPlugin {
 }
 
   #[derive(Event)]
-  pub struct SpawnNewPlaneEvent{
+  pub struct SpawnNewPlaneEvent {
     pub pd: PlaneData
   }
   impl SpawnNewPlaneEvent {
@@ -108,8 +158,8 @@ pub struct PlaneData {
     pub dims:         [f32; 2]
 }
 
-
-
+#[derive(Component)]
+pub struct PlaneEdit(pub bool);
 
 impl PlaneData {
 
@@ -121,11 +171,14 @@ impl PlaneData {
     return AABB{min_x, max_x, min_z, max_z};
   }
 
+
+
   pub fn new() -> PlaneData {
     return PlaneData{label: "Default Plane".to_string(),
                      loc: [0.0, 0.0, 0.0], 
                      dims: [200.0, 200.0], 
-                     subdivisions: [10,10]};
+                     subdivisions: [10,10]
+                    };
     }
 
 
@@ -146,6 +199,7 @@ impl PlaneData {
             ..default()
             },
             TerrainPlane,
+            PlaneEdit(false),
             PickableBundle::default(),
             RaycastPickTarget::default(),
             On::<Pointer<Down>>::send_event::<PickPlane>(),
@@ -243,18 +297,20 @@ pub fn deselect_plane(mut commands: Commands,
     }
 }
 
-pub fn drag(mut picked_plane:  Query<(&mut Transform, &mut PlaneData), With<PickedPlane>>, 
+pub fn drag(mut picked_plane:  Query<(&mut Transform, &mut AABB, &mut PlaneData), With<PickedPlane>>, 
             hover_data:        Res<HoverData>){
 
     let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
     let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
 
-    for (mut tr, mut pd)  in picked_plane.iter_mut(){
+    for (mut tr, mut aabb, mut pd)  in picked_plane.iter_mut(){
         tr.translation.x += delta_x;
         tr.translation.z += delta_y;
 
         pd.loc[0] = tr.translation.x;
         pd.loc[2] = tr.translation.z;
+
+        *aabb = pd.get_aabb();
     }
 
 }

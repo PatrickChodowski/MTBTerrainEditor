@@ -2,15 +2,14 @@ use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
-use crate::core::color::Color;
-use crate::core::color_gradient::ColorGradient;
+use crate::core::color::{Color, ColorGradient};
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
 use crate::core::wave::Wave;
 use crate::core::terrace::Terrace;
 
-use super::colors::{ColorsPlugin, Colors, ModifierColor};
+use super::colors::{ColorsPlugin, Colors};
 use super::io::{WriteData, LoadData, IOPlugin, IOName};
 use super::actions::ActionsPlugin;
 use super::mtb_grid::{GridData, HoverData, Hoverables};
@@ -76,9 +75,9 @@ impl<'a> PickerState {
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Component)]
 pub enum ModifierState {
+  #[default]
     Color,
     ColorGradient,
-    #[default]
     Noise,
     Value,
     Wave,
@@ -100,6 +99,7 @@ impl<'a> ModifierState {
 
 #[derive(Debug, Clone, Resource)]
 pub struct ModResources{
+  pub show_csw:       bool,
   pub color:          Color,
   pub color_gradient: ColorGradient,
   pub value:          Value,
@@ -109,7 +109,8 @@ pub struct ModResources{
 }
 impl Default for ModResources {
     fn default() -> Self {
-      ModResources{color:           Color::new(), 
+      ModResources{show_csw:        false,
+                   color:           Color::new(), 
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
                    noise:           Noise::new(),
@@ -135,8 +136,7 @@ fn update_egui_editor(mut contexts:              EguiContexts,
                       mut next_modifier_state:   ResMut<NextState<ModifierState>>,
                       mut mod_res:               ResMut<ModResources>,
                       mut apply_mod:             EventWriter<ApplyModifierEvent>,
-                      mut colors:                ResMut<Colors>,
-                    ) {
+                      mut colors:                ResMut<Colors>) {
 
   let ctx = contexts.ctx_mut();
   occupied_screen_space.right = egui::SidePanel::right("right_panel")
@@ -172,14 +172,12 @@ fn update_egui_editor(mut contexts:              EguiContexts,
 
         match modifier_state.get() {
           ModifierState::Color => {
-            Color::ui(ui, &mut mod_res);
-            ui.separator();
-            colors.ui(ui, &mut mod_res, ModifierState::Color, colors.mod_color);
+            Color::ui(ctx, ui, &mut mod_res, &mut colors);
+            ui.separator();        
           }
           ModifierState::ColorGradient => {
-            ColorGradient::ui(ui, &mut mod_res);
+            ColorGradient::ui(ctx, ui, &mut mod_res, &mut colors);
             ui.separator();
-            colors.ui(ui, &mut mod_res, ModifierState::ColorGradient, colors.mod_color);
           }
           ModifierState::Value => {
             Value::ui(ui, &mut mod_res);

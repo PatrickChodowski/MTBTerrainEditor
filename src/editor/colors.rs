@@ -1,9 +1,6 @@
 
 use bevy::{prelude::*, utils::HashSet};
-use bevy_egui::egui::{Ui, RichText, Color32, Grid};
-use crate::editor::mtb_ui::ModResources;
-
-use super::mtb_ui::ModifierState;
+use bevy_egui::egui::{Ui, RichText, Color32, Grid, Context, Window, DragValue};
 
 pub struct ColorsPlugin;
 
@@ -23,6 +20,16 @@ pub fn to_clr32(aclr: &[u8; 4]) -> Color32 {
 // cant really tell why those colors look this way, something with linear rgba blah blah blah
 }
 
+pub fn f32_to_clr32(aclr: &[f32; 4]) -> Color32 {
+    Color32::from_rgba_unmultiplied((aclr[0]*255.0) as u8, 
+                                    (aclr[1]*255.0) as u8, 
+                                    (aclr[2]*255.0) as u8, 
+                                    (aclr[3]*255.0) as u8)
+// cant really tell why those colors look this way, something with linear rgba blah blah blah
+}
+
+
+
 pub fn to_f32_norm(aclr: &[u8; 4]) -> [f32; 4] {
     [(aclr[0] as f32)/255.0, 
      (aclr[1] as f32)/255.0, 
@@ -30,62 +37,79 @@ pub fn to_f32_norm(aclr: &[u8; 4]) -> [f32; 4] {
      (aclr[3] as f32)/255.0]
 }
 
-
-
 #[derive(Resource, Clone, Debug)]
 pub struct Colors {
-    pub data:       HashSet<[u8;4]>,
-    pub mod_color:  ModifierColor
+    pub selects:       HashSet<[u8;4]>,
+    pub input:         [f32; 4], 
+    pub clicked:       bool
 }
 impl Colors {
     pub fn addf32(&mut self, clr: &[f32; 4]) {
-        self.data.insert([(clr[0]*255.0) as u8, 
-                          (clr[1]*255.0) as u8, 
-                          (clr[2]*255.0) as u8, 
-                          (clr[3]*255.0) as u8]);
+        self.selects.insert([(clr[0]*255.0) as u8, 
+                             (clr[1]*255.0) as u8, 
+                             (clr[2]*255.0) as u8, 
+                             (clr[3]*255.0) as u8]);
     }
-
 
     pub fn new() -> Self {
-        Colors{data: HashSet::new(), mod_color: ModifierColor::Color}
+        Colors{selects: HashSet::new(), input: [1.0, 1.0, 1.0, 1.0], clicked: false}
     }
-    pub fn ui(&self, 
-                ui:         &mut Ui, 
-                mod_res:    &mut ResMut<ModResources>,
-                mod_state:  ModifierState,
-                mod_color:  ModifierColor
+
+    pub fn show(&mut            self, 
+                ctx:            &Context, 
+                open:           &mut bool,
+                label:          &str
             ) {
 
-    let ncols = 3;    
+        Window::new(format!("Color Selection {}", label))
+                .open(open)
+                .resizable(true)
+                .default_width(280.0)
+                .show(ctx, |ui| {
+                    self.ui(ui);
+                });
+    }
 
-    Grid::new("ColorGrid").min_row_height(25.0).show(ui, |ui| {
-        for (index, clr) in self.data.iter().enumerate(){
-            if index % ncols == 0 && index > 0 {
-                ui.end_row();
-            }
-            if ui.button(RichText::new("BUTTO").background_color(to_clr32(clr))
-                                               .color(to_clr32(clr))).clicked() {
-                    match (mod_state, mod_color) {
-                        (ModifierState::Color, _)          => {
-                            mod_res.color.color = to_f32_norm(clr);
-                        }
-                        (ModifierState::ColorGradient, ModifierColor::GradientMin) => {
-                            mod_res.color_gradient.min_color = to_f32_norm(clr);
-                        }
-                        (ModifierState::ColorGradient, ModifierColor::GradientMax) => {
-                            mod_res.color_gradient.max_color = to_f32_norm(clr);
-                        }
-                        (_,_)                          => {}
+
+
+    pub fn ui(&mut self, ui: &mut Ui) {
+
+        if ui.button("Confirm").clicked(){
+            self.addf32(&self.input.clone());
+            self.clicked = true;
+        }
+
+        ui.label("Insert values manually: ");
+        ui.columns(2, |columns| {
+            columns[1].label("Red");
+            columns[0].add(DragValue::new(&mut self.input[0]).speed(1.0));
+            columns[1].label("Green");
+            columns[0].add(DragValue::new(&mut self.input[1]).speed(1.0));
+            columns[1].label("Blue");
+            columns[0].add(DragValue::new(&mut self.input[2]).speed(1.0));
+            columns[1].label("Alpha");
+            columns[0].add(DragValue::new(&mut self.input[3]).speed(1.0));
+        });
+
+        ui.separator();
+
+        ui.label("Use color picker: ");
+        ui.color_edit_button_rgba_unmultiplied(&mut self.input);
+
+        ui.separator();
+
+        ui.label("Or pick from already created colors: ");
+        let ncols = 4;  
+        Grid::new("ColorGrid").min_row_height(25.0).show(ui, |ui| {
+            for (index, clr) in self.selects.iter().enumerate(){
+                if index % ncols == 0 && index > 0 {
+                    ui.end_row();
+                }
+                if ui.button(RichText::new("BUTTO").background_color(to_clr32(clr))
+                                                   .color(to_clr32(clr))).clicked() {
+                        self.input = to_f32_norm(clr);
                     }
                 }
-            }
-        });
-    }
-}
-
-#[derive(Clone, Debug, Copy)]
-pub enum ModifierColor {
-    Color,
-    GradientMin,
-    GradientMax
+            });
+        }
 }

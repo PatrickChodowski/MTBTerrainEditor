@@ -118,7 +118,7 @@ pub fn write_data(vertex: Query<&Vertex>,
                 spd.vertex.push(*p_vertex);
             }
         }
-        spd.colors = colors.data.clone();
+        spd.colors = colors.selects.clone();
         v.push(spd);
     }
 
@@ -145,7 +145,7 @@ pub fn load_data(mut commands:      Commands,
 
             for spd in vspds.iter(){
                 spd.spawn(&mut commands, &mut meshes, &mut materials);
-                colors.data = spd.colors.clone();
+                colors.selects = spd.colors.clone();
             }
         }
     }                       

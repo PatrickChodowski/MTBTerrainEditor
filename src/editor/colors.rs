@@ -51,6 +51,11 @@ impl Colors {
                              (clr[3]*255.0) as u8]);
     }
 
+    pub fn reset(&mut self) {
+        self.input = [1.0, 1.0, 1.0, 1.0];
+        self.clicked = false;
+    }
+
     pub fn new() -> Self {
         Colors{selects: HashSet::new(), input: [1.0, 1.0, 1.0, 1.0], clicked: false}
     }

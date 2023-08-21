@@ -17,10 +17,16 @@ impl Color {
     }
 
     pub fn ui(ctx: &Context, ui: &mut Ui, mod_res: &mut ResMut<ModResources>, colors: &mut ResMut<Colors>){
+        let color = f32_to_clr32(&mod_res.color.color);
         ui.label("Color:");
-        ui.toggle_value(&mut mod_res.color.open, "Pick color");
+        ui.toggle_value(&mut mod_res.color.open, 
+                        RichText::new("_____________")
+                        .background_color(color)
+                        .color(color));
         colors.show(ctx, &mut mod_res.color.open, "Color");
-        mod_res.color.color = colors.input;
+        if mod_res.color.open {
+            mod_res.color.color = colors.input;
+        }
     }
 }
 
@@ -74,7 +80,12 @@ impl ColorGradient {
                 columns[0].label("Min Color:");
                 columns[1].label("Max Color:");
 
-                columns[0].toggle_value(&mut mod_res.color_gradient.min_open,  "Pick min color");
+                let min_color = f32_to_clr32(&mut mod_res.color_gradient.min_color);
+                columns[0].toggle_value(&mut mod_res.color_gradient.min_open,  
+                                        RichText::new("_____________")
+                                                 .background_color(min_color)
+                                                 .color(min_color));
+
                 colors.show(ctx, &mut mod_res.color_gradient.min_open, "Gradient Min Color");
                 if mod_res.color_gradient.min_open {
                     mod_res.color_gradient.max_open = false;
@@ -84,8 +95,11 @@ impl ColorGradient {
                     }
                 }
 
-
-                columns[1].toggle_value(&mut mod_res.color_gradient.max_open,  "Pick max color");            
+                let max_color = f32_to_clr32(&mut mod_res.color_gradient.max_color);
+                columns[1].toggle_value(&mut mod_res.color_gradient.max_open,  
+                                        RichText::new("_____________")
+                                                 .background_color(max_color)
+                                                 .color(max_color));         
                 colors.show(ctx, &mut mod_res.color_gradient.max_open, "Gradient Max Color");
                 if mod_res.color_gradient.max_open {
                     mod_res.color_gradient.min_open = false;
@@ -94,15 +108,6 @@ impl ColorGradient {
                         colors.clicked = false;
                     }
                 }
-
-                let _ = columns[0].button(RichText::new("_____________")
-                          .background_color(f32_to_clr32(&mod_res.color_gradient.min_color))
-                          .color(f32_to_clr32(&mod_res.color_gradient.min_color)));
-
-                let _ = columns[1].button(RichText::new("_____________")
-                          .background_color(f32_to_clr32(&mod_res.color_gradient.max_color))
-                          .color(f32_to_clr32(&mod_res.color_gradient.max_color)));
-
             });
           });
     }

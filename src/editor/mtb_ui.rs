@@ -164,6 +164,7 @@ fn update_egui_editor(mut contexts:              EguiContexts,
           for &p in ModifierState::iterator(){
               if ui.radio_value(&mut modifier_state.get(), &p, format!("{p:?}")).clicked() {
                 next_modifier_state.set(p);
+                colors.reset();
               };
           }
         });

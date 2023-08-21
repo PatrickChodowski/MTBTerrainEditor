@@ -2,7 +2,7 @@ use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pres
 use bevy_mod_picking::prelude::*;
 use serde::{Serialize, Deserialize};
 use super::planes::TerrainPlane;
-use crate::editor::{mtb_grid::{HoverData, hover_check}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState};
+use crate::editor::{mtb_grid::{HoverData, hover_check, Hoverables}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState, DoubleClick};
 
 
 pub struct VertexPlugin;
@@ -23,6 +23,7 @@ impl Plugin for VertexPlugin {
         .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(OnExit(AppState::Edit), deselect_vertex)
+        .add_systems(PostUpdate, select_all.run_if(in_state(AppState::Edit).and_then(on_event::<DoubleClick>())))
 
         ;
     }
@@ -72,6 +73,24 @@ fn apply_modifiers(
             }
         }
     }
+}
+
+
+fn select_all(mut commands:      Commands,
+              hover_data:        Res<HoverData>,
+              planes:            Query<&Children, With<TerrainPlane>>,
+              vertex:            Query<Entity, With<Vertex>>
+){
+    if let Hoverables::Entity(entity) = hover_data.hoverable {
+        if let Ok(plane_children) = planes.get(entity) {
+            for child in plane_children.iter(){
+                if let Ok(v_entity) = vertex.get(*child){
+                    commands.entity(v_entity).insert(PickedVertex);
+                } 
+            }
+        }
+    }
+
 }
 
 

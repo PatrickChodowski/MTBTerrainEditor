@@ -2,6 +2,7 @@
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::pbr::wireframe::{WireframePlugin,Wireframe};
+use bevy::time::Stopwatch;
 use bevy_mod_picking::DefaultPickingPlugins;
 
 pub mod actions;
@@ -27,6 +28,8 @@ impl Plugin for MTBEditorPlugin {
         app
         .add_state::<AppState>()
         .add_state::<DisplayState>()
+        .add_event::<DoubleClick>()
+        .insert_resource(DoubleClickTimer::new())
         .add_plugins(DefaultPickingPlugins)
         .add_plugins(WireframePlugin)
         .add_plugins(MTBCameraPlugin)
@@ -46,8 +49,47 @@ impl Plugin for MTBEditorPlugin {
 
         .add_systems(OnEnter(DisplayState::VertexWireframe), show_vertex_wire)
         .add_systems(OnExit(DisplayState::VertexWireframe), hide_vertex_wire)
+
+        .add_systems(Update, record_dbl_click)
         ;
     }
+ }
+ #[derive(Event)]
+ pub struct DoubleClick;
+
+ #[derive(Resource)]
+ pub struct DoubleClickTimer {
+    pub clicked: bool,
+    pub timer:   Stopwatch
+ }
+ impl DoubleClickTimer {
+    pub fn new() -> Self {
+        DoubleClickTimer { clicked: false, timer: Stopwatch::new() }
+    }
+ }
+ 
+
+ pub fn record_dbl_click(time:              Res<Time>, 
+                         mouse:             Res<Input<MouseButton>>,
+                         mut dblc_timer:    ResMut<DoubleClickTimer>,
+                         mut dbl_click:     EventWriter<DoubleClick>){
+
+    dblc_timer.timer.tick(time.delta());
+    if dblc_timer.timer.elapsed_secs() > 0.2 {
+        dblc_timer.clicked = false;
+    }
+
+    if mouse.just_pressed(MouseButton::Left) {
+        match dblc_timer.clicked {
+            false => {dblc_timer.clicked = true}
+            true  => {
+                dblc_timer.clicked = false;
+                dbl_click.send(DoubleClick)
+            }
+        }
+        dblc_timer.timer.reset();
+    }
+
  }
 
 

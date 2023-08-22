@@ -45,10 +45,14 @@ pub struct Colors {
 }
 impl Colors {
     pub fn addf32(&mut self, clr: &[f32; 4]) {
-        self.selects.insert([(clr[0]*255.0) as u8, 
-                             (clr[1]*255.0) as u8, 
-                             (clr[2]*255.0) as u8, 
-                             (clr[3]*255.0) as u8]);
+        let clr_conv = [(clr[0]*255.0) as u8, 
+                        (clr[1]*255.0) as u8, 
+                        (clr[2]*255.0) as u8, 
+                        (clr[3]*255.0) as u8];
+        self.selects.insert(clr_conv);
+        
+        info!("debug added color: {:?}", clr_conv);
+        info!("debug all colors: {:?}", self);
     }
 
     pub fn reset(&mut self) {

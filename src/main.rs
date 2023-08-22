@@ -10,7 +10,7 @@ pub mod editor;
 use crate::editor::MTBEditorPlugin;
 
 pub const HEIGHT: f32 = 900.0;
-// pub const HEIGHT: f32 = 200.0;
+// pub const HEIGHT: f32 = 600.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;
 
 fn main() {

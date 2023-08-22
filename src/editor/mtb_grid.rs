@@ -2,8 +2,8 @@
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use crate::core::planes::{TerrainPlane, PlaneData};
-use crate::core::utils::{AABB, get_distance_manhattan};
-use crate::core::vertex::Vertex;
+use crate::core::utils::AABB;
+use bevy_egui::EguiContext;
 
 use super::mtb_camera::MTBCamera;
 pub const TILE_DIM: f32 = 10.0;
@@ -16,28 +16,9 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_systems(PreUpdate, hover_check)
-      // .add_systems(PreUpdate, get_height.after(hover_check))
       ;
   }
 }
-
-// fn get_height(mut hover_data:      ResMut<HoverData>,
-//               planes:              Query<&Children, With<TerrainPlane>>,
-//               vertex:              Query<&Vertex>
-//             ){
-
-//   if let Hoverables::Entity(entity) = hover_data.hoverable {
-
-//     if let Ok(children) = planes.get(entity) {
-//       let dists: Vec<(f32, Entity)> = Vec::with_capacity(children.len())
-//       for child in children.iter() {
-
-//         get_distance_manhattan(child., hover_data.hovered_xz)
-//       }
-//     }
-//   }
-
-// }
 
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.
@@ -70,34 +51,27 @@ fn _update(mut grid: ResMut<GridData>,
 
 // check if mouse is hovering over grid, plane or gui
 pub fn hover_check(mut hover_data:      ResMut<HoverData>,
-                   _gui:                 Query<(&Node, &GlobalTransform, &Visibility)>,
+                   mut egui_context:    Query<(Entity, &mut EguiContext)>,
                    planes:              Query<(Entity, &AABB), With<PlaneData>>,
-                   window:              Query<&Window, With<PrimaryWindow>>,
+                   window:              Query<(Entity, &Window), With<PrimaryWindow>>,
                    camera:              Query<(&Camera, &GlobalTransform), With<MTBCamera>>,
                    grid:                Res<GridData>){
 
     hover_data.reset();
-    let is_hovered_gui: bool = false;
+    let mut is_hovered_gui: bool = false;
     let mut hovered_entity: Option<Entity> = None;
 
-    let Ok(primary) = window.get_single() else {return;};
+    let Ok((window_entity, primary)) = window.get_single() else {return;};
 
     if let Some(pos) = primary.cursor_position(){
         hover_data.cursor_position = Some((pos.x, pos.y));
 
-        // for (n, gt, v) in gui.iter(){
-        //   if v != Visibility::Hidden {
-        //     let x = gt.translation().x;
-        //     let y = primary.height() - gt.translation().y;
-        //     let slider_size = n.size();
-        //     let aabb = WidgetsAABB::new(&(x, y), &(slider_size.x, slider_size.y));
-        //     if aabb.has_point(&(pos.x, pos.y)){
-        //       is_hovered_gui = true;
-        //       break;
-        //     }
-        //   }
-        // }
-
+        if let Ok((_entity, mut ctx)) = egui_context.get_mut(window_entity) {
+          if ctx.get_mut().is_pointer_over_area() {
+            is_hovered_gui = true;
+          }
+        }
+      
         let (camera, camera_transform) = camera.single();
         if let Some(ray) = camera.viewport_to_world(camera_transform, pos){
             let dist = (grid.y - ray.origin.y)/ray.direction.y;

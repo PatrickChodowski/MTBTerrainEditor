@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 use bevy::input::common_conditions::{input_pressed, input_just_pressed};
 use bevy_egui::EguiContexts;
-use bevy_egui::egui::{DragValue, Ui, Context, Window};
+use bevy_egui::egui::{DragValue, Window};
 use bevy_mod_picking::prelude::*;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::reflect::{TypeUuid, TypePath};

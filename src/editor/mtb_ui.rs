@@ -12,7 +12,7 @@ use crate::core::terrace::Terrace;
 use super::colors::{ColorsPlugin, Colors};
 use super::io::{WriteData, LoadData, IOPlugin, IOName};
 use super::actions::ActionsPlugin;
-use super::mtb_grid::{GridData, HoverData, Hoverables};
+use super::mtb_grid::{HoverData, Hoverables};
 use super::{AppState, GlobalSettings};
 use super::brush::{BrushPlugin, BrushSettings};
 use super::boxselect::BoxSelectPlugin;
@@ -307,7 +307,6 @@ fn update_egui_object(mut contexts:              EguiContexts,
 
 
 fn update_left_into_panel(mut commands:  Commands,
-                          grid:          Res<GridData>,
                           hover_data:    Res<HoverData>,
                           ass:           Res<AssetServer>,
                           app_state:     Res<State<AppState>>,

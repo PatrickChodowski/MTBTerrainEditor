@@ -5,6 +5,8 @@ use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
 use libm::atan2f;
 
+use super::mtb_grid::{HoverData, Hoverables};
+
 const CENTER_X: f32 = 0.0;
 const CENTER_Z: f32 = 0.0;
 const CAMERA_START_Y: f32 = 800.0;
@@ -62,8 +64,13 @@ fn setup(mut commands: Commands,
 
 
 fn move_camera(keys:         Res<Input<KeyCode>>,
+               hover_data:   Res<HoverData>,
                mut query:    Query<&mut Transform, With<MTBCamera>>,
                time:         Res<Time>){
+
+  if hover_data.hoverable == Hoverables::Gui {
+    return; // to aboid camera movement when typing in text inputs
+  }
 
   let mut transform = query.single_mut();
   let mut velocity = Vec3::ZERO;

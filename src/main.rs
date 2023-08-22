@@ -29,7 +29,6 @@ fn main() {
             .set(AssetPlugin {watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),..default()})
         )
         .add_plugins(MTBEditorPlugin)
-        .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
         .run();
 }

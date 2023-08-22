@@ -1,8 +1,11 @@
 use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues};
+use bevy::pbr::NotShadowCaster;
 use bevy_mod_picking::prelude::*;
 use serde::{Serialize, Deserialize};
 use super::planes::TerrainPlane;
-use crate::editor::{mtb_grid::{HoverData, hover_check, Hoverables}, mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState, DoubleClick};
+use crate::editor::{mtb_grid::{HoverData, hover_check, Hoverables}, 
+                     mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState, DoubleClick, GlobalSettings, is_settings_changed};
+
 
 
 pub struct VertexPlugin;
@@ -24,9 +27,20 @@ impl Plugin for VertexPlugin {
         .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(OnExit(AppState::Edit), deselect_vertex)
         .add_systems(PostUpdate, select_all.run_if(in_state(AppState::Edit).and_then(on_event::<DoubleClick>())))
+        .add_systems(Update, update_scale.run_if(is_settings_changed))
 
         ;
     }
+}
+
+
+pub fn update_scale(settings:    Res<GlobalSettings>,
+                    mut vertex:  Query<&mut Transform, With<Vertex>>){
+
+    for mut tr in vertex.iter_mut(){
+        tr.scale = Vec3::splat(settings.vertex_radius);
+    }
+    
 }
 
 
@@ -197,7 +211,8 @@ pub struct VertexRefs {
 // spawn references
 pub fn setup(mut commands:     Commands,
              mut materials:    ResMut<Assets<StandardMaterial>>,
-             mut meshes:       ResMut<Assets<Mesh>>
+             mut meshes:       ResMut<Assets<Mesh>>,
+             settings:         Res<GlobalSettings>
 ){
     
     let ref_loc: [f32;3] = [-5000.0, -5000.0, -5000.0]; // basically hell
@@ -205,20 +220,20 @@ pub fn setup(mut commands:     Commands,
     // let ref_loc: [f32;3] = [0.0, 10.0, 0.0];
     let default_vertex_material = materials.add(Color::BLACK.with_a(0.85).into());
     let red_vertex_material = materials.add(Color::ORANGE_RED.with_a(0.85).into());
-    let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 3.0, ..default()}.into());
-
-    // let default_vertex_mesh = meshes.add(shape::Cube{size: 25.0}.into());
+    let default_vertex_mesh = meshes.add(shape::UVSphere{radius: 1.0, ..default()}.into());
 
     commands.spawn((PbrBundle {
         material: default_vertex_material.clone(),
         mesh: default_vertex_mesh.clone(),
-        transform: Transform::from_translation(ref_loc.clone().into()),
+        transform: Transform::from_translation(ref_loc.clone().into())
+                             .with_scale(Vec3::splat(settings.vertex_radius)),
         ..default()}, RefVertex));
 
      commands.spawn((PbrBundle {
             material: red_vertex_material.clone(),
             mesh: default_vertex_mesh.clone(),
-            transform: Transform::from_translation(ref_loc.clone().into()),
+            transform: Transform::from_translation(ref_loc.clone().into())
+                                 .with_scale(Vec3::splat(settings.vertex_radius)),
             ..default()}, RefVertex));
 
     let refs = VertexRefs{mesh: default_vertex_mesh, mat: default_vertex_material, picked_mat: red_vertex_material};
@@ -274,7 +289,8 @@ pub fn spawn_vertex(plane_entity: &Entity,
                     commands:     &mut Commands, 
                     handle_mesh:  &Handle<Mesh>, 
                     meshes:       &mut ResMut<Assets<Mesh>>,
-                    refs:         &Res<VertexRefs>
+                    refs:         &Res<VertexRefs>,
+                    settings:     &Res<GlobalSettings>
                 ){
 
     let plane_mesh = meshes.get_mut(handle_mesh).unwrap();
@@ -295,9 +311,11 @@ pub fn spawn_vertex(plane_entity: &Entity,
         let entity = commands.spawn((PbrBundle {
                                         material: refs.mat.clone_weak(),
                                         mesh: refs.mesh.clone_weak(),
-                                    transform: Transform::from_translation(pos.clone().into()),
+                                    transform: Transform::from_translation(pos.clone().into())
+                                                         .with_scale(Vec3::splat(settings.vertex_radius)),
                                     ..default()}, 
                                     Vertex::new(index, pos, &v_clr[index]),
+                                    NotShadowCaster,
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     On::<Pointer<Down>>::send_event::<PickVertex>(),

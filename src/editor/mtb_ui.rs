@@ -13,7 +13,7 @@ use super::colors::{ColorsPlugin, Colors};
 use super::io::{WriteData, LoadData, IOPlugin, IOName};
 use super::actions::ActionsPlugin;
 use super::mtb_grid::{GridData, HoverData, Hoverables};
-use super::AppState;
+use super::{AppState, GlobalSettings};
 use super::brush::{BrushPlugin, BrushSettings};
 use super::boxselect::BoxSelectPlugin;
 use super::spawn_text_node;
@@ -226,7 +226,8 @@ fn update_egui_object(mut contexts:              EguiContexts,
                       mut spawn_plane:           EventWriter<SpawnNewPlaneEvent>,
                       mut write_data:            EventWriter<WriteData>,
                       mut load_data:             EventWriter<LoadData>,
-                      mut ioname:                ResMut<IOName>
+                      mut ioname:                ResMut<IOName>,
+                      mut settings:              ResMut<GlobalSettings>
                     ) {
   let ctx = contexts.ctx_mut();
   occupied_screen_space.right = egui::SidePanel::right("right_panel")
@@ -288,6 +289,11 @@ fn update_egui_object(mut contexts:              EguiContexts,
           }
 
         });
+
+        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        ui.separator();
+
+        settings.ui(ui);
 
         ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
     })

@@ -3,11 +3,9 @@ use serde::{Serialize, Deserialize};
 use libm::atan2f;
 use rand::prelude::*;
 
-use crate::terrain::planes::PlaneData;
-use crate::terrain::utils::{AABB,Edge, get_distance_manhattan};
-
 use super::easings::Easings;
-use super::utils::Ellipse;
+use super::planes::PlaneData;
+use super::utils::{AABB, get_distance_manhattan};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TargetWanderNoiseData {
@@ -33,8 +31,6 @@ pub struct TargetWanderNoise {
     pub source:               WanderLoc,
     pub target:               WanderLoc,
     pub seed:                 NoiseSeed,
-    pub aabbs:                Vec<AABB>,
-    pub ellipses:             Vec<Ellipse>,
     pub easing:               Easings
 }
 

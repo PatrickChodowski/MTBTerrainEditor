@@ -1,49 +1,90 @@
 
+use bevy::prelude::Resource;
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
-use serde::{Serialize, Deserialize};
+use std::slice::Iter;
+use super::easings::Easings;
+use bevy_egui::{egui, egui::Ui};
+use crate::editor::mtb_ui::ModResources;
+use bevy::prelude::ResMut;
 
-use crate::terrain::easings::Easings;
-use crate::terrain::modifiers::ModifierBase;
-use crate::terrain::utils::Area;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct NoiseData {
-    pub mb:             ModifierBase,
+#[derive(Clone, Resource, Debug)]
+pub struct Noise {
     pub noise:          Noises,
     pub seed:           u32,
     pub scale:          f64,
-    pub octaves:        Option<usize>,
-    pub freq:           Option<f64>,
+    pub octaves:        usize,
+    pub freq:           f64,
     pub easing:         Easings,
     pub global:         bool
 }
+impl Noise {
+    pub fn new() -> Self {
+        Noise { 
+                noise:        Noises::Perlin, 
+                seed:         0, 
+                scale:        0.1, 
+                octaves:      6, 
+                freq:         1.0,
+                easing:       Easings::None, 
+                global:       false
+            }
 
-#[derive(Clone)]
-pub struct Noise {
-    pub area:           Area,
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        Option<usize>,
-    pub freq:           Option<f64>,
-    pub easing:         Easings,
-    pub global:         bool,
-    pub noise_function: NoiseFunction
+    }
 }
 
-
-impl NoiseData {
-    pub fn set(&self) -> Noise {
+impl Noise {
+    pub fn set(&self) -> NoiseFunction {
         let nfn = NoiseFunction::new(self.noise.clone(), self.seed, self.octaves, self.freq);
-        return Noise {area:             self.mb.to_area(),
-                      noise:            self.noise.clone(), 
-                      seed:             self.seed, 
-                      scale:            self.scale, 
-                      octaves:          self.octaves, 
-                      freq:             self.freq, 
-                      easing:           self.easing,
-                      global:           self.global, 
-                      noise_function:   nfn};
+        return nfn;
+    }
+    pub fn apply(&self, noise_fn: &NoiseFunction, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
+
+        let mut gpos: [f32; 3] = *pos;
+        if self.global {
+            gpos[0] = pos[0] + loc[0];
+            gpos[1] = pos[1] + loc[1];
+            gpos[2] = pos[2] + loc[2];
+        }
+
+        let r: f64 = noise_fn.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
+        let eased_r = self.easing.apply(r as f32);
+        return eased_r * gpos[1];    
+    }
+
+    pub fn ui(ui: &mut Ui, mod_res: &mut ResMut<ModResources>) {
+
+        egui::ComboBox::from_label("Noise")
+        .width(140.0)
+        .selected_text(format!("{:?}", mod_res.noise.noise))
+        .show_ui(ui, |ui| {
+          for &p in Noises::iterator(){
+            ui.selectable_value(&mut mod_res.noise.noise, p, format!("{p:?}"));
+          }
+        });
+
+        ui.separator();
+
+        ui.columns(2, |columns| {
+          columns[1].label("Seed");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.seed).speed(1.0));
+          columns[1].label("Scale");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.scale).speed(1.0));
+          columns[1].label("Frequency");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.freq).speed(0.1));
+          columns[1].label("Octaves");
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.octaves).speed(1.0));
+        });
+
+        egui::ComboBox::from_label("Easing")
+        .width(140.0)
+        .selected_text(format!("{:?}", mod_res.noise.easing))
+        .show_ui(ui, |ui| {
+          for &p in Easings::iterator(){
+            ui.selectable_value(&mut mod_res.noise.easing, p, format!("{p:?}"));
+          }
+        });
+        ui.checkbox(&mut mod_res.noise.global, "Use global position?");
     }
 }
 
@@ -51,7 +92,7 @@ impl NoiseData {
 
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Noises {
     Perlin,
     PerlinSurflet,
@@ -83,75 +124,41 @@ pub enum Noises {
 
 }
 
-impl Noise {
-    pub fn apply(&self, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
 
-        let mut gpos: [f32; 3] = *pos;
-        if self.global {
-            gpos[0] = pos[0] + loc[0];
-            gpos[1] = pos[1] + loc[1];
-            gpos[2] = pos[2] + loc[2];
-        }
-
-        if !self.area.has_point(pos) {
-            return gpos[1];
-        }
-
-        let r: f64 = self.noise_function.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
-        let eased_r = self.easing.apply(r as f32);
-        return eased_r * gpos[1];    
-    }
+impl<'a> Noises {
+      pub fn iterator() -> Iter<'static, Noises> {
+    static NOISES_OPTIONS: [Noises; 27] = [
+        Noises::Perlin,
+        Noises::PerlinSurflet,
+        Noises::OpenSimplex,
+        Noises::Value,
+        Noises::SuperSimplex,
+        Noises::Worley,
+        Noises::Simplex,
+        Noises::FBMPerlin,
+        Noises::BMPerlin,
+        Noises::BPerlin,
+        Noises::RMPerlin,
+        Noises::HMPerlin,
+        Noises::FBMPerlinSurflet,
+        Noises::BMPerlinSurflet,
+        Noises::BPerlinSurflet,
+        Noises::RMPerlinSurflet,
+        Noises::HMPerlinSurflet,
+        Noises::FBMValue,
+        Noises::BMValue,
+        Noises::BValue,
+        Noises::RMValue,
+        Noises::HMValue,
+        Noises::FBMSS,
+        Noises::BMSS,
+        Noises::BSS,
+        Noises::RMSS,
+        Noises::HMSS 
+    ];
+    NOISES_OPTIONS.iter()
+  }
 }
-
-// Simpler noise used as argument in other modifiers
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SimpleNoiseData {
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        Option<usize>,
-    pub freq:           Option<f64>,
-}
-
-impl SimpleNoiseData {
-    pub fn set(&self) -> SimpleNoise {
-        let nfn = NoiseFunction::new(self.noise.clone(), self.seed, self.octaves, self.freq);
-        return SimpleNoise {
-                    noise:            self.noise.clone(), 
-                    seed:             self.seed, 
-                    scale:            self.scale, 
-                    octaves:          self.octaves, 
-                    freq:             self.freq, 
-                    noise_function:   nfn};
-    }
-}
-
-
-#[derive(Clone)]
-pub struct SimpleNoise {
-    pub noise:          Noises,
-    pub seed:           u32,
-    pub scale:          f64,
-    pub octaves:        Option<usize>,
-    pub freq:           Option<f64>,
-    pub noise_function: NoiseFunction
-}
-
-impl SimpleNoise {
-    pub fn apply(&self, x: f32, z: f32) -> f32 {
-        let r: f64 = self.noise_function.apply(self.scale, x as f64, z as f64);
-        return r as f32;    
-    }
-    pub fn _apply3d(&self, x: f32, y: f32, z: f32) -> f32 {
-        let r: f64 = self.noise_function._apply3d(self.scale, x as f64, y as f64, z as f64);
-        return r as f32;    
-    }
-}
-
-
-
-
 
 #[derive(Clone)]
 pub enum NoiseFunction {
@@ -257,7 +264,7 @@ impl NoiseFunction {
 
  
 
-    pub fn new(noise: Noises, seed: u32, octaves: Option<usize>, freq: Option<f64>) -> Self {
+    pub fn new(noise: Noises, seed: u32, octaves: usize, freq: f64) -> Self {
         let nfn: NoiseFunction;
         match noise {
             Noises::Perlin =>        {nfn = NoiseFunction::Perlin(Perlin::new(seed))}
@@ -269,202 +276,122 @@ impl NoiseFunction {
             Noises::Simplex =>       {nfn = NoiseFunction::Simplex(Simplex::new(seed))}
             Noises::FBMPerlin =>     {
                 let mut noise_fn: Fbm<Perlin> = Fbm::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn = NoiseFunction::FBMPerlin(noise_fn);
             }
             Noises::BMPerlin => {
                 let mut noise_fn: BasicMulti<Perlin> = BasicMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn = NoiseFunction::BMPerlin(noise_fn);
             }
             Noises::BPerlin => {
                 let mut noise_fn: Billow<Perlin> = Billow::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn = NoiseFunction::BPerlin(noise_fn);
             }
             Noises::RMPerlin => {
                 let mut noise_fn: RidgedMulti<Perlin> = RidgedMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn = NoiseFunction::RMPerlin(noise_fn);
             }
             Noises::HMPerlin => {
                 let mut noise_fn: HybridMulti<Perlin> = HybridMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::HMPerlin(noise_fn);
             }
             Noises::FBMPerlinSurflet =>     {
                 let mut noise_fn: Fbm<PerlinSurflet> = Fbm::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::FBMPerlinSurflet(noise_fn);
             }
             Noises::BMPerlinSurflet => {
                 let mut noise_fn: BasicMulti<PerlinSurflet> = BasicMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BMPerlinSurflet(noise_fn);
             }
             Noises::BPerlinSurflet => {
                 let mut noise_fn: Billow<PerlinSurflet> = Billow::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BPerlinSurflet(noise_fn);
             }
             Noises::RMPerlinSurflet => {
                 let mut noise_fn: RidgedMulti<PerlinSurflet> = RidgedMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::RMPerlinSurflet(noise_fn);
             }
             Noises::HMPerlinSurflet => {
                 let mut noise_fn: HybridMulti<PerlinSurflet> = HybridMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::HMPerlinSurflet(noise_fn);
             }
             Noises::FBMValue =>     {
                 let mut noise_fn: Fbm<Value> = Fbm::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::FBMValue(noise_fn);
             }
             Noises::BMValue => {
                 let mut noise_fn: BasicMulti<Value> = BasicMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BMValue(noise_fn);
             }
             Noises::BValue => {
                 let mut noise_fn: Billow<Value> = Billow::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BValue(noise_fn);
             }
             Noises::RMValue => {
                 let mut noise_fn: RidgedMulti<Value> = RidgedMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::RMValue(noise_fn);
             }
             Noises::HMValue => {
                 let mut noise_fn: HybridMulti<Value> = HybridMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::HMValue(noise_fn);
             }
             Noises::FBMSS =>     {
                 let mut noise_fn: Fbm<SuperSimplex> = Fbm::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::FBMSS(noise_fn);
             }
             Noises::BMSS => {
                 let mut noise_fn: BasicMulti<SuperSimplex> = BasicMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BMSS(noise_fn);
             }
             Noises::BSS => {
                 let mut noise_fn: Billow<SuperSimplex> = Billow::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::BSS(noise_fn);
             }
             Noises::RMSS => {
                 let mut noise_fn: RidgedMulti<SuperSimplex> = RidgedMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn =  NoiseFunction::RMSS(noise_fn);
             }
             Noises::HMSS => {
                 let mut noise_fn: HybridMulti<SuperSimplex> = HybridMulti::new(seed);
-                if let Some(octaves) = octaves {
-                    noise_fn.octaves = octaves;
-                }
-                if let Some(freq) = freq {
-                    noise_fn.frequency = freq
-                }
+                noise_fn.octaves = octaves;
+                noise_fn.frequency = freq;
                 nfn = NoiseFunction::HMSS(noise_fn);
             }
             

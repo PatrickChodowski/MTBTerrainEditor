@@ -1,24 +1,16 @@
-use bevy::input::common_conditions::input_just_pressed;
-use bevy::pbr::wireframe::Wireframe;
+
+use bevy::asset::ChangeWatcher;
+use std::time::Duration;
 use bevy::prelude::*;
-use bevy::window::WindowMode;
-use bevy::window::PresentMode;
-use bevy::window::WindowPlugin;
-use bevy::log::LogPlugin;
-use bevy::window::WindowResolution;
-use bevy::pbr::wireframe::WireframePlugin;
-use bevy_common_assets::toml::TomlAssetPlugin;
-// use bevy_debug_grid::*;
+use bevy::window::{WindowMode, PresentMode, WindowPlugin, WindowResolution};
 
-mod camera;
-use camera::CameraPlugin;
+pub mod core;
+pub mod editor;
 
-mod terrain;
-use terrain::planes::TerrainPlane;
-use terrain::planes::{PlanesPlugin, Planes};
-use terrain::utils::ConfigData;
+use crate::editor::MTBEditorPlugin;
 
 pub const HEIGHT: f32 = 900.0;
+// pub const HEIGHT: f32 = 600.0;
 pub const RESOLUTION: f32 = 16.0 / 9.0;
 
 fn main() {
@@ -27,66 +19,17 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     resolution: WindowResolution::new(HEIGHT * RESOLUTION, HEIGHT),
-                    title: "MTB Terrain Generator".to_string(),
-                    // present_mode: PresentMode::AutoNoVsync,
+                    title: "MTB Terrain Generator Editor".to_string(),
                     present_mode: PresentMode::AutoVsync,
                     resizable: true,
                     mode: WindowMode::Windowed,
 
                 ..default()
             }), ..default()})
-            .set(LogPlugin {
-                filter: "info,wgpu_core=warn,wgpu_hal=warn,mygame=debug".into(),
-                level: bevy::log::Level::DEBUG,
-            })
-            .set(AssetPlugin {
-                watch_for_changes: true,
-                ..default()
-            })
+            .set(AssetPlugin {watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),..default()})
         )
-        // .add_plugin(DebugGridPlugin::with_floor_grid())
-        .add_plugin(WireframePlugin)
-        .add_plugin(TomlAssetPlugin::<Planes>::new(&["scene.toml"]))
-        .add_plugin(TomlAssetPlugin::<ConfigData>::new(&["toml"]))
-        .add_plugin(CameraPlugin)
-        .add_plugin(PlanesPlugin)
-
-        .insert_resource(AmbientLight {color: Color::WHITE, brightness: 5.0})
+        .add_plugins(MTBEditorPlugin)
         .insert_resource(ClearColor([0.5, 0.7, 0.9, 1.0].into()))
-        .add_state::<DisplayMode>()
-        .add_system(toggle_wireframe.run_if(input_just_pressed(KeyCode::Space)))
         .run();
-}
-
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum DisplayMode {
-    #[default]
-    WireFrameOn,
-    WireFrameOff
-}
-
-fn toggle_wireframe(
-    mut commands:            Commands,
-    planes:                  Query<Entity, With<TerrainPlane>>,
-    display_mode:            Res<State<DisplayMode>>,
-    mut next_display_mode:   ResMut<NextState<DisplayMode>>,
-){
-    
-    match display_mode.0 {
-        DisplayMode::WireFrameOn => {
-            next_display_mode.set(DisplayMode::WireFrameOff);
-            for entity in planes.iter() {
-                commands.entity(entity).remove::<Wireframe>();
-            }
-        
-        }
-        DisplayMode::WireFrameOff => {
-            next_display_mode.set(DisplayMode::WireFrameOn);
-            for entity in planes.iter() {
-                commands.entity(entity).insert(Wireframe);
-            }
-        }
-    }
 }
 

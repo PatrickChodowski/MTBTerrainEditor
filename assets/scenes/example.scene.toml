@@ -1,8 +1,0 @@
-[[planes]]
-name= "Fresh start"
-active= true
-loc= [500.0, 0.0, -100.0]
-subdivisions= [20,20]
-dims= [500.0, 500.0]
-color= {Color= [1.0, 1.0, 0.5, 1.0]}
-modifiers =  []   

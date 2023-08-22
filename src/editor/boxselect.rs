@@ -23,9 +23,10 @@ impl Plugin for BoxSelectPlugin {
         
 
           
-fn select(mut commands:      Commands,
-            box_select:      Query<&Transform, With<BoxSelect>>,
-            vertex:          Query<(Entity, &GlobalTransform), With<Vertex>>
+fn select(mut commands:    Commands,
+          box_select:      Query<&Transform, With<BoxSelect>>,
+          keys:            Res<Input<KeyCode>>,
+          vertex:          Query<(Entity, &GlobalTransform), With<Vertex>>
 ){
     if let Ok(t) = box_select.get_single(){
         let x = t.translation.x;
@@ -38,6 +39,10 @@ fn select(mut commands:      Commands,
             let tr = gtr.translation(); 
             if tr.x >= aabb[0] && tr.x <= aabb[1] && tr.z >= aabb[2] && tr.z <= aabb[3] {
                 commands.entity(entity).insert(PickedVertex);
+            } else {
+              if !keys.pressed(KeyCode::ShiftLeft) {
+                commands.entity(entity).remove::<PickedVertex>();
+              }
             }
         }
     }

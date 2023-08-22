@@ -2,7 +2,8 @@
 use bevy::{prelude::*, utils::HashMap};
 use bevy::window::PrimaryWindow;
 use crate::core::planes::{TerrainPlane, PlaneData};
-use crate::core::utils::AABB;
+use crate::core::utils::{AABB, get_distance_manhattan};
+use crate::core::vertex::Vertex;
 
 use super::mtb_camera::MTBCamera;
 pub const TILE_DIM: f32 = 10.0;
@@ -15,9 +16,28 @@ impl Plugin for MTBGridPlugin {
       .insert_resource(GridData::new())
       .insert_resource(HoverData::new())
       .add_systems(PreUpdate, hover_check)
+      // .add_systems(PreUpdate, get_height.after(hover_check))
       ;
   }
 }
+
+// fn get_height(mut hover_data:      ResMut<HoverData>,
+//               planes:              Query<&Children, With<TerrainPlane>>,
+//               vertex:              Query<&Vertex>
+//             ){
+
+//   if let Hoverables::Entity(entity) = hover_data.hoverable {
+
+//     if let Ok(children) = planes.get(entity) {
+//       let dists: Vec<(f32, Entity)> = Vec::with_capacity(children.len())
+//       for child in children.iter() {
+
+//         get_distance_manhattan(child., hover_data.hovered_xz)
+//       }
+//     }
+//   }
+
+// }
 
 
 // Update grid tiles height. After planes update step it takes all planes and gets height per tile.

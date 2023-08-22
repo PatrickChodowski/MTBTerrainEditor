@@ -264,11 +264,18 @@ pub fn is_settings_changed(settings: Res<GlobalSettings>) -> bool {
 
 
  pub fn show_vertex_wire(mut commands:     Commands, 
-                         planes:           Query<Entity, With<TerrainPlane>>,   
+                         planes:           Query<(Entity, &mut Handle<StandardMaterial>), With<TerrainPlane>>,   
+                         mut materials:    ResMut<Assets<StandardMaterial>>,
                          mut vertex:       Query<&mut Visibility, With<Vertex>>){
 
-    for entity in planes.iter(){
+    for (entity, handle_mat) in planes.iter(){
+        // if let Some(mat) = materials.get_mut(handle_mat){
+        //     mat.base_color.set_r(0.0);
+            // commands.entity(entity).insert(materials.add(mat.clone()));
+        // }
+        commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::WHITE.with_a(0.1))));
         commands.entity(entity).insert(Wireframe);
+
     }
 
     for mut vis in vertex.iter_mut(){

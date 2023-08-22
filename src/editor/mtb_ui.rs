@@ -325,9 +325,9 @@ fn update_left_into_panel(mut commands:  Commands,
   v.push(spawn_text_node(&format!("    Tile: {:?}", hover_data.hovered_tile_xz), &mut commands, &ass));  
   v.push(spawn_text_node(&format!("    Pos: ({:.0}, {:.0})",  hover_data.hovered_xz.0, hover_data.hovered_xz.1), &mut commands, &ass)); 
 
-  if let Some(height) = grid.data.get(&hover_data.hovered_tile_xz) {
-    v.push(spawn_text_node(&format!("    Height: {}",  height), &mut commands, &ass)); 
-  }
+  // if let Some(height) = grid.data.get(&hover_data.hovered_tile_xz) {
+  //   v.push(spawn_text_node(&format!("    Height: {}",  height), &mut commands, &ass)); 
+  // }
 
   if let Hoverables::Entity(entity) = hover_data.hoverable {
     if let Ok(pd) = planes.get(entity) {

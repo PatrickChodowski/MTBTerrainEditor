@@ -193,7 +193,9 @@ impl PlaneData {
         get_mesh_stats(&mesh);
     
         let entity = commands.spawn((PbrBundle {
-            material: materials.add(StandardMaterial{..default()}),
+            // material: materials.add(StandardMaterial{alpha_mode: AlphaMode::Blend,..default()}),
+            material: materials.add(StandardMaterial{alpha_mode: AlphaMode::Mask(0.5),..default()}),
+            // material: materials.add(StandardMaterial{..default()}),
             mesh: meshes.add(mesh),
             transform: Transform::from_translation(self.loc.into()),
             ..default()

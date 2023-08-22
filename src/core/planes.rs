@@ -24,7 +24,10 @@ impl Plugin for PlanesPlugin {
         .add_systems(Update,     drag.run_if(input_pressed(MouseButton::Left)
                                  .and_then(in_state(AppState::Object)))
                                  .after(hover_check))
-        .add_systems(PostUpdate, highlight_picked_plane.after(pick_plane).run_if(in_state(AppState::Object)))
+        .add_systems(PostUpdate, highlight_picked_plane
+                                        .after(pick_plane)
+                                        .run_if(in_state(AppState::Object))
+                                    )
         .add_systems(Update,     drop_plane.run_if(input_just_pressed(KeyCode::Back)))
         .add_systems(OnExit(AppState::Object), deselect_plane)
 
@@ -120,23 +123,26 @@ fn clear(mut commands: Commands,
 }
 
 
-pub fn pick_plane(mut commands:          Commands,
-                    mut pick_plane_event:  EventReader<PickPlane>){
+pub fn pick_plane(mut commands:            Commands,
+                  mut pick_plane_event:    EventReader<PickPlane>){
     for ev in pick_plane_event.iter(){
         commands.entity(ev.entity).insert(PickedPlane);
     }
 }
 
 pub fn highlight_picked_plane(
-    mut commands:          Commands,
     mut materials:         ResMut<Assets<StandardMaterial>>,
-    planes:                Query<(Entity, Option<&PickedPlane>), With<TerrainPlane>>){
+    planes:                Query<(&mut Handle<StandardMaterial>, Option<&PickedPlane>), With<TerrainPlane>>){
 
-    for (entity, picked) in planes.iter(){
-        if picked.is_some(){
-            commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::ORANGE_RED).into()));
-        } else {
-            commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::WHITE).into()));
+    for (handle_mat, picked) in planes.iter(){
+        if let Some(mat) = materials.get_mut(handle_mat){
+            if picked.is_some(){
+                mat.base_color.set_g(0.4);
+                mat.base_color.set_b(0.4);
+            } else {
+                mat.base_color.set_g(1.0);
+                mat.base_color.set_b(1.0);
+            }
         }
     }
 }
@@ -193,9 +199,7 @@ impl PlaneData {
         get_mesh_stats(&mesh);
     
         let entity = commands.spawn((PbrBundle {
-            // material: materials.add(StandardMaterial{alpha_mode: AlphaMode::Blend,..default()}),
             material: materials.add(StandardMaterial{alpha_mode: AlphaMode::Mask(0.5),..default()}),
-            // material: materials.add(StandardMaterial{..default()}),
             mesh: meshes.add(mesh),
             transform: Transform::from_translation(self.loc.into()),
             ..default()
@@ -292,10 +296,13 @@ impl From<RectPlane> for Mesh {
 
 pub fn deselect_plane(mut commands: Commands,
                       mut materials: ResMut<Assets<StandardMaterial>>,
-                      picked_plane:  Query<Entity, With<PickedPlane>>){
-    for v in picked_plane.iter(){
-        commands.entity(v).remove::<PickedPlane>();
-        commands.entity(v).insert(materials.add(StandardMaterial::from(Color::WHITE).into()));
+                      picked_plane:  Query<(Entity, &mut Handle<StandardMaterial>), With<PickedPlane>>){
+    for (entity, handle_mat) in picked_plane.iter(){
+        commands.entity(entity).remove::<PickedPlane>();
+        if let Some(mat) = materials.get_mut(handle_mat){
+            mat.base_color.set_g(1.0);
+            mat.base_color.set_b(1.0);
+        }
     }
 }
 

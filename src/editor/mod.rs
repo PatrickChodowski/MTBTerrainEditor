@@ -269,11 +269,9 @@ pub fn is_settings_changed(settings: Res<GlobalSettings>) -> bool {
                          mut vertex:       Query<&mut Visibility, With<Vertex>>){
 
     for (entity, handle_mat) in planes.iter(){
-        // if let Some(mat) = materials.get_mut(handle_mat){
-        //     mat.base_color.set_r(0.0);
-            // commands.entity(entity).insert(materials.add(mat.clone()));
-        // }
-        commands.entity(entity).insert(materials.add(StandardMaterial::from(Color::WHITE.with_a(0.1))));
+        if let Some(mat) = materials.get_mut(handle_mat){
+            mat.base_color.set_a(0.1);
+        }
         commands.entity(entity).insert(Wireframe);
 
     }
@@ -284,11 +282,16 @@ pub fn is_settings_changed(settings: Res<GlobalSettings>) -> bool {
     
 }
 
-pub fn hide_vertex_wire(mut commands: Commands, 
-                        planes:       Query<Entity, With<Wireframe>>,
-                        mut vertex:   Query<&mut Visibility, With<Vertex>>){
-    for plane in planes.iter(){
-        commands.entity(plane).remove::<Wireframe>();
+pub fn hide_vertex_wire(mut commands:     Commands, 
+                        mut materials:    ResMut<Assets<StandardMaterial>>,
+                        planes:           Query<(Entity, &mut Handle<StandardMaterial>), With<Wireframe>>,
+                        mut vertex:       Query<&mut Visibility, With<Vertex>>){
+
+    for (entity, handle_mat) in planes.iter(){
+        commands.entity(entity).remove::<Wireframe>();
+        if let Some(mat) = materials.get_mut(handle_mat){
+            mat.base_color.set_a(1.0);
+        }
     }
     for mut vis in vertex.iter_mut(){
         *vis = Visibility::Hidden;
@@ -297,7 +300,7 @@ pub fn hide_vertex_wire(mut commands: Commands,
 
 
 
-pub fn show_vertex(mut vertex:       Query<&mut Visibility, With<Vertex>>){
+pub fn show_vertex(mut vertex: Query<&mut Visibility, With<Vertex>>){
 
     for mut vis in vertex.iter_mut(){
         *vis = Visibility::Inherited;
@@ -310,15 +313,27 @@ pub fn hide_vertex(mut vertex:   Query<&mut Visibility, With<Vertex>>){
     }
 }
 
-pub fn show_wireframe(mut commands: Commands, planes: Query<Entity, With<TerrainPlane>>){
-    for plane in planes.iter(){
-        commands.entity(plane).insert(Wireframe);
+pub fn show_wireframe(mut commands: Commands, 
+                      mut materials:    ResMut<Assets<StandardMaterial>>,
+                      planes: Query<(Entity, &mut Handle<StandardMaterial>), With<TerrainPlane>>){
+
+    for (entity, handle_mat) in planes.iter(){
+        if let Some(mat) = materials.get_mut(handle_mat){
+            mat.base_color.set_a(0.1);
+        }
+        commands.entity(entity).insert(Wireframe);
     }
 }
 
-pub fn hide_wireframe(mut commands: Commands, planes: Query<Entity, With<Wireframe>>){
-    for plane in planes.iter(){
-        commands.entity(plane).remove::<Wireframe>();
+pub fn hide_wireframe(mut commands:     Commands,
+                      mut materials:    ResMut<Assets<StandardMaterial>>, 
+                      planes:           Query<(Entity, &mut Handle<StandardMaterial>), With<Wireframe>>){
+
+    for (entity, handle_mat) in planes.iter(){
+        if let Some(mat) = materials.get_mut(handle_mat){
+            mat.base_color.set_a(1.0);
+        }
+        commands.entity(entity).remove::<Wireframe>();
     }
 }
 

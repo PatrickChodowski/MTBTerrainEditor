@@ -256,6 +256,7 @@ pub fn is_settings_changed(settings: Res<GlobalSettings>) -> bool {
                             ){
 
         for (entity, handle_mesh) in planes.iter(){
+            info!("spawning vertices");
             spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs, &settings);
         }
     }

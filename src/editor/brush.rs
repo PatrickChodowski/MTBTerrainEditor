@@ -1,6 +1,7 @@
 
 use std::error::Error;
 use bevy::input::common_conditions::input_pressed;
+use bevy::pbr::NotShadowCaster;
 use bevy::prelude::*;
 use crate::core::utils::get_distance_euclidean;
 use std::fmt::{Display, Formatter};
@@ -91,7 +92,7 @@ pub fn spawn_brush(mut commands:      Commands,
             material: materials.add(StandardMaterial::from(Color::YELLOW.with_a(0.4))),
             transform: Transform::from_xyz(loc.0, 20.0, loc.1).with_scale([scale, 1.0, scale].into()),
             ..default()
-        }, Brush));
+        }, Brush, NotShadowCaster));
     }
 }
 

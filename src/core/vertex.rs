@@ -148,46 +148,37 @@ pub fn vertex_update_transform(mut vertex: Query<(&Transform, &mut Vertex, &Pare
     }
 }
 
-pub fn vertex_update_vertex(vertex: Query<(&mut Vertex, &Parent), Changed<Vertex>>,
-                            planes: Query<&Handle<Mesh>, With<TerrainPlane>>,
+pub fn vertex_update_vertex(vertex: Query<(&Parent, &mut Vertex), Changed<Vertex>>,
+                            planes: Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,
                             mut meshes: ResMut<Assets<Mesh>>
 ){
-    let mut plane_ref: Entity = Entity::PLACEHOLDER;
-    let mut v_clr: Option<Vec<[f32;4]>> = None;
-    let mut v_pos: Option<Vec<[f32; 3]>> = None;
+    for (plane_entity, handle_plane_mesh) in planes.iter(){
 
-    for (index, (_vertex, parent)) in vertex.iter().enumerate(){
-        if index == 0 {
-            plane_ref = **parent;
-            if let Ok(plane_mesh_handle) = planes.get(plane_ref) {
-                if let Some(_plane_mesh) = meshes.get_mut(plane_mesh_handle) {
-                    v_pos = Some(_plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec());
+        let mut v_clr: Option<Vec<[f32;4]>> = None;
+        let mut v_pos: Option<Vec<[f32; 3]>> = None;
 
-                    if let Some(attr_vcolor) = _plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
-                        if let VertexAttributeValues::Float32x4(vcolors) = attr_vcolor {
-                            v_clr = Some(vcolors.to_vec());
-                        }
-                    } else {
-                        v_clr = Some(vec![[1.0, 1.0, 1.0, 1.0]; v_pos.as_ref().unwrap().len()]);
-                    }
+        if let Some(plane_mesh) = meshes.get_mut(handle_plane_mesh) {
+
+            v_pos = Some(plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec());
+            if let Some(attr_vcolor) = plane_mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
+                if let VertexAttributeValues::Float32x4(vcolors) = attr_vcolor {
+                    v_clr = Some(vcolors.to_vec());
+                }
+            } else {
+                v_clr = Some(vec![[1.0, 1.0, 1.0, 1.0]; v_pos.as_ref().unwrap().len()]);
+            }
+
+            for (parent, vertex) in vertex.iter() {
+                if plane_entity == parent.get() {
+                    v_pos.as_mut().unwrap()[vertex.index] = vertex.loc;
+                    v_clr.as_mut().unwrap()[vertex.index] = vertex.clr;
                 }
             }
-            break; // only first needed to get the plane
+
+            plane_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos.unwrap());
+            plane_mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr.unwrap());
         }
     }
-
-    if v_pos.is_some() && v_clr.is_some() {
-        for (vertex, _parent) in vertex.iter(){
-            v_pos.as_mut().unwrap()[vertex.index] = vertex.loc;
-            v_clr.as_mut().unwrap()[vertex.index] = vertex.clr;
-        }
-        if let Ok(plane_mesh_handle) = planes.get(plane_ref) {
-            if let Some(plane_mesh) = meshes.get_mut(plane_mesh_handle) {
-                plane_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, v_pos.unwrap());
-                plane_mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, v_clr.unwrap());
-            }
-        }
-    }    
 }
 
 

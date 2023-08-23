@@ -110,7 +110,7 @@ pub fn write_data(vertex: Query<&Vertex>,
                   colors: Res<Colors>,
                   ioname: Res<IOName>) {
 
-    info!("Eriting data to {}", ioname.data);
+    info!("Writing data to {}", ioname.data);
     let mut v: Vec<SavePlaneData> = Vec::new();
     for (pd, children) in planes.iter(){
         let mut spd = SavePlaneData::from_pd(pd);

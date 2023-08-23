@@ -51,8 +51,8 @@ impl Colors {
                         (clr[3]*255.0) as u8];
         self.selects.insert(clr_conv);
         
-        info!("debug added color: {:?}", clr_conv);
-        info!("debug all colors: {:?}", self);
+        //info!("debug added color: {:?}", clr_conv);
+        //info!("debug all colors: {:?}", self);
     }
 
     pub fn reset(&mut self) {

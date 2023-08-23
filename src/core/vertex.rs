@@ -242,9 +242,18 @@ pub fn setup(mut commands:     Commands,
 }
 
 pub fn pick_vertex(mut commands:          Commands,
-                   mut pick_vertex_event: EventReader<PickVertex>){
+                   mut pick_vertex_event: EventReader<PickVertex>,
+                   keys:                  Res<Input<KeyCode>>,
+                   vertex:                Query<Entity, With<PickedVertex>>){
     for ev in pick_vertex_event.iter(){
         commands.entity(ev.entity).insert(PickedVertex);
+        if !keys.pressed(KeyCode::ShiftLeft) {
+            for entity in vertex.iter(){
+                if entity != ev.entity {
+                    commands.entity(entity).remove::<PickedVertex>(); 
+                }
+            }
+        }
     }
 }
 

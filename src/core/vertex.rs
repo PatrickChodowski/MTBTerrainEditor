@@ -155,6 +155,7 @@ pub fn vertex_update_vertex(vertex: Query<(&Parent, &mut Vertex), Changed<Vertex
     for (plane_entity, handle_plane_mesh) in planes.iter(){
 
         let mut v_clr: Option<Vec<[f32;4]>> = None;
+        #[allow(unused_assignments)]
         let mut v_pos: Option<Vec<[f32; 3]>> = None;
 
         if let Some(plane_mesh) = meshes.get_mut(handle_plane_mesh) {

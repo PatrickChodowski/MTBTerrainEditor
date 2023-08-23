@@ -136,7 +136,8 @@ pub fn load_data(mut commands:      Commands,
                  mut colors:        ResMut<Colors>,
                  planes:            Query<Entity, With<PlaneData>>,
                  ioname:            Res<IOName>) {
-
+    
+    info!("Loading data from {}", ioname.data);
     let path: &str = &format!("./assets/saves/{}.json", ioname.data);
     if let Ok(data) = fs::read_to_string(path){
         if let Ok(vspds) = serde_json::from_str::<Vec<SavePlaneData>>(&data) {
@@ -148,6 +149,12 @@ pub fn load_data(mut commands:      Commands,
                 spd.spawn(&mut commands, &mut meshes, &mut materials);
                 colors.selects = spd.colors.clone();
             }
+
+            info!("Success! Loaded data from {}", ioname.data);
+        } else {
+            info!("Failed to parse Vec<SavePlaneData> from {}", ioname.data);
         }
-    }                       
+    } else {
+        info!("Failed to read data from save file: {}", ioname.data);
+    }                    
 }

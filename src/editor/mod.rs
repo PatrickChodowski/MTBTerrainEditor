@@ -256,7 +256,6 @@ pub fn is_settings_changed(settings: Res<GlobalSettings>) -> bool {
                             ){
 
         for (entity, handle_mesh) in planes.iter(){
-            info!(" debug spawning vertices");
             spawn_vertex(&entity, &mut commands, handle_mesh, &mut meshes, &refs, &settings);
         }
     }
@@ -348,8 +347,8 @@ pub fn hide_wireframe(mut commands:     Commands,
 
   #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
   pub enum AppState {
-      Object,
       #[default]
+      Object,
       Edit
   }
   

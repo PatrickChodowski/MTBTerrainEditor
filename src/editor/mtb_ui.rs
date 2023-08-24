@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
+use crate::core::offset::Offset;
 use crate::core::color::{Color, ColorGradient};
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
@@ -79,16 +80,18 @@ pub enum ModifierState {
     Color,
     ColorGradient,
     Noise,
+    Offset,
     Value,
     Wave,
-    Terrace
+    Terrace,
 }
 
 impl<'a> ModifierState { 
   pub fn iterator() -> Iter<'static, ModifierState> {
-    static MOD_OPTIONS: [ModifierState; 6] = [ModifierState::Color, 
+    static MOD_OPTIONS: [ModifierState; 7] = [ModifierState::Color, 
                                               ModifierState::ColorGradient,
                                               ModifierState::Noise, 
+                                              ModifierState::Offset,
                                               ModifierState::Value,
                                               ModifierState::Wave, 
                                               ModifierState::Terrace];
@@ -99,23 +102,27 @@ impl<'a> ModifierState {
 
 #[derive(Debug, Clone, Resource)]
 pub struct ModResources{
-  pub show_csw:       bool,
   pub color:          Color,
   pub color_gradient: ColorGradient,
   pub value:          Value,
   pub noise:          Noise,
   pub wave:           Wave,
-  pub terrace:        Terrace
+  pub terrace:        Terrace,
+  pub offset:         Offset,
+  pub show_csw:       bool,
+  pub allow_dragging: bool,
 }
 impl Default for ModResources {
     fn default() -> Self {
       ModResources{show_csw:        false,
+                   allow_dragging:  false,
                    color:           Color::new(), 
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
                    noise:           Noise::new(),
                    wave:            Wave::new(),
-                   terrace:         Terrace::new()
+                   terrace:         Terrace::new(),
+                   offset:          Offset::new()
                   }
     }
 }
@@ -158,7 +165,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
           ui.add(egui::Slider::new(&mut brush_settings.radius, 1.0..=100.0).max_decimals(1));
         }
 
-        ui.allocate_space(egui::Vec2::new(1.0, 20.0));
+        ui.allocate_space(egui::Vec2::new(1.0, 10.0));
+        ui.checkbox(&mut mod_res.allow_dragging, "Allow Dragging vertices?");
+        ui.allocate_space(egui::Vec2::new(1.0, 10.0));
         ui.vertical(|ui| {
           ui.label("Modifier:");
           for &p in ModifierState::iterator(){
@@ -168,6 +177,7 @@ fn update_egui_editor(mut contexts:              EguiContexts,
               };
           }
         });
+
 
         ui.allocate_space(egui::Vec2::new(1.0, 20.0));
 
@@ -191,6 +201,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
           }
           ModifierState::Terrace => {
             Terrace::ui(ui, &mut mod_res);
+          }
+          ModifierState::Offset => {
+            Offset::ui(ui, &mut mod_res);
           }
         }
       

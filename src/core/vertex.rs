@@ -34,6 +34,8 @@ impl Plugin for VertexPlugin {
 }
 
 
+
+
 pub fn update_scale(settings:    Res<GlobalSettings>,
                     mut vertex:  Query<&mut Transform, With<Vertex>>){
 
@@ -84,6 +86,10 @@ fn apply_modifiers(
                     v.loc[1] = height;
                     tr.translation[1] = height;
                 }
+                ModifierState::Offset => {
+                    v.loc = mod_res.offset.apply(&v.loc);
+                    tr.translation = v.loc.into();
+                }
             }
         }
     }
@@ -118,7 +124,12 @@ fn clear(mut commands: Commands,
 
 
 pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>, 
+            mod_res:           Res<ModResources>,
             hover_data:        Res<HoverData>){
+
+    if !mod_res.allow_dragging {
+        return; // dragging not allowed;
+    }
 
     let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
     let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;

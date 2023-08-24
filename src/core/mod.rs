@@ -8,3 +8,4 @@ pub mod color;
 pub mod value;
 pub mod wave;
 pub mod terrace;
+pub mod offset;

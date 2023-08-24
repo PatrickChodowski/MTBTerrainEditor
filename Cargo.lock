@@ -768,8 +768,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_picking"
-version = "0.14.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ce0837727f451ec62dad98a7bd35a8ff929e5a148bb0044122aba02683c09df"
 dependencies = [
  "bevy",
  "bevy_eventlistener",
@@ -783,9 +784,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_raycast"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78da5b0bc0210aacd369ca0303482df96d7760754c3a5854dcfb08b053f8202c"
+checksum = "8cbc448fc8a8817cbf225f58a58ab45ab87e9d335b66c4c1674fba45f062c822"
 dependencies = [
  "bevy",
  "crossbeam-channel",
@@ -816,8 +817,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_core"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37b10f159071accb3f17f86b70a2cafed27f96a828f155721d8f82706d5a65af"
 dependencies = [
  "bevy",
  "bevy_eventlistener",
@@ -825,8 +827,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_highlight"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9127248f32843064b9d58d7126e0155378b7321b80acc53e8aafb0e3a61f2219"
 dependencies = [
  "bevy",
  "bevy_picking_core",
@@ -836,8 +839,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_input"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1cc165dccadf85856cd713f1dabf5c845c7b6fd56e2c901a53f69f3693c5149"
 dependencies = [
  "bevy",
  "bevy_picking_core",
@@ -846,8 +850,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_raycast"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f53ba9aee1a3a48e016f4d35b066cca75d2ddd983ad2a0e14ecf92956501a3c"
 dependencies = [
  "bevy",
  "bevy_mod_raycast",
@@ -856,8 +861,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_selection"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61980e57b09ff29b52c2910ba5b4e9bcfe8f9481931e62fd277a16b6ec3390f2"
 dependencies = [
  "bevy",
  "bevy_eventlistener",
@@ -866,8 +872,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_picking_ui"
-version = "0.3.0"
-source = "git+https://github.com/aevyrie/bevy_mod_picking?branch=main#a9e7275824807ca6e1b2f5caba10daf0526aae2a"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1533a7723939a1dfad933da76a4cfb0d37eb15abd64519c0db2477f04de1ee8b"
 dependencies = [
  "bevy",
  "bevy_picking_core",

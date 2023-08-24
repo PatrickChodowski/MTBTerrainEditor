@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_infinite_grid::{GridShadowCamera, InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
 
 use crate::core::offset::Offset;
 use crate::core::color::{Color, ColorGradient};
@@ -27,6 +28,7 @@ impl Plugin for MTBUIPlugin {
         .add_event::<ApplyModifierEvent>()
         .add_state::<PickerState>()
         .add_state::<ModifierState>()
+        .add_plugins(InfiniteGridPlugin)
         .add_plugins(BoxSelectPlugin)
         .add_plugins(BrushPlugin)
         .add_plugins(EguiPlugin)
@@ -132,6 +134,17 @@ pub struct TopLeftInfoPanel;
 
 fn setup(mut commands:  Commands){
   let _info_panel_entity = spawn_info_panel(&mut commands);
+
+  // infinite grid
+  commands.spawn(InfiniteGridBundle {
+    grid: InfiniteGrid {
+      fadeout_distance: 300.0,
+        // shadow_color: None,
+        ..default()
+    },
+    ..default()
+  });
+
 }
 
 fn update_egui_editor(mut contexts:              EguiContexts,

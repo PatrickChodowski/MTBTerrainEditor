@@ -3,6 +3,7 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy_mod_picking::prelude::RaycastPickCamera;
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::window::PrimaryWindow;
+use bevy_infinite_grid::GridShadowCamera;
 use libm::atan2f;
 
 use super::mtb_grid::{HoverData, Hoverables};
@@ -54,7 +55,7 @@ fn setup(mut commands: Commands,
                                          .looking_at([CENTER_X, 0.0, CENTER_Z].into(), Vec3::Y);
   commands.spawn((Camera3dBundle {
                   transform: start_camera_transform,
-                  ..default()}, MTBCamera, RaycastPickCamera::default()));
+                  ..default()}, MTBCamera, GridShadowCamera, RaycastPickCamera::default()));
 
   state.yaw = get_yaw(start_camera_transform.rotation);
   state.pitch = get_pitch(start_camera_transform.rotation);

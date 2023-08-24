@@ -667,6 +667,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_infinite_grid"
+version = "0.8.1"
+source = "git+https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid?branch=main#6de591cdc01ede5e43d7381c79ccd2141d52af25"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_input"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2473,11 +2481,12 @@ dependencies = [
 
 [[package]]
 name = "mtb_terrain_gen"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bevy",
  "bevy_common_assets",
  "bevy_egui",
+ "bevy_infinite_grid",
  "bevy_mod_picking",
  "libm",
  "noise",

@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use super::planes::TerrainPlane;
 use crate::editor::{mtb_grid::{HoverData, hover_check, Hoverables}, 
                      mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState, DoubleClick, GlobalSettings, is_settings_changed};
+use crate::editor::actions::save_state;
 
 
 
@@ -22,7 +23,7 @@ impl Plugin for VertexPlugin {
                                  .and_then(in_state(PickerState::Point))
                                  .and_then(in_state(AppState::Edit))
                                 ).after(hover_check))
-        .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)))
+        .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)).after(save_state))
         .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(OnExit(AppState::Edit), deselect_vertex)
@@ -44,7 +45,7 @@ pub fn update_scale(settings:    Res<GlobalSettings>,
 }
 
 
-fn apply_modifiers(
+pub fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
     mod_res:            Res<ModResources>,
     mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>

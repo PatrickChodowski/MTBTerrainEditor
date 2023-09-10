@@ -122,11 +122,13 @@ pub struct ModResources{
   pub offset:         Offset,
   pub show_csw:       bool,
   pub allow_dragging: bool,
+  pub apply_gradient: bool, // to apply last gradient automatically on each height modifier
 }
 impl Default for ModResources {
     fn default() -> Self {
       ModResources{show_csw:        false,
                    allow_dragging:  false,
+                   apply_gradient:  false,
                    color:           Color::new(), 
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
@@ -196,6 +198,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
 
         ui.allocate_space(egui::Vec2::new(1.0, 10.0));
         ui.checkbox(&mut mod_res.allow_dragging, "Allow Dragging vertices?");
+        ui.allocate_space(egui::Vec2::new(1.0, 10.0));
+        ui.checkbox(&mut mod_res.apply_gradient, "Apply gradient?");
+        
         ui.allocate_space(egui::Vec2::new(1.0, 10.0));
         ui.vertical(|ui| {
           ui.label("Modifier:");

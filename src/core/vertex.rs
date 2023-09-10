@@ -71,11 +71,20 @@ pub fn apply_modifiers(
                     let height = mod_res.value.apply(&v.loc);
                     v.loc[1] = height;
                     tr.translation[1] = height;
+
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
+
                 }
                 ModifierState::Noise => {
                     let noise_height = mod_res.noise.apply(&nfn, &v.loc, &v.loc);
                     v.loc[1] = noise_height;
                     tr.translation[1] = noise_height;
+
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
                 }
                 ModifierState::Wave => {
                     let pos = mod_res.wave.apply(&wnfn, &v.loc);
@@ -86,6 +95,10 @@ pub fn apply_modifiers(
                     let height = mod_res.terrace.apply(v.loc[1]);
                     v.loc[1] = height;
                     tr.translation[1] = height;
+                    
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
                 }
                 ModifierState::Offset => {
                     v.loc = mod_res.offset.apply(&v.loc);

@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+#[allow(unused_imports)]
 use bevy_infinite_grid::{GridShadowCamera, InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
+use bevy::input::common_conditions::{input_pressed, input_just_pressed};
 
 use crate::core::offset::Offset;
 use crate::core::color::{Color, ColorGradient};
@@ -39,6 +41,13 @@ impl Plugin for MTBUIPlugin {
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
         .add_systems(Startup, setup)
+        .add_systems(PreUpdate, input_apply_modifier.run_if(input_just_pressed(KeyCode::Return)
+                                                    .and_then(in_state(AppState::Edit))))
+        .add_systems(PreUpdate, input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
+                                                 .and_then(in_state(AppState::Object))))
+
+        .add_systems(PreUpdate, change_picker.run_if(input_pressed(KeyCode::AltLeft)
+                                             .or_else(input_pressed(KeyCode::ControlLeft))))
         .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
         .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
@@ -113,11 +122,13 @@ pub struct ModResources{
   pub offset:         Offset,
   pub show_csw:       bool,
   pub allow_dragging: bool,
+  pub apply_gradient: bool, // to apply last gradient automatically on each height modifier
 }
 impl Default for ModResources {
     fn default() -> Self {
       ModResources{show_csw:        false,
                    allow_dragging:  false,
+                   apply_gradient:  false,
                    color:           Color::new(), 
                    color_gradient:  ColorGradient::new(), 
                    value:           Value::new(),
@@ -146,6 +157,13 @@ fn setup(mut commands:  Commands){
   });
 
 }
+
+fn input_apply_modifier(modifier_state: Res<State<ModifierState>>,
+                        mut apply_mod:  EventWriter<ApplyModifierEvent>,){
+  apply_mod.send(ApplyModifierEvent{mod_type: *modifier_state.get()});
+}
+
+
 
 fn update_egui_editor(mut contexts:              EguiContexts,
                       mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
@@ -180,6 +198,9 @@ fn update_egui_editor(mut contexts:              EguiContexts,
 
         ui.allocate_space(egui::Vec2::new(1.0, 10.0));
         ui.checkbox(&mut mod_res.allow_dragging, "Allow Dragging vertices?");
+        ui.allocate_space(egui::Vec2::new(1.0, 10.0));
+        ui.checkbox(&mut mod_res.apply_gradient, "Apply gradient?");
+        
         ui.allocate_space(egui::Vec2::new(1.0, 10.0));
         ui.vertical(|ui| {
           ui.label("Modifier:");
@@ -244,6 +265,11 @@ fn update_egui_editor(mut contexts:              EguiContexts,
     .width();
 }
 
+fn input_spawn_plane(plane_data:       Res<PlaneData>,
+                     mut spawn_plane:  EventWriter<SpawnNewPlaneEvent>,){
+
+  spawn_plane.send(SpawnNewPlaneEvent{pd: plane_data.clone()});
+}
 
 
 fn update_egui_object(mut contexts:              EguiContexts,
@@ -387,4 +413,20 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
   .id()
   ;
   return ent;
+}
+
+
+fn change_picker(keys:                Res<Input<KeyCode>>,
+                 mut picker_state:    ResMut<NextState<PickerState>>){
+
+  if keys.just_pressed(KeyCode::Key1){
+      picker_state.set(PickerState::Box);
+  }
+  if keys.just_pressed(KeyCode::Key2){
+      picker_state.set(PickerState::Point);
+  }
+  if keys.just_pressed(KeyCode::Key3){
+      picker_state.set(PickerState::Brush);
+  }
+
 }

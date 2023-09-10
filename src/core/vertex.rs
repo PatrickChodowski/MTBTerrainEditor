@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use super::planes::TerrainPlane;
 use crate::editor::{mtb_grid::{HoverData, hover_check, Hoverables}, 
                      mtb_ui::{PickerState, ApplyModifierEvent, ModResources, ModifierState}, AppState, DoubleClick, GlobalSettings, is_settings_changed};
+use crate::editor::actions::save_state;
 
 
 
@@ -22,7 +23,7 @@ impl Plugin for VertexPlugin {
                                  .and_then(in_state(PickerState::Point))
                                  .and_then(in_state(AppState::Edit))
                                 ).after(hover_check))
-        .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)))
+        .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)).after(save_state))
         .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
         .add_systems(OnExit(AppState::Edit), deselect_vertex)
@@ -46,7 +47,7 @@ pub fn update_scale(settings:    Res<GlobalSettings>,
 }
 
 
-fn apply_modifiers(
+pub fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
     mod_res:            Res<ModResources>,
     mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>
@@ -70,11 +71,20 @@ fn apply_modifiers(
                     let height = mod_res.value.apply(&v.loc);
                     v.loc[1] = height;
                     tr.translation[1] = height;
+
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
+
                 }
                 ModifierState::Noise => {
                     let noise_height = mod_res.noise.apply(&nfn, &v.loc, &v.loc);
                     v.loc[1] = noise_height;
                     tr.translation[1] = noise_height;
+
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
                 }
                 ModifierState::Wave => {
                     let pos = mod_res.wave.apply(&wnfn, &v.loc);
@@ -85,6 +95,10 @@ fn apply_modifiers(
                     let height = mod_res.terrace.apply(v.loc[1]);
                     v.loc[1] = height;
                     tr.translation[1] = height;
+                    
+                    if mod_res.apply_gradient {
+                        v.clr = mod_res.color_gradient.apply(v.loc[1]);
+                    }
                 }
                 ModifierState::Offset => {
                     v.loc = mod_res.offset.apply(&v.loc);

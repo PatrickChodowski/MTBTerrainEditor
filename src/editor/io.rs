@@ -1,3 +1,4 @@
+use bevy::input::common_conditions::{input_pressed, input_just_pressed};
 use bevy::prelude::*;
 use bevy::utils::HashSet;
 use bevy::render::mesh::VertexAttributeValues;
@@ -18,11 +19,18 @@ impl Plugin for IOPlugin {
         .add_event::<WriteData>()
         .add_event::<LoadData>()
         .insert_resource(IOName::new())
+        .add_systems(PreUpdate, input_write_data.run_if(input_pressed(KeyCode::ControlLeft)
+                                                .and_then(input_just_pressed(KeyCode::S))))
         .add_systems(PostUpdate, write_data.run_if(on_event::<WriteData>()))
         .add_systems(PostUpdate, load_data.run_if(on_event::<LoadData>()))
       ;                      
     }
   }
+
+fn input_write_data(mut write_data: EventWriter<WriteData>){
+    write_data.send(WriteData);
+}
+
 
 
 #[derive(Resource)]

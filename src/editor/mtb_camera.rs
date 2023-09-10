@@ -97,8 +97,13 @@ fn move_camera(keys:         Res<Input<KeyCode>>,
 }
 
 fn zoom_camera(
+    hover_data:   Res<HoverData>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query: Query<&mut Transform, With<MTBCamera>>){
+
+  if hover_data.hoverable == Hoverables::Gui {
+    return; // to aboid camera movement when typing in text inputs
+  }
 
   for mouse_wheel_event in mouse_wheel_events.iter() {
     let dy = match mouse_wheel_event.unit {
@@ -113,10 +118,15 @@ fn zoom_camera(
 }
 
 fn pan_look(windows: Query<&Window, With<PrimaryWindow>>,
+            hover_data:   Res<HoverData>,
             motion: Res<Events<MouseMotion>>,
             buttons: Res<Input<MouseButton>>,
             mut state: ResMut<InputState>,
             mut query: Query<&mut Transform, With<MTBCamera>>,){
+
+  if hover_data.hoverable == Hoverables::Gui {
+    return; // to aboid camera movement when typing in text inputs
+  }
 
   if buttons.pressed(MouseButton::Middle) {
     if let Ok(window) = windows.get_single() {        

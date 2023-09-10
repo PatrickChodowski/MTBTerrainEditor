@@ -3,7 +3,7 @@ use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 #[allow(unused_imports)]
 use bevy_infinite_grid::{GridShadowCamera, InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
-use bevy::input::common_conditions::input_pressed;
+use bevy::input::common_conditions::{input_pressed, input_just_pressed};
 
 use crate::core::offset::Offset;
 use crate::core::color::{Color, ColorGradient};
@@ -41,6 +41,10 @@ impl Plugin for MTBUIPlugin {
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
         .add_systems(Startup, setup)
+        .add_systems(PreUpdate, input_apply_modifier.run_if(input_just_pressed(KeyCode::Return)
+                                                    .and_then(in_state(AppState::Edit))))
+        .add_systems(PreUpdate, input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
+                                                 .and_then(in_state(AppState::Object))))
 
         .add_systems(PreUpdate, change_picker.run_if(input_pressed(KeyCode::AltLeft)
                                              .or_else(input_pressed(KeyCode::ControlLeft))))
@@ -152,6 +156,13 @@ fn setup(mut commands:  Commands){
 
 }
 
+fn input_apply_modifier(modifier_state: Res<State<ModifierState>>,
+                        mut apply_mod:  EventWriter<ApplyModifierEvent>,){
+  apply_mod.send(ApplyModifierEvent{mod_type: *modifier_state.get()});
+}
+
+
+
 fn update_egui_editor(mut contexts:              EguiContexts,
                       mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
                       picker_state:              Res<State<PickerState>>,
@@ -249,6 +260,11 @@ fn update_egui_editor(mut contexts:              EguiContexts,
     .width();
 }
 
+fn input_spawn_plane(plane_data:       Res<PlaneData>,
+                     mut spawn_plane:  EventWriter<SpawnNewPlaneEvent>,){
+
+  spawn_plane.send(SpawnNewPlaneEvent{pd: plane_data.clone()});
+}
 
 
 fn update_egui_object(mut contexts:              EguiContexts,

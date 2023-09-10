@@ -375,6 +375,10 @@ fn toggle_displaystate(display_state:            Res<State<DisplayState>>,
 
 }
 
+
+
+
+
 pub fn spawn_text_node(txt: &str, commands: &mut Commands, ass: &Res<AssetServer>,) -> Entity {
 
     let txt_style = TextStyle {

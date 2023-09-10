@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
+#[allow(unused_imports)]
 use bevy_infinite_grid::{GridShadowCamera, InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
+use bevy::input::common_conditions::input_pressed;
 
 use crate::core::offset::Offset;
 use crate::core::color::{Color, ColorGradient};
@@ -39,6 +41,9 @@ impl Plugin for MTBUIPlugin {
         .insert_resource(ModResources::default())
         .insert_resource(PlaneData::new())
         .add_systems(Startup, setup)
+
+        .add_systems(PreUpdate, change_picker.run_if(input_pressed(KeyCode::AltLeft)
+                                             .or_else(input_pressed(KeyCode::ControlLeft))))
         .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
         .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
@@ -387,4 +392,20 @@ fn spawn_info_panel(commands: &mut Commands) -> Entity {
   .id()
   ;
   return ent;
+}
+
+
+fn change_picker(keys:                Res<Input<KeyCode>>,
+                 mut picker_state:    ResMut<NextState<PickerState>>){
+
+  if keys.just_pressed(KeyCode::Key1){
+      picker_state.set(PickerState::Box);
+  }
+  if keys.just_pressed(KeyCode::Key2){
+      picker_state.set(PickerState::Point);
+  }
+  if keys.just_pressed(KeyCode::Key3){
+      picker_state.set(PickerState::Brush);
+  }
+
 }

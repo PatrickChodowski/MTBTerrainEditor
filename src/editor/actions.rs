@@ -48,12 +48,11 @@ pub fn save_state(mut apply_mod:      EventReader<ApplyModifierEvent>,
             ss.vertex_entities.insert(entity, (*transform, *vertex, picked_vertex.is_some()));
         }
         scene_states.data.push_back(ss);
-        scene_states.index = scene_states.data.len() as u32 -1;
-
+        
         while scene_states.data.len() > 20 {
             scene_states.data.pop_front();
         }
-        
+        scene_states.index = scene_states.data.len() as u32 -1;
     }
 }
 

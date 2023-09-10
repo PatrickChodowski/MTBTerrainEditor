@@ -1,3 +1,4 @@
+use bevy::input::common_conditions::input_pressed;
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy_mod_picking::prelude::RaycastPickCamera;
@@ -23,7 +24,7 @@ impl Plugin for MTBCameraPlugin {
       .init_resource::<InputState>()
       .add_systems(Startup, setup)
       .add_systems(Update, zoom_camera)
-      .add_systems(Update, move_camera)
+      .add_systems(Update, move_camera.run_if(not(input_pressed(KeyCode::ControlLeft))))
       .add_systems(Update, pan_look)
       ;
   }

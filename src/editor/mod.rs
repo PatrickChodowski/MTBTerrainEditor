@@ -6,6 +6,7 @@ use bevy::pbr::{CascadeShadowConfigBuilder, ScreenSpaceAmbientOcclusionBundle};
 use bevy::time::Stopwatch;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_egui::{egui, egui::Ui};
+use serde::{Serialize, Deserialize};
 
 
 pub mod actions;
@@ -63,7 +64,7 @@ impl Plugin for MTBEditorPlugin {
  }
 
 
-#[derive(Resource, Clone, Debug)]
+#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
 pub struct GlobalSettings {
     pub dir_light:      DirLightData,
     pub ambient_light:  AmbientLightData,
@@ -115,7 +116,7 @@ impl GlobalSettings {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AmbientLightData {
     pub active:     bool,
     pub brightness: f32
@@ -126,7 +127,7 @@ impl AmbientLightData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DirLightData {
     pub loc:                [f32; 3],
     pub look_at:            [f32; 3],

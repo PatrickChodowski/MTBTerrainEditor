@@ -1,6 +1,7 @@
 
 use bevy::prelude::Resource;
 use noise::{NoiseFn, OpenSimplex, Perlin, PerlinSurflet, Simplex, SuperSimplex, Value, Worley, Fbm, Billow, BasicMulti, RidgedMulti, HybridMulti};
+use serde::{Serialize, Deserialize};
 use std::slice::Iter;
 use super::easings::Easings;
 use bevy_egui::{egui, egui::Ui};
@@ -8,7 +9,7 @@ use crate::editor::mtb_ui::ModResources;
 use bevy::prelude::ResMut;
 
 
-#[derive(Clone, Resource, Debug)]
+#[derive(Clone, Resource, Debug, Serialize, Deserialize)]
 pub struct Noise {
     pub noise:          Noises,
     pub seed:           u32,
@@ -92,7 +93,7 @@ impl Noise {
 
 
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Noises {
     Perlin,
     PerlinSurflet,

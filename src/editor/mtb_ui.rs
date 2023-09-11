@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 use std::slice::Iter;
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 #[allow(unused_imports)]
@@ -10,6 +11,7 @@ use crate::core::color::{Color, ColorGradient};
 use crate::core::noises::Noise;
 use crate::core::planes::{PlaneData, SpawnNewPlaneEvent};
 use crate::core::value::Value;
+use crate::core::vertex::{Vertex, HoveredVertex};
 use crate::core::wave::Wave;
 use crate::core::terrace::Terrace;
 
@@ -111,7 +113,7 @@ impl<'a> ModifierState {
   
 }
 
-#[derive(Debug, Clone, Resource)]
+#[derive(Debug, Clone, Resource, Serialize, Deserialize)]
 pub struct ModResources{
   pub color:          Color,
   pub color_gradient: ColorGradient,
@@ -364,6 +366,7 @@ fn update_left_into_panel(mut commands:  Commands,
                           app_state:     Res<State<AppState>>,
                           mod_state:     Res<State<ModifierState>>,
                           planes:        Query<&PlaneData>,
+                          hover_vertex:  Query<&Vertex, With<HoveredVertex>>,
                           top_left:      Query<Entity, With<TopLeftInfoPanel>>){
 
   let ent = top_left.get_single().unwrap();                  
@@ -388,6 +391,11 @@ fn update_left_into_panel(mut commands:  Commands,
       v.push(spawn_text_node(&format!("    Subs: {:?}",     pd.subdivisions), &mut commands, &ass));  
     }
   }
+
+  for vd in hover_vertex.iter(){
+    v.push(spawn_text_node(&format!(" Vertex loc: [{:.0}, {:.0}, {:.0}]", vd.loc[0], vd.loc[1], vd.loc[2]), &mut commands, &ass));   
+  }
+
   commands.entity(ent).push_children(&v);
 }
 

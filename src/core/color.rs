@@ -1,8 +1,9 @@
 use bevy_egui::egui::{DragValue, Ui, Context, RichText};
 use bevy::prelude::ResMut;
 use crate::editor::{mtb_ui::ModResources, colors::Colors, colors::f32_to_clr32};
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Color {
     pub color: [f32; 4],
     pub open:   bool,
@@ -33,7 +34,7 @@ impl Color {
 
 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ColorGradient {
     pub min_height: f32,
     pub max_height: f32,

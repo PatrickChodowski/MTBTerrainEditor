@@ -1,9 +1,10 @@
 use bevy_egui::{egui, egui::Ui};
 use bevy::prelude::ResMut;
+use serde::{Serialize,Deserialize};
 use crate::editor::mtb_ui::ModResources;
 
 
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 pub struct Offset {
     pub x: f32,
     pub y: f32,

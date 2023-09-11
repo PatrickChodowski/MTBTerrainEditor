@@ -7,9 +7,11 @@ use serde::{Serialize, Deserialize};
 use std::io::{BufWriter, Write};
 use std::fs::{self, File};
 
+use super::GlobalSettings;
 use crate::core::planes::{PlaneData, TerrainPlane, PickPlane, PlaneEdit, plane_mesh};
 use crate::core::vertex::Vertex;
 use super::colors::Colors;
+use super::mtb_ui::ModResources;
 
 pub struct IOPlugin;
 
@@ -53,12 +55,11 @@ pub struct LoadData;
 #[derive(Serialize, Deserialize)]
 pub struct SavePlaneData {
     pub plane:        PlaneData,
-    pub vertex:       Vec<Vertex>,
-    pub colors:       HashSet<[u8; 4]>
+    pub vertex:       Vec<Vertex>
 }
 impl SavePlaneData {
     pub fn from_pd(pd: &PlaneData) -> Self {
-        SavePlaneData{plane: pd.clone(), vertex: Vec::new(), colors: HashSet::new()}
+        SavePlaneData{plane: pd.clone(), vertex: Vec::new()}
     }
 
     pub fn spawn(&self,
@@ -111,15 +112,27 @@ impl SavePlaneData {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct SaveProjectData {
+    planes:     Vec<SavePlaneData>,
+    colors:     HashSet<[u8; 4]>,
+    mod_res:    ModResources,
+    settings:   GlobalSettings
+}
 
-
-pub fn write_data(vertex: Query<&Vertex>,
-                  planes: Query<(&PlaneData, &Children)>,
-                  colors: Res<Colors>,
-                  ioname: Res<IOName>) {
+pub fn write_data(vertex:   Query<&Vertex>,
+                  planes:   Query<(&PlaneData, &Children)>,
+                  colors:   Res<Colors>,
+                  mod_res:  Res<ModResources>,
+                  settings: Res<GlobalSettings>,
+                  ioname:   Res<IOName>) {
 
     info!("Writing data to {}", ioname.data);
-    let mut v: Vec<SavePlaneData> = Vec::new();
+    let mut sd = SaveProjectData{planes: Vec::new(), 
+                                 colors: colors.selects.clone(), 
+                                 mod_res: mod_res.to_owned(), 
+                                 settings: settings.to_owned()};
+
     for (pd, children) in planes.iter(){
         let mut spd = SavePlaneData::from_pd(pd);
         for child in children.iter(){
@@ -127,13 +140,12 @@ pub fn write_data(vertex: Query<&Vertex>,
                 spd.vertex.push(*p_vertex);
             }
         }
-        spd.colors = colors.selects.clone();
-        v.push(spd);
+        sd.planes.push(spd);
     }
 
     let f = File::create(format!("./assets/saves/{}.json", ioname.data)).ok().unwrap();
     let mut writer = BufWriter::new(f);
-    let _res = serde_json::to_writer(&mut writer, &v);
+    let _res = serde_json::to_writer(&mut writer, &sd);
     let _res = writer.flush();
 
 }
@@ -142,25 +154,32 @@ pub fn load_data(mut commands:      Commands,
                  mut meshes:        ResMut<Assets<Mesh>>,
                  mut materials:     ResMut<Assets<StandardMaterial>>,
                  mut colors:        ResMut<Colors>,
+                 mut mod_res:       ResMut<ModResources>,
+                 mut settings:      ResMut<GlobalSettings>,
                  planes:            Query<Entity, With<PlaneData>>,
                  ioname:            Res<IOName>) {
     
     info!("Loading data from {}", ioname.data);
     let path: &str = &format!("./assets/saves/{}.json", ioname.data);
     if let Ok(data) = fs::read_to_string(path){
-        if let Ok(vspds) = serde_json::from_str::<Vec<SavePlaneData>>(&data) {
+
+        if let Ok(projdata) = serde_json::from_str::<SaveProjectData>(&data) {
+
             for entity in planes.iter(){
                 commands.entity(entity).despawn_recursive();
             }
 
-            for spd in vspds.iter(){
+            for spd in projdata.planes.iter(){
                 spd.spawn(&mut commands, &mut meshes, &mut materials);
-                colors.selects = spd.colors.clone();
             }
+
+            colors.selects = projdata.colors.clone();
+            *mod_res = projdata.mod_res;
+            *settings = projdata.settings;
 
             info!("Success! Loaded data from {}", ioname.data);
         } else {
-            info!("Failed to parse Vec<SavePlaneData> from {}", ioname.data);
+            info!("Failed to parse SaveProjectData from {}", ioname.data);
         }
     } else {
         info!("Failed to read data from save file: {}", ioname.data);

@@ -1,4 +1,6 @@
 
+use std::collections::VecDeque;
+
 use bevy::input::common_conditions::{input_just_pressed, input_pressed};
 use bevy::prelude::*;
 use bevy::utils::HashMap;
@@ -23,11 +25,11 @@ impl Plugin for ActionsPlugin {
 #[derive(Resource)]
 pub struct SceneStates {
     pub index: u32,
-    pub data: Vec<SceneState>
+    pub data: VecDeque<SceneState>
 }
 impl SceneStates {
     pub fn new() -> Self {
-        SceneStates{index: 0, data: Vec::new()}
+        SceneStates{index: 0, data: VecDeque::new()}
     }
 }
 
@@ -45,7 +47,11 @@ pub fn save_state(mut apply_mod:      EventReader<ApplyModifierEvent>,
         for (entity, transform, vertex, picked_vertex) in vertex.iter(){
             ss.vertex_entities.insert(entity, (*transform, *vertex, picked_vertex.is_some()));
         }
-        scene_states.data.push(ss);
+        scene_states.data.push_back(ss);
+        
+        while scene_states.data.len() > 20 {
+            scene_states.data.pop_front();
+        }
         scene_states.index = scene_states.data.len() as u32 -1;
     }
 }

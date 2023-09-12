@@ -17,18 +17,22 @@ pub struct Noise {
     pub octaves:        usize,
     pub freq:           f64,
     pub easing:         Easings,
-    pub global:         bool
+    pub global:         bool,
+    pub reset:          bool,
+    pub reset_value:    f32
 }
 impl Noise {
     pub fn new() -> Self {
         Noise { 
                 noise:        Noises::Perlin, 
                 seed:         0, 
-                scale:        0.1, 
+                scale:        0.01, 
                 octaves:      6, 
                 freq:         1.0,
                 easing:       Easings::None, 
-                global:       false
+                global:       false,
+                reset:        false,
+                reset_value:  10.0
             }
 
     }
@@ -40,12 +44,15 @@ impl Noise {
         return nfn;
     }
     pub fn apply(&self, noise_fn: &NoiseFunction, pos: &[f32; 3], loc: &[f32; 3]) -> f32 {
-
         let mut gpos: [f32; 3] = *pos;
         if self.global {
             gpos[0] = pos[0] + loc[0];
             gpos[1] = pos[1] + loc[1];
             gpos[2] = pos[2] + loc[2];
+        }
+
+        if self.reset {
+            gpos[1] = self.reset_value;
         }
 
         let r: f64 = noise_fn.apply(self.scale, gpos[0] as f64, gpos[2] as f64);
@@ -70,7 +77,7 @@ impl Noise {
           columns[1].label("Seed");
           columns[0].add(egui::DragValue::new(&mut mod_res.noise.seed).speed(1.0));
           columns[1].label("Scale");
-          columns[0].add(egui::DragValue::new(&mut mod_res.noise.scale).speed(1.0));
+          columns[0].add(egui::DragValue::new(&mut mod_res.noise.scale).speed(0.0001));
           columns[1].label("Frequency");
           columns[0].add(egui::DragValue::new(&mut mod_res.noise.freq).speed(0.1));
           columns[1].label("Octaves");
@@ -86,6 +93,11 @@ impl Noise {
           }
         });
         ui.checkbox(&mut mod_res.noise.global, "Use global position?");
+
+        ui.checkbox(&mut mod_res.noise.reset, "Reset everytime?");
+        if mod_res.noise.reset {
+            ui.add(egui::DragValue::new(&mut mod_res.noise.reset_value).speed(1.0));
+        }
     }
 }
 

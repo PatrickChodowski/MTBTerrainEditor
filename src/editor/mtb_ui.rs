@@ -45,17 +45,26 @@ impl Plugin for MTBUIPlugin {
         .add_systems(Startup, setup)
         .add_systems(PreUpdate, input_apply_modifier.run_if(input_just_pressed(KeyCode::Return)
                                                     .and_then(in_state(AppState::Edit))))
-        .add_systems(PreUpdate, input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
-                                                 .and_then(in_state(AppState::Object))))
+        // .add_systems(PreUpdate, input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
+        //                                          .and_then(in_state(AppState::Object))))
 
         .add_systems(PreUpdate, change_picker.run_if(input_pressed(KeyCode::AltLeft)
                                              .or_else(input_pressed(KeyCode::ControlLeft))))
         .add_systems(Update, update_egui_editor.run_if(in_state(AppState::Edit)))
         .add_systems(Update, update_egui_object.run_if(in_state(AppState::Object)))
         .add_systems(Update, update_left_into_panel)
+        // .add_systems(Update, shift1.run_if(input_pressed(KeyCode::ShiftRight)))
         ;
     }
 }
+
+// fn shift1(keys: Res<Input<KeyCode>>,){
+//   if keys.just_pressed(KeyCode::Key1){
+//     info!("lShift + 1");
+//   }
+// }
+
+
 
 
 #[derive(Default, Resource, Debug)]

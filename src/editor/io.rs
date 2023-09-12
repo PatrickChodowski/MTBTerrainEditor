@@ -114,7 +114,7 @@ impl SavePlaneData {
 
 #[derive(Serialize, Deserialize)]
 pub struct SaveProjectData {
-    planes:     Vec<SavePlaneData>,
+    // planes:     Vec<SavePlaneData>,
     colors:     HashSet<[u8; 4]>,
     mod_res:    ModResources,
     settings:   GlobalSettings
@@ -128,11 +128,8 @@ pub fn write_data(vertex:   Query<&Vertex>,
                   ioname:   Res<IOName>) {
 
     info!("Writing data to {}", ioname.data);
-    let mut sd = SaveProjectData{planes: Vec::new(), 
-                                 colors: colors.selects.clone(), 
-                                 mod_res: mod_res.to_owned(), 
-                                 settings: settings.to_owned()};
 
+    let mut v_planes: Vec<SavePlaneData> = Vec::new();
     for (pd, children) in planes.iter(){
         let mut spd = SavePlaneData::from_pd(pd);
         for child in children.iter(){
@@ -140,13 +137,22 @@ pub fn write_data(vertex:   Query<&Vertex>,
                 spd.vertex.push(*p_vertex);
             }
         }
-        sd.planes.push(spd);
+        v_planes.push(spd);
     }
-
     let f = File::create(format!("./assets/saves/{}.json", ioname.data)).ok().unwrap();
     let mut writer = BufWriter::new(f);
-    let _res = serde_json::to_writer(&mut writer, &sd);
+    let _res = serde_json::to_writer(&mut writer, &v_planes);
     let _res = writer.flush();
+
+
+    let project_data = SaveProjectData{colors: colors.selects.clone(), 
+        mod_res: mod_res.to_owned(), 
+        settings: settings.to_owned()};
+
+    let f_proj = File::create(format!("./assets/saves/{}.proj.json", ioname.data)).ok().unwrap();
+    let mut writer_proj = BufWriter::new(f_proj);
+    let _res_proj = serde_json::to_writer(&mut writer_proj, &project_data);
+    let _res_proj = writer_proj.flush();
 
 }
 
@@ -158,26 +164,33 @@ pub fn load_data(mut commands:      Commands,
                  mut settings:      ResMut<GlobalSettings>,
                  planes:            Query<Entity, With<PlaneData>>,
                  ioname:            Res<IOName>) {
-    
+
     info!("Loading data from {}", ioname.data);
+
     let path: &str = &format!("./assets/saves/{}.json", ioname.data);
     if let Ok(data) = fs::read_to_string(path){
-
-        if let Ok(projdata) = serde_json::from_str::<SaveProjectData>(&data) {
-
+        if let Ok(vspds) = serde_json::from_str::<Vec<SavePlaneData>>(&data) {
             for entity in planes.iter(){
                 commands.entity(entity).despawn_recursive();
             }
-
-            for spd in projdata.planes.iter(){
+            for spd in vspds.iter(){
                 spd.spawn(&mut commands, &mut meshes, &mut materials);
             }
+            info!("Success! Loaded data from {}", ioname.data);
+        } else {
+            info!("Failed to parse Vec<SavePlaneData> from {}", ioname.data);
+        }
+    } else {
+        info!("Failed to read data from save file: {}", ioname.data);
+    }                    
 
+    let path_proj: &str = &format!("./assets/saves/{}.proj.json", ioname.data);
+    if let Ok(data) = fs::read_to_string(path_proj){
+        if let Ok(projdata) = serde_json::from_str::<SaveProjectData>(&data) {
             colors.selects = projdata.colors.clone();
             *mod_res = projdata.mod_res;
             *settings = projdata.settings;
-
-            info!("Success! Loaded data from {}", ioname.data);
+            info!("Success! Loaded project data from {}", ioname.data);
         } else {
             info!("Failed to parse SaveProjectData from {}", ioname.data);
         }

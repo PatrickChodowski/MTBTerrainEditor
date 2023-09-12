@@ -15,8 +15,14 @@ impl Plugin for VertexPlugin {
     fn build(&self, app: &mut App) {
         app
         .add_event::<PickVertex>()
+        .add_event::<HoverVertex>()
+        .add_event::<DehoverVertex>()
         .add_systems(Startup, setup)
-        .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>()).run_if(in_state(AppState::Edit)))
+        .add_systems(Update, hover_vertex.run_if(on_event::<HoverVertex>()))
+        .add_systems(Update, dehover_vertex.run_if(on_event::<DehoverVertex>()))
+        .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>().and_then(in_state(AppState::Edit))).after(hover_vertex))
+
+
         .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)).run_if(in_state(AppState::Edit)))
         .add_systems(PostUpdate, highlight_picked.after(pick_vertex).run_if(in_state(AppState::Edit)))
         .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left)
@@ -34,7 +40,26 @@ impl Plugin for VertexPlugin {
     }
 }
 
+pub fn hover_vertex(mut commands:       Commands,
+                    mut hover_vertex:   EventReader<HoverVertex>, 
+                    vertex:             Query<Entity, With<Vertex>>){
+    for ev in hover_vertex.iter(){
+        if let Ok(entity) = vertex.get(ev.entity){
+            commands.entity(entity).insert(HoveredVertex);
+        }
+    }
+}
 
+pub fn dehover_vertex(mut commands:       Commands,
+                      mut dehover_vertex: EventReader<DehoverVertex>,
+                      vertex:             Query<Entity, With<Vertex>>
+                    ){
+    for ev in dehover_vertex.iter(){
+        if let Ok(entity) = vertex.get(ev.entity){
+            commands.entity(entity).remove::<HoveredVertex>();
+        }
+    }
+}
 
 
 pub fn update_scale(settings:    Res<GlobalSettings>,
@@ -218,6 +243,28 @@ impl  From<ListenerInput<Pointer<Down>>> for PickVertex {
     }
 }
 
+#[derive(Event)]
+pub struct HoverVertex {
+    pub entity: Entity
+}
+impl  From<ListenerInput<Pointer<Over>>> for HoverVertex {
+    fn from(event: ListenerInput<Pointer<Over>>) -> Self {
+        HoverVertex{entity: event.target}
+    }
+}
+
+
+#[derive(Event)]
+pub struct DehoverVertex {
+    pub entity: Entity
+}
+impl  From<ListenerInput<Pointer<Out>>> for DehoverVertex {
+    fn from(event: ListenerInput<Pointer<Out>>) -> Self {
+        DehoverVertex{entity: event.target}
+    }
+}
+
+
 #[derive(Resource)]
 pub struct VertexRefs {
     pub mesh:           Handle<Mesh>,
@@ -299,6 +346,9 @@ pub struct RefVertex;
 #[derive(Component)]
 pub struct PickedVertex;
 
+#[derive(Component)]
+pub struct HoveredVertex;
+
 #[derive(Component, Serialize, Deserialize, Copy, Clone)]
 pub struct Vertex {
     pub index: usize,
@@ -345,6 +395,8 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     On::<Pointer<Down>>::send_event::<PickVertex>(),
+                                    On::<Pointer<Over>>::send_event::<HoverVertex>(),
+                                    On::<Pointer<Out>>::send_event::<DehoverVertex>(),
                                 )).id();
 
         commands.entity(entity).insert(Visibility::Hidden);

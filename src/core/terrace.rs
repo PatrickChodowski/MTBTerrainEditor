@@ -1,9 +1,10 @@
 
 use bevy_egui::egui::{Ui, DragValue};
 use bevy::prelude::ResMut;
+use serde::{Serialize, Deserialize};
 use crate::editor::mtb_ui::ModResources;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Terrace {
   pub from:   f32,
   pub to:     f32,

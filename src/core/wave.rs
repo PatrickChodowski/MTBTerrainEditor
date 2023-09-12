@@ -1,10 +1,11 @@
 use bevy_egui::{egui, egui::Ui};
 use bevy::prelude::ResMut;
+use serde::{Serialize, Deserialize};
 use crate::core::easings::Easings;
 use crate::editor::mtb_ui::ModResources;
 use super::noises::{Noise, NoiseFunction, Noises};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wave {
     pub noise:     Noise,
     pub scale_x:   f32,

@@ -38,7 +38,6 @@ fn select(box_select:      Query<&Transform, With<BoxSelect>>,
             let tr = gtr.translation(); 
             if tr.x >= aabb[0] && tr.x <= aabb[1] && tr.z >= aabb[2] && tr.z <= aabb[3] {
                 picked.0 = true;
-                info!("box select picked");
             } else {
               if !keys.pressed(KeyCode::ShiftLeft) {
                 picked.0 = false;

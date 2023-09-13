@@ -29,17 +29,16 @@ impl Plugin for BrushPlugin {
     }
 }
 
-fn select(mut commands:      Commands,
-          brush_settings:    Res<BrushSettings>,
+fn select(brush_settings:    Res<BrushSettings>,
           brush_select:      Query<(&Transform, &Brush)>,
-          vertex:            Query<(Entity, &GlobalTransform), With<Vertex>>
+          mut vertex:        Query<(&GlobalTransform, &mut PickedVertex), With<Vertex>>
 ){
     if let Ok((brt, _br)) = brush_select.get_single(){
-        for (entity, gtr) in vertex.iter() {
+        for (gtr, mut picked) in vertex.iter_mut() {
             // get translation
             let tr = gtr.translation();
             if get_distance_euclidean(&(brt.translation.x, brt.translation.z), &(tr.x, tr.z)) <= brush_settings.radius {
-                commands.entity(entity).insert(PickedVertex);
+                picked.0 = true;
             } 
         }
     }

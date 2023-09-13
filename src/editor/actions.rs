@@ -58,8 +58,7 @@ pub fn save_state(mut apply_mod:      EventReader<ApplyModifierEvent>,
 
 // it doesnt undo actions, it just says undo
 pub fn undo(mut scene_states:   ResMut<SceneStates>,
-            mut commands:       Commands,
-            mut vertex:         Query<(Entity, &mut Transform, &mut Vertex)>){
+            mut vertex:         Query<(Entity, &mut Transform, &mut Vertex, &mut PickedVertex)>){
 
     info!("scene_states index: {}", scene_states.index);
 
@@ -70,18 +69,12 @@ pub fn undo(mut scene_states:   ResMut<SceneStates>,
 
         let ss: &SceneState = &scene_states.data[scene_states.index as usize];    
 
-        for (entity, mut transform, mut vertex) in vertex.iter_mut(){
+        for (entity, mut transform, mut vertex, mut picked) in vertex.iter_mut(){
             if let Some((old_transform, old_vertex, old_picked_vertex)) = ss.vertex_entities.get(&entity){
 
                 *transform = *old_transform;
                 *vertex = *old_vertex;
-                
-                if *old_picked_vertex {
-                    commands.entity(entity).insert(PickedVertex);
-                } else {
-                    commands.entity(entity).remove::<PickedVertex>();
-                }
-
+                picked.0 = *old_picked_vertex;
             }
         }
 

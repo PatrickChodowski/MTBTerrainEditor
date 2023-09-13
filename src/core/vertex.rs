@@ -1,4 +1,4 @@
-use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues};
+use bevy::{prelude::*, input::common_conditions::{input_pressed, input_just_pressed}, render::mesh::VertexAttributeValues, pbr::NotShadowReceiver};
 use bevy::pbr::NotShadowCaster;
 use bevy_mod_picking::prelude::*;
 use serde::{Serialize, Deserialize};
@@ -22,16 +22,19 @@ impl Plugin for VertexPlugin {
         .add_systems(Update, dehover_vertex.run_if(on_event::<DehoverVertex>()))
         .add_systems(Update, pick_vertex.run_if(on_event::<PickVertex>().and_then(in_state(AppState::Edit))).after(hover_vertex))
 
-
         .add_systems(PreUpdate, clear.run_if(input_just_pressed(MouseButton::Right)).run_if(in_state(AppState::Edit)))
+
         .add_systems(PostUpdate, highlight_picked.after(pick_vertex).run_if(in_state(AppState::Edit)))
+
         .add_systems(Update, drag.run_if(input_pressed(MouseButton::Left)
                                  .and_then(in_state(PickerState::Point))
                                  .and_then(in_state(AppState::Edit))
                                 ).after(hover_check))
         .add_systems(Update, apply_modifiers.run_if(in_state(AppState::Edit)).after(save_state))
         .add_systems(PostUpdate, vertex_update_transform.after(drag).after(apply_modifiers).run_if(in_state(AppState::Edit)))
+
         .add_systems(PostUpdate, vertex_update_vertex.after(apply_modifiers).run_if(in_state(AppState::Edit)))
+
         .add_systems(OnExit(AppState::Edit), deselect_vertex)
         .add_systems(PostUpdate, select_all.run_if(in_state(AppState::Edit).and_then(on_event::<DoubleClick>())))
         .add_systems(Update, update_scale.run_if(is_settings_changed))
@@ -75,7 +78,7 @@ pub fn update_scale(settings:    Res<GlobalSettings>,
 pub fn apply_modifiers(
     mut apply_mod:      EventReader<ApplyModifierEvent>,
     mod_res:            Res<ModResources>,
-    mut picked_vertex:  Query<(&mut Transform, &mut Vertex), With<PickedVertex>>
+    mut picked_vertex:  Query<(&mut Transform, &mut Vertex, &PickedVertex)>
 ) {
 
     for ev in apply_mod.iter(){
@@ -83,7 +86,11 @@ pub fn apply_modifiers(
         let nfn = mod_res.noise.set();
         let wnfn = mod_res.wave.noise.set();
 
-        for (mut tr, mut v) in picked_vertex.iter_mut(){
+        for (mut tr, mut v, picked) in picked_vertex.iter_mut(){
+
+            if !picked.0 {
+                continue; // not picked
+            } 
 
             match ev.mod_type {
                 ModifierState::Color => {
@@ -135,16 +142,15 @@ pub fn apply_modifiers(
 }
 
 
-fn select_all(mut commands:      Commands,
-              hover_data:        Res<HoverData>,
+fn select_all(hover_data:        Res<HoverData>,
               planes:            Query<&Children, With<TerrainPlane>>,
-              vertex:            Query<Entity, With<Vertex>>
+              mut vertex:        Query<&mut PickedVertex, With<Vertex>>
 ){
     if let Hoverables::Entity(entity) = hover_data.hoverable {
         if let Ok(plane_children) = planes.get(entity) {
             for child in plane_children.iter(){
-                if let Ok(v_entity) = vertex.get(*child){
-                    commands.entity(v_entity).insert(PickedVertex);
+                if let Ok(mut picked_vertex) = vertex.get_mut(*child){
+                    picked_vertex.0 = true;
                 } 
             }
         }
@@ -154,15 +160,14 @@ fn select_all(mut commands:      Commands,
 
 
 // Click on grid in edit mode
-fn clear(mut commands: Commands,
-         picked_vertex: Query<Entity, With<PickedVertex>>){
-    for v in picked_vertex.iter(){
-      commands.entity(v).remove::<PickedVertex>();
+fn clear(mut vertex: Query<&mut PickedVertex>){
+    for mut v in vertex.iter_mut(){
+      v.0 = false;
     }
 }
 
 
-pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>, 
+pub fn drag(mut picked_vertex: Query<(&mut Transform, &PickedVertex)>, 
             mod_res:           Res<ModResources>,
             hover_data:        Res<HoverData>){
 
@@ -173,9 +178,11 @@ pub fn drag(mut picked_vertex: Query<&mut Transform, With<PickedVertex>>,
     let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
     let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
 
-    for mut tr in picked_vertex.iter_mut(){
-        tr.translation.x += delta_x;
-        tr.translation.z += delta_y;
+    for (mut tr, picked) in picked_vertex.iter_mut(){
+        if picked.0 {
+            tr.translation.x += delta_x;
+            tr.translation.z += delta_y; 
+        }
     }
 
 }
@@ -198,12 +205,16 @@ pub fn vertex_update_transform(mut vertex: Query<(&Transform, &mut Vertex, &Pare
     }
 }
 
-pub fn vertex_update_vertex(vertex: Query<(&Parent, &mut Vertex), Changed<Vertex>>,
-                            planes: Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,
-                            mut meshes: ResMut<Assets<Mesh>>
+pub fn vertex_update_vertex(changed_vertex: Query<(&Parent, &mut Vertex), Changed<Vertex>>,
+                            planes:         Query<(Entity, &Handle<Mesh>), With<TerrainPlane>>,
+                            mut meshes:     ResMut<Assets<Mesh>>
 ){
-    for (plane_entity, handle_plane_mesh) in planes.iter(){
 
+    if changed_vertex.is_empty(){
+        return; // no changes
+    }
+
+    for (plane_entity, handle_plane_mesh) in planes.iter(){
         let mut v_clr: Option<Vec<[f32;4]>> = None;
         #[allow(unused_assignments)]
         let mut v_pos: Option<Vec<[f32; 3]>> = None;
@@ -219,7 +230,7 @@ pub fn vertex_update_vertex(vertex: Query<(&Parent, &mut Vertex), Changed<Vertex
                 v_clr = Some(vec![[1.0, 1.0, 1.0, 1.0]; v_pos.as_ref().unwrap().len()]);
             }
 
-            for (parent, vertex) in vertex.iter() {
+            for (parent, vertex) in changed_vertex.iter() {
                 if plane_entity == parent.get() {
                     v_pos.as_mut().unwrap()[vertex.index] = vertex.loc;
                     v_clr.as_mut().unwrap()[vertex.index] = vertex.clr;
@@ -305,30 +316,32 @@ pub fn setup(mut commands:     Commands,
 
 }
 
-pub fn pick_vertex(mut commands:          Commands,
-                   mut pick_vertex_event: EventReader<PickVertex>,
+pub fn pick_vertex(mut pick_vertex_event: EventReader<PickVertex>,
                    keys:                  Res<Input<KeyCode>>,
-                   vertex:                Query<Entity, With<PickedVertex>>){
+                   mut vertex:            Query<(Entity, &mut PickedVertex), With<Vertex>>){
     for ev in pick_vertex_event.iter(){
-        commands.entity(ev.entity).insert(PickedVertex);
-        if !keys.pressed(KeyCode::ShiftLeft) {
-            for entity in vertex.iter(){
-                if entity != ev.entity {
-                    commands.entity(entity).remove::<PickedVertex>(); 
+
+        if let Ok((_entity, mut picked_vertex)) = vertex.get_mut(ev.entity){
+            picked_vertex.0 = true;
+            if !keys.pressed(KeyCode::ShiftLeft) {
+                for (entity, mut picked_vertex) in vertex.iter_mut(){
+                    if entity != ev.entity {
+                        picked_vertex.0 = false;
+                    }
                 }
             }
         }
     }
 }
 
-
+// it does it all the time in edit
 pub fn highlight_picked(
     mut commands:          Commands,
-    mut vertex:            Query<(Entity, Option<&PickedVertex>), With<Vertex>>, 
+    vertex:                Query<(Entity, &PickedVertex), Changed<PickedVertex>>, 
     refs:                  Res<VertexRefs>){
 
-    for (entity, picked) in vertex.iter_mut(){
-        if picked.is_some(){
+    for (entity, picked) in vertex.iter(){
+        if picked.0 {
             commands.entity(entity).insert(refs.picked_mat.clone_weak());
         } else {
             commands.entity(entity).insert(refs.mat.clone_weak());
@@ -344,7 +357,7 @@ pub fn highlight_picked(
 pub struct RefVertex;
 
 #[derive(Component)]
-pub struct PickedVertex;
+pub struct PickedVertex(pub bool);
 
 #[derive(Component)]
 pub struct HoveredVertex;
@@ -369,6 +382,7 @@ pub fn spawn_vertex(plane_entity: &Entity,
                     settings:     &Res<GlobalSettings>
                 ){
 
+    info!("SPAWN VERTEX");
     let plane_mesh = meshes.get_mut(handle_mesh).unwrap();
 
     let v_pos: Vec<[f32; 3]> = plane_mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap().as_float3().unwrap().to_vec();
@@ -391,7 +405,9 @@ pub fn spawn_vertex(plane_entity: &Entity,
                                                          .with_scale(Vec3::splat(settings.vertex_radius)),
                                     ..default()}, 
                                     Vertex::new(index, pos, &v_clr[index]),
+                                    PickedVertex(false),
                                     NotShadowCaster,
+                                    NotShadowReceiver,
                                     PickableBundle::default(),
                                     RaycastPickTarget::default(),
                                     On::<Pointer<Down>>::send_event::<PickVertex>(),
@@ -409,11 +425,11 @@ pub fn spawn_vertex(plane_entity: &Entity,
 }
 
 pub fn deselect_vertex(mut commands:    Commands,
-                       picked_vertex:   Query<Entity, With<PickedVertex>>,
+                       mut vertex:      Query<(Entity, &mut PickedVertex)>,
                        refs:            Res<VertexRefs>
                     ){
-    for v in picked_vertex.iter(){
-        commands.entity(v).remove::<PickedVertex>();
-        commands.entity(v).insert(refs.mat.clone_weak());
+    for (entity, mut picked) in vertex.iter_mut(){
+        picked.0 = false;
+        commands.entity(entity).insert(refs.mat.clone_weak());
     }
 }

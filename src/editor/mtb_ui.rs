@@ -45,7 +45,7 @@ impl Plugin for MTBUIPlugin {
         .add_systems(Startup, setup)
         .add_systems(PreUpdate, input_apply_modifier.run_if(input_just_pressed(KeyCode::Return)
                                                     .and_then(in_state(AppState::Edit))))
-        // .add_systems(PreUpdate, input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
+        // .add_systems(PreUpdate, _input_spawn_plane.run_if(input_just_pressed(KeyCode::Return)
         //                                          .and_then(in_state(AppState::Object))))
 
         .add_systems(PreUpdate, change_picker.run_if(input_pressed(KeyCode::AltLeft)
@@ -276,7 +276,7 @@ fn update_egui_editor(mut contexts:              EguiContexts,
     .width();
 }
 
-fn input_spawn_plane(plane_data:       Res<PlaneData>,
+fn _input_spawn_plane(plane_data:       Res<PlaneData>,
                      mut spawn_plane:  EventWriter<SpawnNewPlaneEvent>,){
 
   spawn_plane.send(SpawnNewPlaneEvent{pd: plane_data.clone()});

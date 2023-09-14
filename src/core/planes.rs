@@ -84,9 +84,11 @@ impl Plugin for PlanesPlugin {
 
 
   pub fn drop_plane(mut commands: Commands, 
-                    planes:       Query<Entity, With<PickedPlane>>) {
-    for entity in planes.iter(){
-        commands.entity(entity).despawn_recursive();
+                    planes:       Query<(Entity, &PickedPlane)>) {
+    for (entity, picked) in planes.iter(){
+        if picked.0 {
+            commands.entity(entity).despawn_recursive();
+        }
     }
   }
 
@@ -112,31 +114,33 @@ impl Plugin for PlanesPlugin {
   }
 
 #[derive(Component)]
-pub struct PickedPlane;
+pub struct PickedPlane(pub bool);
 
 // Click on grid in edit mode
-fn clear(mut commands: Commands,
-         picked_plane: Query<Entity, With<PickedPlane>>){
-    for v in picked_plane.iter(){
-      commands.entity(v).remove::<PickedPlane>();
+fn clear(mut planes: Query<&mut PickedPlane>){
+    for mut picked in planes.iter_mut(){
+        picked.0 = true;
     }
 }
 
 
-pub fn pick_plane(mut commands:            Commands,
-                  mut pick_plane_event:    EventReader<PickPlane>){
+pub fn pick_plane(mut pick_plane_event:    EventReader<PickPlane>,
+                  mut planes:              Query<&mut PickedPlane>){
     for ev in pick_plane_event.iter(){
-        commands.entity(ev.entity).insert(PickedPlane);
+        if let Ok(mut picked) = planes.get_mut(ev.entity){
+            picked.0 = true;
+        }
     }
 }
 
+// it shouldnt work all the time
 pub fn highlight_picked_plane(
     mut materials:         ResMut<Assets<StandardMaterial>>,
-    planes:                Query<(&mut Handle<StandardMaterial>, Option<&PickedPlane>), With<TerrainPlane>>){
-
+    planes:                Query<(&mut Handle<StandardMaterial>, &PickedPlane), Changed<PickedPlane>>){
+    
     for (handle_mat, picked) in planes.iter(){
         if let Some(mat) = materials.get_mut(handle_mat){
-            if picked.is_some(){
+            if picked.0 {
                 mat.base_color.set_g(0.4);
                 mat.base_color.set_b(0.4);
             } else {
@@ -204,6 +208,7 @@ impl PlaneData {
             transform: Transform::from_translation(self.loc.into()),
             ..default()
             },
+            PickedPlane(false),
             TerrainPlane,
             PlaneEdit(false),
             PickableBundle::default(),
@@ -294,32 +299,36 @@ impl From<RectPlane> for Mesh {
     }
 }
 
-pub fn deselect_plane(mut commands: Commands,
-                      mut materials: ResMut<Assets<StandardMaterial>>,
-                      picked_plane:  Query<(Entity, &mut Handle<StandardMaterial>), With<PickedPlane>>){
-    for (entity, handle_mat) in picked_plane.iter(){
-        commands.entity(entity).remove::<PickedPlane>();
-        if let Some(mat) = materials.get_mut(handle_mat){
-            mat.base_color.set_g(1.0);
-            mat.base_color.set_b(1.0);
+pub fn deselect_plane(mut materials:    ResMut<Assets<StandardMaterial>>,
+                      mut planes:       Query<(&mut Handle<StandardMaterial>, &mut PickedPlane)>){
+    for (handle_mat, mut picked) in planes.iter_mut(){
+        if picked.0 {
+            picked.0 = false;
+            if let Some(mat) = materials.get_mut(&handle_mat){
+                mat.base_color.set_g(1.0);
+                mat.base_color.set_b(1.0);
+            }
+
         }
     }
 }
 
-pub fn drag(mut picked_plane:  Query<(&mut Transform, &mut AABB, &mut PlaneData), With<PickedPlane>>, 
+pub fn drag(mut picked_plane:  Query<(&mut Transform, &mut AABB, &mut PlaneData, &PickedPlane)>, 
             hover_data:        Res<HoverData>){
 
     let delta_x = hover_data.hovered_xz.0 - hover_data.old_hovered_xz.0;
     let delta_y = hover_data.hovered_xz.1 - hover_data.old_hovered_xz.1;
 
-    for (mut tr, mut aabb, mut pd)  in picked_plane.iter_mut(){
-        tr.translation.x += delta_x;
-        tr.translation.z += delta_y;
-
-        pd.loc[0] = tr.translation.x;
-        pd.loc[2] = tr.translation.z;
-
-        *aabb = pd.get_aabb();
+    for (mut tr, mut aabb, mut pd, picked)  in picked_plane.iter_mut(){
+        if picked.0 {
+            tr.translation.x += delta_x;
+            tr.translation.z += delta_y;
+    
+            pd.loc[0] = tr.translation.x;
+            pd.loc[2] = tr.translation.z;
+    
+            *aabb = pd.get_aabb();
+        }
     }
 
 }

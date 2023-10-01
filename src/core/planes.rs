@@ -116,10 +116,10 @@ impl Plugin for PlanesPlugin {
 #[derive(Component)]
 pub struct PickedPlane(pub bool);
 
-// Click on grid in edit mode
+// Click on grid in object mode
 fn clear(mut planes: Query<&mut PickedPlane>){
     for mut picked in planes.iter_mut(){
-        picked.0 = true;
+        picked.0 = false;
     }
 }
 
